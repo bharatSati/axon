@@ -180,12 +180,6 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   const [systemStatusList, setSystemStatusList] = useState(SYSTEM_STATUS_INIT);
   const [memoryUsage, setMemoryUsage] = useState({ used: 418, total: 1024 });
 
-  // Memoized syntax-highlighted lines of the active file for 60FPS fluid scrolling
-  const highlightedLines = useMemo(() => {
-    if (!activeFile?.content) return [];
-    return activeFile.content.split("\n").map((line) => highlightSyntax(line));
-  }, [activeFile?.content]);
-
   // Digital Clock Live Stream
   useEffect(() => {
     const updateTime = () => {
@@ -336,6 +330,12 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   }, [workspace?.id, workspace?.repository?.name]);
 
   const activeFile = files.find((f) => f.path === selectedFilePath) || files[0];
+
+  // Memoized syntax-highlighted lines of the active file for 60FPS fluid scrolling
+  const highlightedLines = useMemo(() => {
+    if (!activeFile?.content) return [];
+    return activeFile.content.split("\n").map((line) => highlightSyntax(line));
+  }, [activeFile?.content]);
 
   // Auto-fetch file content if currently active file has no content loaded
   useEffect(() => {
