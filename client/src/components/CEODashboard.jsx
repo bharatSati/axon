@@ -66,6 +66,105 @@ const ROLES_LIST = [
   { id: "marketer", name: "Marketer", department: "Marketing", color: "#f59e0b", level: "Growth & Marketing" }
 ];
 
+// Role-Based Access Control (RBAC) & Feature Permissions
+export const ROLE_DEFINITIONS = {
+  ceo: {
+    id: "ceo",
+    title: "Chief Executive Officer",
+    badgeLabel: "CEO / OWNER",
+    department: "Executive Leadership",
+    color: "#c8ff3d",
+    icon: ShieldCheck,
+    description: "Full governance, all studios unlocked, workspace settings & team access control.",
+    allowedFeatures: [
+      "overview",
+      "developer",
+      "tester",
+      "marketer",
+      "timemachine",
+      "flowchart",
+      "pr-review",
+      "team",
+      "all-workspaces"
+    ]
+  },
+  developer: {
+    id: "developer",
+    title: "Software Engineer",
+    badgeLabel: "DEVELOPER",
+    department: "Engineering",
+    color: "#61dafb",
+    icon: Code2,
+    description: "Code inspection, RAG Project Brain, PR reviews, time machine evolution, and architecture diagrams.",
+    allowedFeatures: [
+      "overview",
+      "developer",
+      "pr-review",
+      "timemachine",
+      "flowchart",
+      "tester"
+    ]
+  },
+  tester: {
+    id: "tester",
+    title: "QA Automation Engineer",
+    badgeLabel: "TESTER QA",
+    department: "Quality Assurance",
+    color: "#10b981",
+    icon: TestTube,
+    description: "Automated test suites, edge case verification, PR regression analysis, and testing flowcharts.",
+    allowedFeatures: [
+      "overview",
+      "tester",
+      "pr-review",
+      "flowchart",
+      "timemachine"
+    ]
+  },
+  marketer: {
+    id: "marketer",
+    title: "Growth & Product Marketer",
+    badgeLabel: "MARKETER",
+    department: "Growth & Marketing",
+    color: "#f59e0b",
+    icon: Megaphone,
+    description: "Product positioning, launch campaigns, customer journey flowcharts, and release tracking.",
+    allowedFeatures: [
+      "overview",
+      "marketer",
+      "flowchart",
+      "timemachine"
+    ]
+  }
+};
+
+const ALL_SIDEBAR_ITEMS = [
+  {
+    group: "CORE COMMAND",
+    items: [
+      { id: "overview", label: "Workspace Command", icon: Layers, color: "#c8ff3d" }
+    ]
+  },
+  {
+    group: "ROLE STUDIOS",
+    items: [
+      { id: "developer", label: "Developer Studio", icon: Code2, color: "#61dafb" },
+      { id: "pr-review", label: "AI PR Reviewer", icon: GitPullRequest, color: "#c084fc" },
+      { id: "tester", label: "Tester QA Lab", icon: TestTube, color: "#10b981" },
+      { id: "timemachine", label: "Time Machine", icon: History, color: "#a855f7" },
+      { id: "flowchart", label: "Flowchart Studio", icon: Palette, color: "#c8ff3d" },
+      { id: "marketer", label: "Marketer Deck", icon: Megaphone, color: "#f59e0b" }
+    ]
+  },
+  {
+    group: "GOVERNANCE & ADMIN",
+    items: [
+      { id: "team", label: "Team & Roles", icon: Users, color: "#c8ff3d" },
+      { id: "all-workspaces", label: "All Workspaces", icon: Building, color: "#c8ff3d" }
+    ]
+  }
+];
+
 export default function CEODashboard() {
   const { user, token, logout, setCurrentView } = useAuth();
 
@@ -73,6 +172,7 @@ export default function CEODashboard() {
   const [perspective, setPerspective] = useState("developer"); // "developer" | "ceo" | "tester" | "marketer"
   const [activeTab, setActiveTab] = useState("dedicated"); // "dedicated" | "all-workspaces" | "team"
   const [feedbackMsg, setFeedbackMsg] = useState("");
+  const [simulatedRole, setSimulatedRole] = useState(null); // CEO can simulate other roles
 
   // Workspaces State
   const [workspaces, setWorkspaces] = useState([]);
@@ -535,8 +635,82 @@ export default function CEODashboard() {
     techStack: []
   };
 
+  // Role Detection & Simulation
+  const currentWorkspaceMember = (workspaceMembers || []).find(
+    (m) =>
+      (user?.username && m.githubUsername?.toLowerCase() === user.username.toLowerCase()) ||
+      (user?.id && m.userId === user.id)
+  );
+
+  const isActualCEO =
+    user?.role?.toUpperCase() === "CEO" ||
+    activeWorkspace?.ownerId === user?.id ||
+    activeWorkspace?.ownerId === user?.username ||
+    currentWorkspaceMember?.role?.toLowerCase() === "ceo";
+
+  const actualRole = isActualCEO ? "ceo" : (currentWorkspaceMember?.role?.toLowerCase() || "developer");
+  const effectiveRole = isActualCEO && simulatedRole ? simulatedRole : actualRole;
+  const roleConfig = ROLE_DEFINITIONS[effectiveRole] || ROLE_DEFINITIONS.developer;
+  const RoleIcon = roleConfig.icon;
+
+  const activeFeatureId =
+    perspective === "developer"
+      ? "developer"
+      : perspective === "tester"
+      ? "tester"
+      : perspective === "marketer"
+      ? "marketer"
+      : perspective === "timemachine"
+      ? "timemachine"
+      : perspective === "flowchart"
+      ? "flowchart"
+      : perspective === "pr-review"
+      ? "pr-review"
+      : activeTab === "team"
+      ? "team"
+      : activeTab === "all-workspaces"
+      ? "all-workspaces"
+      : "overview";
+
+  const handleSelectFeature = (featureId) => {
+    if (featureId === "overview") {
+      setPerspective("ceo");
+      setActiveTab("dedicated");
+    } else if (featureId === "team") {
+      setPerspective("ceo");
+      setActiveTab("team");
+    } else if (featureId === "all-workspaces") {
+      setPerspective("ceo");
+      setActiveTab("all-workspaces");
+    } else {
+      setPerspective(featureId);
+      setActiveTab("dedicated");
+    }
+  };
+
+  // Guard: Ensure active feature is allowed for effectiveRole
+  useEffect(() => {
+    const allowed = roleConfig.allowedFeatures || ["overview"];
+    if (!allowed.includes(activeFeatureId)) {
+      handleSelectFeature(allowed[0] || "overview");
+    }
+  }, [effectiveRole, activeFeatureId]);
+
+  const filteredSidebarGroups = ALL_SIDEBAR_ITEMS.map((g) => ({
+    ...g,
+    items: g.items.filter((item) => roleConfig.allowedFeatures.includes(item.id))
+  })).filter((g) => g.items.length > 0);
+
+  const getFeatureTitle = (id) => {
+    for (const group of ALL_SIDEBAR_ITEMS) {
+      const item = group.items.find((i) => i.id === id);
+      if (item) return item.label;
+    }
+    return "Workspace Command";
+  };
+
   return (
-    <div className="ceo-dashboard">
+    <div className="axon-layout">
       {/* Toast Notification */}
       <AnimatePresence>
         {feedbackMsg && (
@@ -552,103 +726,76 @@ export default function CEODashboard() {
         )}
       </AnimatePresence>
 
-      {/* Top Floating Navigation Bar - Synchronized with Landing Page Navbar */}
-      <header className="navbar is-scrolled">
-        <div className="navbar-inner container-wide">
-          <Brand onClick={() => setCurrentView("landing")} />
+      {/* ============================================================
+          SIDEBAR NAVIGATION (ROLE-BASED RBAC)
+          ============================================================ */}
+      <aside className="axon-sidebar">
+        {/* Sidebar Brand & Workspace Switcher Header */}
+        <div className="sidebar-header">
+          <div className="sidebar-brand-row">
+            <Brand onClick={() => setCurrentView("landing")} />
+          </div>
 
-          {/* Center Navigation Tabs styled with .nav-links */}
-          <nav className="nav-links" aria-label="Role perspective navigation">
+          {/* Workspace Switcher Selector */}
+          <div className="ws-switcher-wrap" style={{ position: "relative" }}>
             <button
               type="button"
-              className={`nav-tab-btn ${perspective === "developer" ? "is-active" : ""}`}
-              onClick={() => setPerspective("developer")}
+              className="sidebar-ws-selector"
+              onClick={() => setIsWorkspaceSwitcherOpen((prev) => !prev)}
+              title="Switch active workspace"
             >
-              Developer Studio
+              <div className="sidebar-ws-meta">
+                <span className="sidebar-ws-name">{activeWorkspace?.name || "Select Workspace"}</span>
+                <span className="sidebar-ws-repo">
+                  <FolderGit2 size={11} color={activeWorkspace?.repository ? "#c8ff3d" : "#f59e0b"} />
+                  <span>{activeWorkspace?.repository ? activeWorkspace.repository.name : "No repo connected"}</span>
+                </span>
+              </div>
+              <ChevronDown
+                size={13}
+                className={`ws-switcher-chevron ${isWorkspaceSwitcherOpen ? "is-open" : ""}`}
+              />
             </button>
-            <button
-              type="button"
-              className={`nav-tab-btn ${perspective === "ceo" ? "is-active" : ""}`}
-              onClick={() => setPerspective("ceo")}
-            >
-              CEO Console
-            </button>
-            <button
-              type="button"
-              className={`nav-tab-btn ${perspective === "tester" ? "is-active" : ""}`}
-              onClick={() => setPerspective("tester")}
-            >
-              Tester Lab
-            </button>
-            <button
-              type="button"
-              className={`nav-tab-btn ${perspective === "marketer" ? "is-active" : ""}`}
-              onClick={() => setPerspective("marketer")}
-            >
-              Marketer Deck
-            </button>
-          </nav>
 
-          {/* Right Navigation Actions */}
-          <div className="nav-actions">
-            {/* Workspace Switcher Dropdown Pill */}
-            <div className="ws-switcher-wrap">
-              <button
-                type="button"
-                className="ws-nav-pill"
-                onClick={() => setIsWorkspaceSwitcherOpen((prev) => !prev)}
-                title="Switch active workspace"
-              >
-                <Layers size={13} color="#c8ff3d" />
-                <span className="ws-pill-name">{activeWorkspace?.name || "Select Workspace"}</span>
-                {activeWorkspace?.repository ? (
-                  <span className="ws-pill-badge">{activeWorkspace.repository.name}</span>
-                ) : (
-                  <span className="ws-pill-badge" style={{ color: "#f59e0b" }}>No Repo</span>
-                )}
-                <ChevronDown
-                  size={12}
-                  className={`ws-switcher-chevron ${isWorkspaceSwitcherOpen ? "is-open" : ""}`}
-                />
-              </button>
+            {/* Popover */}
+            <AnimatePresence>
+              {isWorkspaceSwitcherOpen && (
+                <motion.div
+                  className="ws-dropdown-popover"
+                  style={{ top: "100%", left: 0, width: "100%", zIndex: 120 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                >
+                  <div className="ws-dropdown-header">
+                    <span>SWITCH WORKSPACE</span>
+                    <span>{workspaces.length} TOTAL</span>
+                  </div>
 
-              {/* Dropdown Popover */}
-              <AnimatePresence>
-                {isWorkspaceSwitcherOpen && (
-                  <motion.div
-                    className="ws-dropdown-popover"
-                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                  >
-                    <div className="ws-dropdown-header">
-                      <span>SWITCH WORKSPACE</span>
-                      <span>{workspaces.length} TOTAL</span>
-                    </div>
+                  <div className="ws-dropdown-list">
+                    {workspaces.map((ws) => {
+                      const isSelected = ws.id === activeWorkspaceId;
+                      return (
+                        <button
+                          type="button"
+                          key={ws.id}
+                          className={`ws-dropdown-item ${isSelected ? "is-selected" : ""}`}
+                          onClick={() => handleSelectWorkspace(ws.id)}
+                        >
+                          <div className="ws-item-left">
+                            <span className="ws-item-name">{ws.name}</span>
+                            <span className="ws-item-repo">
+                              <FolderGit2 size={11} />
+                              {ws.repository ? ws.repository.name : "No repo connected"}
+                            </span>
+                          </div>
+                          {isSelected && <Check size={14} color="#c8ff3d" />}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                    <div className="ws-dropdown-list">
-                      {workspaces.map((ws) => {
-                        const isSelected = ws.id === activeWorkspaceId;
-                        return (
-                          <button
-                            type="button"
-                            key={ws.id}
-                            className={`ws-dropdown-item ${isSelected ? "is-selected" : ""}`}
-                            onClick={() => handleSelectWorkspace(ws.id)}
-                          >
-                            <div className="ws-item-left">
-                              <span className="ws-item-name">{ws.name}</span>
-                              <span className="ws-item-repo">
-                                <FolderGit2 size={11} />
-                                {ws.repository ? ws.repository.fullName || ws.repository.name : "No repository connected"}
-                              </span>
-                            </div>
-                            {isSelected && <Check size={14} color="#c8ff3d" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-
+                  {isActualCEO && (
                     <div className="ws-dropdown-footer">
                       <button
                         type="button"
@@ -658,38 +805,174 @@ export default function CEODashboard() {
                         <Plus size={14} />
                         <span>Create New Workspace</span>
                       </button>
-                      <button
-                        type="button"
-                        className="ws-footer-action"
-                        style={{ color: "#999" }}
-                        onClick={() => {
-                          setIsWorkspaceSwitcherOpen(false);
-                          setActiveTab("all-workspaces");
-                        }}
-                      >
-                        <Building size={14} />
-                        <span>Manage All Workspaces</span>
-                      </button>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
 
-            {/* Back to Landing Page Button */}
+        {/* Profile Card with USER ROLE Display */}
+        <div className="sidebar-profile-card">
+          <div className="profile-card-top">
+            <img
+              src={
+                user?.avatar ||
+                (user?.username
+                  ? `https://avatars.githubusercontent.com/${user.username}`
+                  : "https://avatars.githubusercontent.com/ghost")
+              }
+              alt={user?.name || user?.username || "User"}
+              className="profile-card-avatar"
+            />
+            <div className="profile-card-user">
+              <span className="profile-card-name">{user?.name || user?.username || "Workspace Member"}</span>
+              <span className="profile-card-handle mono-label">
+                <Github size={10} /> @{user?.username || "authenticated"}
+              </span>
+            </div>
+          </div>
+
+          {/* User Role Badge Display */}
+          <div
+            className="profile-role-badge mono-label"
+            style={{
+              background: `${roleConfig.color}15`,
+              color: roleConfig.color,
+              border: `1px solid ${roleConfig.color}44`
+            }}
+          >
+            <RoleIcon size={12} />
+            <span>{roleConfig.badgeLabel}</span>
+          </div>
+
+          {/* CEO Perspective Simulation Switcher */}
+          {isActualCEO && (
+            <div className="profile-sim-switcher">
+              <span className="sim-label mono-label">CEO ROLE SIMULATION:</span>
+              <select
+                value={simulatedRole || "ceo"}
+                onChange={(e) => setSimulatedRole(e.target.value === "ceo" ? null : e.target.value)}
+                className="sim-select mono-label"
+                title="Simulate how workspace looks for other roles"
+              >
+                <option value="ceo">👑 Full CEO Master Access</option>
+                <option value="developer">💻 Preview as Developer</option>
+                <option value="tester">🧪 Preview as Tester QA</option>
+                <option value="marketer">📈 Preview as Marketer</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar Navigation Items (Role Filtered) */}
+        <nav className="sidebar-nav">
+          {filteredSidebarGroups.map((group) => (
+            <div key={group.group} className="sidebar-nav-group">
+              <span className="sidebar-group-label mono-label">{group.group}</span>
+              {group.items.map((item) => {
+                const ItemIcon = item.icon;
+                const isActive = activeFeatureId === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`sidebar-nav-item ${isActive ? "is-active" : ""}`}
+                    onClick={() => handleSelectFeature(item.id)}
+                  >
+                    <ItemIcon
+                      size={15}
+                      className="nav-icon"
+                      style={{ color: isActive ? "#c8ff3d" : item.color }}
+                    />
+                    <span>{item.label}</span>
+                    {item.id === "team" && pendingInvitations.filter((i) => i.status === "pending").length > 0 && (
+                      <span className="nav-badge mono-label">
+                        {pendingInvitations.filter((i) => i.status === "pending").length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="sidebar-footer">
+          <div className="sidebar-repo-card mono-label">
+            <div className="sidebar-repo-pill">
+              <FolderGit2 size={12} color={activeWorkspace?.repository ? "#c8ff3d" : "#f59e0b"} />
+              <span>{activeWorkspace?.repository?.name || "No Repo"}</span>
+            </div>
+            {isActualCEO && (
+              <button
+                type="button"
+                className="button button--small button--ghost"
+                style={{ padding: "2px 6px", fontSize: "10px" }}
+                onClick={() => setIsConnectRepoModalOpen(true)}
+              >
+                {activeWorkspace?.repository ? "Sync" : "+ Connect"}
+              </button>
+            )}
+          </div>
+
+          <div className="sidebar-foot-actions">
             <button
               type="button"
-              className="nav-signin"
+              className="sidebar-foot-btn mono-label"
               onClick={() => setCurrentView("landing")}
               title="Return to Public Landing Page"
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", background: "none", border: "none" }}
             >
-              <ArrowLeft size={13} />
+              <ArrowLeft size={12} />
               <span>Landing</span>
             </button>
+            <button
+              type="button"
+              className="sidebar-foot-btn sidebar-foot-btn--logout mono-label"
+              onClick={logout}
+              title="Sign Out"
+            >
+              <LogOut size={12} />
+              <span>Exit</span>
+            </button>
+          </div>
+        </div>
+      </aside>
 
-            {/* CEO Profile Pill */}
-            <div className="ceo-profile-pill">
+      {/* ============================================================
+          MAIN WORKSPACE CONTENT CONTAINER
+          ============================================================ */}
+      <div className="axon-main-container">
+        {/* Topbar with Breadcrumb & Quick Profile */}
+        <header className="axon-topbar">
+          <div className="topbar-left">
+            <div className="topbar-breadcrumb mono-label">
+              <span className="topbar-ws-tag">{activeWorkspace?.name || "Workspace"}</span>
+              <span className="topbar-sep">/</span>
+              <span className="topbar-feature-tag">
+                {getFeatureTitle(activeFeatureId)}
+              </span>
+            </div>
+          </div>
+
+          <div className="topbar-right">
+            {/* Role Badge near Profile in Topbar */}
+            <span
+              className="topbar-role-badge mono-label"
+              style={{
+                background: `${roleConfig.color}15`,
+                color: roleConfig.color,
+                border: `1px solid ${roleConfig.color}44`
+              }}
+            >
+              <RoleIcon size={12} />
+              <span>{roleConfig.badgeLabel}</span>
+            </span>
+
+            {/* Profile Avatar & Name */}
+            <div className="topbar-profile-pill">
               <img
                 src={
                   user?.avatar ||
@@ -697,15 +980,10 @@ export default function CEODashboard() {
                     ? `https://avatars.githubusercontent.com/${user.username}`
                     : "https://avatars.githubusercontent.com/ghost")
                 }
-                alt={user?.name || user?.username || "CEO"}
-                className="ceo-avatar"
+                alt="Profile"
+                className="topbar-avatar"
               />
-              <div className="ceo-profile-info">
-                <strong>{user?.name || user?.username || "Workspace Owner"}</strong>
-                <span className="mono-label">
-                  <Github size={11} /> @{user?.username || "authenticated"}
-                </span>
-              </div>
+              <span className="topbar-username">@{user?.username || "user"}</span>
             </div>
 
             <button
@@ -713,203 +991,64 @@ export default function CEODashboard() {
               className="button button--small button--ghost"
               onClick={logout}
               title="Sign Out"
-              style={{ padding: "6px 10px", gap: "5px" }}
+              style={{ padding: "6px 10px" }}
             >
               <LogOut size={13} />
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Dashboard Body */}
-      <main className="ceo-body container-wide">
-        {/* Role Perspective Switcher Bar */}
-        <div className="perspective-strip">
-          <div className="perspective-tabs">
-            <button
-              type="button"
-              className={`perspective-btn perspective-btn--dev ${perspective === "developer" ? "is-active" : ""}`}
-              onClick={() => setPerspective("developer")}
-            >
-              <Code2 size={14} />
-              <span>Developer Studio (IDE)</span>
-            </button>
-            <button
-              type="button"
-              className={`perspective-btn ${perspective === "ceo" ? "is-active" : ""}`}
-              onClick={() => setPerspective("ceo")}
-            >
-              <Layers size={14} />
-              <span>CEO Executive Console</span>
-            </button>
-            <button
-              type="button"
-              className={`perspective-btn perspective-btn--qa ${perspective === "tester" ? "is-active" : ""}`}
-              onClick={() => setPerspective("tester")}
-            >
-              <TestTube size={14} />
-              <span>Tester QA Lab</span>
-            </button>
-            <button
-              type="button"
-              className={`perspective-btn perspective-btn--mkt ${perspective === "marketer" ? "is-active" : ""}`}
-              onClick={() => setPerspective("marketer")}
-            >
-              <Megaphone size={14} />
-              <span>Marketer Growth Deck</span>
-            </button>
-            <button
-              type="button"
-              className={`perspective-btn perspective-btn--tm ${perspective === "timemachine" ? "is-active" : ""}`}
-              onClick={() => setPerspective("timemachine")}
-            >
-              <History size={14} />
-              <span>Time Machine</span>
-            </button>
-            <button
-              type="button"
-              className={`perspective-btn perspective-btn--flow ${perspective === "flowchart" ? "is-active" : ""}`}
-              onClick={() => setPerspective("flowchart")}
-            >
-              <Palette size={14} color="#c8ff3d" />
-              <span>AI Flowcharts</span>
-            </button>
-            <button
-              type="button"
-              className={`perspective-btn perspective-btn--pr ${perspective === "pr-review" ? "is-active" : ""}`}
-              onClick={() => setPerspective("pr-review")}
-            >
-              <GitPullRequest size={14} color="#c084fc" />
-              <span>AI PR Reviewer</span>
-            </button>
-          </div>
+        {/* Viewport for Active Studio / Feature */}
+        <div className="axon-viewport">
+          {activeFeatureId === "developer" && (
+            <DeveloperStudio
+              workspace={activeWorkspace}
+              token={token}
+              onSwitchPerspective={(persp) => handleSelectFeature(persp)}
+              onOpenConnectRepo={() => setIsConnectRepoModalOpen(true)}
+            />
+          )}
 
-          <div className="perspective-meta mono-label">
-            <span className="unlocked-badge mono-label" style={{ color: "#c8ff3d", border: "1px solid rgba(200, 255, 61, 0.3)", padding: "2px 8px", borderRadius: "4px", background: "rgba(200, 255, 61, 0.08)" }}>
-              ALL ROLES UNLOCKED
-            </span>
-            <span style={{ marginLeft: "8px" }}>VIEWPORT:</span>
-            <strong
-              style={{
-                color:
-                  perspective === "developer"
-                    ? "#61dafb"
-                    : perspective === "tester"
-                    ? "#10b981"
-                    : perspective === "marketer"
-                    ? "#f59e0b"
-                    : perspective === "timemachine"
-                    ? "#a855f7"
-                    : perspective === "flowchart"
-                    ? "#c8ff3d"
-                    : "#c8ff3d"
-              }}
-            >
-              {perspective.toUpperCase()}
-            </strong>
-          </div>
-        </div>
+          {activeFeatureId === "tester" && (
+            <TesterLab
+              workspace={activeWorkspace}
+              token={token}
+            />
+          )}
 
-        {/* ============================================================
-            PERSPECTIVE 1: DEVELOPER CODE STUDIO (TECH ROLE)
-            ============================================================ */}
-        {perspective === "developer" && (
-          <DeveloperStudio
-            workspace={activeWorkspace}
-            token={token}
-            onSwitchPerspective={setPerspective}
-            onOpenConnectRepo={() => setIsConnectRepoModalOpen(true)}
-          />
-        )}
+          {activeFeatureId === "marketer" && (
+            <MarketerDeck
+              workspace={activeWorkspace}
+              token={token}
+            />
+          )}
 
-        {/* ============================================================
-            PERSPECTIVE 2: TESTER QA & RELIABILITY LAB
-            ============================================================ */}
-        {perspective === "tester" && (
-          <TesterLab
-            workspace={activeWorkspace}
-            token={token}
-          />
-        )}
+          {activeFeatureId === "timemachine" && (
+            <TimeMachine
+              workspace={activeWorkspace}
+              token={token}
+              onSwitchPerspective={(persp) => handleSelectFeature(persp)}
+            />
+          )}
 
-        {/* ============================================================
-            PERSPECTIVE 3: MARKETER GROWTH & POSITIONING DECK
-            ============================================================ */}
-        {perspective === "marketer" && (
-          <MarketerDeck
-            workspace={activeWorkspace}
-            token={token}
-          />
-        )}
+          {activeFeatureId === "flowchart" && (
+            <FlowchartStudio
+              workspace={activeWorkspace}
+              token={token}
+            />
+          )}
 
-        {/* ============================================================
-            PERSPECTIVE 4: TIME MACHINE & ARCHITECTURAL EVOLUTION
-            ============================================================ */}
-        {perspective === "timemachine" && (
-          <TimeMachine
-            workspace={activeWorkspace}
-            token={token}
-            onSwitchPerspective={setPerspective}
-          />
-        )}
+          {activeFeatureId === "pr-review" && (
+            <PRIntelligenceStudio
+              workspace={activeWorkspace}
+              token={token}
+            />
+          )}
 
-        {/* ============================================================
-            PERSPECTIVE 5: ARCHITECTURAL FLOWCHART STUDIO (MERMAID AI)
-            ============================================================ */}
-        {perspective === "flowchart" && (
-          <FlowchartStudio
-            workspace={activeWorkspace}
-            token={token}
-          />
-        )}
-
-        {/* ============================================================
-            PERSPECTIVE 6: AI PULL REQUEST INTELLIGENCE & CODE REVIEWER
-            ============================================================ */}
-        {perspective === "pr-review" && (
-          <PRIntelligenceStudio
-            workspace={activeWorkspace}
-            token={token}
-          />
-        )}
-
-        {/* ============================================================
-            PERSPECTIVE 7: CEO EXECUTIVE CONSOLE
-            ============================================================ */}
-        {perspective === "ceo" && (
-          <>
-            {/* CEO Navigation Sub-Tabs */}
-            <div className="ceo-subnav-strip">
-              <button
-                type="button"
-                className={`subnav-tab ${activeTab === "dedicated" ? "is-active" : ""}`}
-                onClick={() => setActiveTab("dedicated")}
-              >
-                <Layers size={13} />
-                <span>Workspace Command</span>
-              </button>
-              <button
-                type="button"
-                className={`subnav-tab ${activeTab === "all-workspaces" ? "is-active" : ""}`}
-                onClick={() => setActiveTab("all-workspaces")}
-              >
-                <Building size={13} />
-                <span>All Workspaces ({workspaces.length})</span>
-              </button>
-              <button
-                type="button"
-                className={`subnav-tab ${activeTab === "team" ? "is-active" : ""}`}
-                onClick={() => setActiveTab("team")}
-              >
-                <Users size={13} />
-                <span>Team &amp; Roles ({employees.length})</span>
-              </button>
-            </div>
-
-            {/* ============================================================
-                TAB 1: DEDICATED WORKSPACE DASHBOARD
-                ============================================================ */}
-        {activeTab === "dedicated" && activeWorkspace && (
+          {/* ============================================================
+              VIEW 1: DEDICATED WORKSPACE COMMAND
+              ============================================================ */}
+          {activeFeatureId === "overview" && activeWorkspace && (
           <section className="ws-dedicated-view">
             <SectionHeading
               eyebrow="WORKSPACE COMMAND"
@@ -1311,9 +1450,9 @@ export default function CEODashboard() {
         )}
 
         {/* ============================================================
-            TAB 2: ALL WORKSPACES OVERVIEW
+            VIEW 2: ALL WORKSPACES OVERVIEW
             ============================================================ */}
-        {activeTab === "all-workspaces" && (
+        {activeFeatureId === "all-workspaces" && (
           <section className="all-workspaces-view">
             <SectionHeading
               eyebrow="PROJECT PORTFOLIO"
@@ -1444,9 +1583,9 @@ export default function CEODashboard() {
         )}
 
         {/* ============================================================
-            TAB 3: TEAM & ROLES (Preserved 100%)
+            VIEW 3: TEAM & ROLES (Preserved 100%)
             ============================================================ */}
-        {activeTab === "team" && (
+        {activeFeatureId === "team" && (
           <section className="ceo-team-view">
             <SectionHeading
               eyebrow="ORGANIZATION COMMAND"
@@ -1808,12 +1947,11 @@ export default function CEODashboard() {
             </section>
           </section>
         )}
-          </>
-        )}
-      </main>
+        </div>
 
-      {/* Synchronized Landing Page Footer */}
-      <Footer />
+        {/* Synchronized Landing Page Footer */}
+        <Footer />
+      </div>
 
       {/* Connect Repository Modal */}
       <ConnectRepoModal
