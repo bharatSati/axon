@@ -5363,3 +5363,535 @@
   padding-top: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
+
+/* ========================================================
+   AI ARCHITECTURAL FLOWCHART STUDIO (MERMAID.JS ENGINE)
+   ======================================================== */
+
+.perspective-btn--flow {
+  --tab-glow: rgba(200, 255, 61, 0.4);
+}
+
+.perspective-btn--flow.is-active {
+  background: rgba(200, 255, 61, 0.14) !important;
+  border-color: #c8ff3d !important;
+  color: #c8ff3d !important;
+}
+
+.studio-mode-tab--flow.is-active {
+  background: rgba(200, 255, 61, 0.16);
+  color: #c8ff3d;
+}
+
+.flowchart-studio-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.flowchart-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 32px;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at top right, rgba(200, 255, 61, 0.12), transparent 60%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.03), transparent 40%),
+    rgba(9, 12, 9, 0.92);
+  border: 1px solid rgba(200, 255, 61, 0.28);
+  backdrop-filter: blur(20px);
+}
+
+.flowchart-kicker-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(200, 255, 61, 0.12);
+  border: 1px solid rgba(200, 255, 61, 0.35);
+  color: #c8ff3d;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.flowchart-banner-left h2 {
+  font-size: 25px;
+  margin: 6px 0 8px;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.flowchart-banner-left p {
+  color: var(--muted, #999);
+  font-size: 13.5px;
+  margin: 0;
+  max-width: 680px;
+  line-height: 1.55;
+}
+
+.orientation-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #888;
+  padding: 4px 8px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.orient-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: #777;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.orient-btn.is-active {
+  background: rgba(200, 255, 61, 0.15);
+  color: #c8ff3d;
+  font-weight: 600;
+}
+
+/* --- Preset Chips --- */
+.flowchart-presets-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.flowchart-presets-grid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.flowchart-preset-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #aaa;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.flowchart-preset-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--preset-color, #c8ff3d);
+  color: #fff;
+}
+
+.preset-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+/* --- Prompt Box --- */
+.flowchart-prompt-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 14px;
+  background: rgba(12, 16, 12, 0.95);
+  border: 1px solid rgba(200, 255, 61, 0.28);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.2s ease;
+}
+
+.flowchart-prompt-box:focus-within {
+  border-color: #c8ff3d;
+  box-shadow: 0 0 16px -2px rgba(200, 255, 61, 0.35);
+}
+
+.prompt-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.prompt-icon {
+  flex-shrink: 0;
+}
+
+.flowchart-prompt-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 13.5px;
+  font-family: inherit;
+}
+
+.flowchart-prompt-input::placeholder {
+  color: #666;
+  font-size: 13px;
+}
+
+.clear-prompt-btn {
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 10.5px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.clear-prompt-btn:hover {
+  color: #fff;
+}
+
+.flowchart-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+/* --- Viewport Card --- */
+.flowchart-viewport-card {
+  position: relative;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.02), transparent 60%),
+    rgba(8, 11, 8, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 580px;
+}
+
+.flowchart-controls-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+}
+
+.controls-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.view-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #888;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.view-switch-btn:hover {
+  color: #fff;
+}
+
+.view-switch-btn.is-active {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.zoom-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.zoom-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.zoom-label {
+  font-size: 10px;
+  color: #aaa;
+  min-width: 36px;
+  text-align: center;
+}
+
+.flowchart-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.flowchart-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #c8ff3d;
+  color: #c8ff3d;
+}
+
+/* --- Canvas Area --- */
+.flowchart-canvas-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 440px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #040604;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.diagram-scroll-viewport {
+  flex: 1;
+  overflow: auto;
+  padding: 32px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 420px;
+}
+
+.mermaid-rendered-svg-wrap {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.mermaid-rendered-svg-wrap svg {
+  max-width: none !important;
+  height: auto !important;
+}
+
+/* Styling for Mermaid SVGs */
+.mermaid-rendered-svg-wrap svg .node rect,
+.mermaid-rendered-svg-wrap svg .node circle,
+.mermaid-rendered-svg-wrap svg .node polygon {
+  transition: filter 0.2s ease;
+}
+
+.mermaid-rendered-svg-wrap svg .node:hover rect,
+.mermaid-rendered-svg-wrap svg .node:hover circle,
+.mermaid-rendered-svg-wrap svg .node:hover polygon {
+  filter: drop-shadow(0 0 10px currentColor);
+}
+
+.mermaid-code-view {
+  padding: 18px 22px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.code-view-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #888;
+}
+
+.copy-code-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.copy-code-inline:hover {
+  color: #c8ff3d;
+  border-color: #c8ff3d;
+}
+
+.mermaid-pre {
+  margin: 0;
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #e5e7eb;
+  overflow-x: auto;
+  flex: 1;
+}
+
+/* Loading & Error */
+.flowchart-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 70px 24px;
+  gap: 16px;
+  flex: 1;
+}
+
+.loading-halo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(200, 255, 61, 0.08);
+  border: 1px solid rgba(200, 255, 61, 0.25);
+  margin-bottom: 4px;
+}
+
+.flowchart-loading-state h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.flowchart-loading-state p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #888;
+  max-width: 520px;
+  line-height: 1.55;
+}
+
+.flowchart-error-box {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  margin: 20px;
+}
+
+.flowchart-error-box h4 {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 15px;
+}
+
+.flowchart-error-box p {
+  margin: 0;
+  color: #f87171;
+  font-size: 13px;
+}
+
+.error-code-preview {
+  margin-top: 10px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 11px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Walkthrough Drawer */
+.flowchart-explanation-drawer {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.explanation-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #c8ff3d;
+  letter-spacing: 0.06em;
+}
+
+.explanation-body {
+  font-size: 13.5px;
+  color: #ddd;
+  line-height: 1.6;
+}
+
+/* Sources */
+.flowchart-sources-box {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.sources-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.sources-toggle:hover {
+  color: #c8ff3d;
+}

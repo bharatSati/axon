@@ -33,10 +33,12 @@ import {
   ExternalLink,
   Sliders,
   AlignLeft,
-  History
+  History,
+  Palette
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import TimeMachine from "./TimeMachine";
+import FlowchartStudio from "./FlowchartStudio";
 
 const API_BASE = "http://localhost:4000/api";
 
@@ -383,6 +385,14 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               <History size={13} color={studioMode === "timemachine" ? "#a855f7" : "#888"} />
               <span>Time Machine</span>
             </button>
+            <button
+              type="button"
+              className={`studio-mode-tab studio-mode-tab--flow ${studioMode === "flowchart" ? "is-active" : ""}`}
+              onClick={() => setStudioMode("flowchart")}
+            >
+              <Palette size={13} color={studioMode === "flowchart" ? "#c8ff3d" : "#888"} />
+              <span>Flowcharts</span>
+            </button>
           </div>
         </div>
 
@@ -417,12 +427,17 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
         </div>
       </div>
 
-      {/* Main Studio Work Area / Time Machine Switcher */}
+      {/* Main Studio Work Area / Time Machine / Flowchart Switcher */}
       {studioMode === "timemachine" ? (
         <TimeMachine
           workspace={workspace}
           token={token}
           onSwitchPerspective={onSwitchPerspective}
+        />
+      ) : studioMode === "flowchart" ? (
+        <FlowchartStudio
+          workspace={workspace}
+          token={token}
         />
       ) : (
         <div className={`studio-workarea ${isMaximized ? "is-maximized" : ""}`}>

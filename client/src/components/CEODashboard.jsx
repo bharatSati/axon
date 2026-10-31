@@ -768,7 +768,17 @@ export default function CEODashboard() {
         )}
 
         {/* ============================================================
-            PERSPECTIVE 5: CEO EXECUTIVE CONSOLE
+            PERSPECTIVE 5: ARCHITECTURAL FLOWCHART STUDIO (MERMAID AI)
+            ============================================================ */}
+        {perspective === "flowchart" && (
+          <FlowchartStudio
+            workspace={activeWorkspace}
+            token={token}
+          />
+        )}
+
+        {/* ============================================================
+            PERSPECTIVE 6: CEO EXECUTIVE CONSOLE
             ============================================================ */}
         {perspective === "ceo" && (
           <>
