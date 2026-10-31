@@ -41,7 +41,10 @@ import {
   Megaphone,
   History,
   Palette,
-  GitPullRequest
+  GitPullRequest,
+  UploadCloud,
+  FileText,
+  ChevronUp
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import ConnectRepoModal from "./ConnectRepoModal";
@@ -192,6 +195,10 @@ export default function CEODashboard() {
   const [brainQuery, setBrainQuery] = useState("");
   const [brainAnswer, setBrainAnswer] = useState(null);
   const [isBrainSearching, setIsBrainSearching] = useState(false);
+  const [brainDocuments, setBrainDocuments] = useState([]);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [selectedFilterType, setSelectedFilterType] = useState("all");
+  const [expandedSourceIdx, setExpandedSourceIdx] = useState(null);
 
   // Employees State (Preserved 100%)
   const [employees, setEmployees] = useState([]);
@@ -366,6 +373,7 @@ export default function CEODashboard() {
     if (activeWorkspaceId) {
       fetchActiveWorkspaceDetails(activeWorkspaceId);
       fetchWorkspaceMembersAndInvites(activeWorkspaceId);
+      fetchBrainDocuments(activeWorkspaceId);
       setBrainAnswer(null);
     }
   }, [activeWorkspaceId]);
@@ -472,21 +480,101 @@ export default function CEODashboard() {
   };
 
   // ==========================================
-  // 4. PROJECT BRAIN (RAG + GROQ) EXPLORER
+  // 4. PROJECT BRAIN (RAG + GROQ) EXPLORER & DOC INGESTION
   // ==========================================
+  const fetchBrainDocuments = async (wsId) => {
+    if (!wsId) return;
+    try {
+      const res = await fetch(`${API_BASE}/workspaces/${wsId}/brain/documents`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBrainDocuments(data.documents || []);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch brain documents:", err.message);
+    }
+  };
+
+  const handleUploadDocument = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeWorkspace) return;
+    try {
+      setIsUploadingDoc(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`${API_BASE}/workspaces/${activeWorkspace.id}/brain/documents`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        showNotification(`Ingested "${file.name}" into Project Brain (${data.chunkCount || 0} chunks indexed).`);
+        await fetchBrainDocuments(activeWorkspace.id);
+        await fetchActiveWorkspaceDetails(activeWorkspace.id);
+      } else {
+        const errData = await res.json();
+        showNotification(errData.error || "Failed to ingest document.");
+      }
+    } catch (err) {
+      console.error("Document upload error:", err);
+      showNotification("Network error uploading document.");
+    } finally {
+      setIsUploadingDoc(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDeleteDocument = async (docId, docName) => {
+    if (!activeWorkspace || !docId) return;
+    if (!window.confirm(`Delete document "${docName}" from Project Brain?`)) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/workspaces/${activeWorkspace.id}/brain/documents/${docId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showNotification("Document removed from Project Brain.");
+        await fetchBrainDocuments(activeWorkspace.id);
+        await fetchActiveWorkspaceDetails(activeWorkspace.id);
+      } else {
+        const errData = await res.json();
+        showNotification(errData.error || "Failed to delete document.");
+      }
+    } catch (err) {
+      console.error("Delete document error:", err);
+      showNotification("Network error deleting document.");
+    }
+  };
+
   const handleAskBrain = async (queryToUse) => {
     const q = queryToUse || brainQuery;
     if (!q || !q.trim() || !activeWorkspace) return;
 
     try {
       setIsBrainSearching(true);
+      const payload = {
+        query: q.trim(),
+        topK: 4
+      };
+      if (selectedFilterType && selectedFilterType !== "all") {
+        payload.filterType = selectedFilterType;
+      }
+
       const res = await fetch(`${API_BASE}/workspaces/${activeWorkspace.id}/brain/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ query: q.trim(), topK: 4 })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -1309,8 +1397,92 @@ export default function CEODashboard() {
                         </div>
                       )}
 
+                      {/* Brain Document Ingestion Section */}
+                      <div className="brain-docs-container">
+                        <div className="brain-docs-head">
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                            <FileText size={13} color="#c8ff3d" />
+                            <span className="mono-label" style={{ fontSize: "10.5px", color: "#c8ff3d" }}>
+                              PROJECT SPEC & DOCUMENT INGESTION
+                            </span>
+                            <span className="mono-label" style={{ fontSize: "9.5px", color: "#64748b" }}>
+                              (PDF, DOCX, TXT, MD)
+                            </span>
+                          </div>
+
+                          <div>
+                            <input
+                              type="file"
+                              id="brain-file-input"
+                              style={{ display: "none" }}
+                              accept=".pdf,.docx,.txt,.md"
+                              onChange={handleUploadDocument}
+                              disabled={isUploadingDoc}
+                            />
+                            <label
+                              htmlFor="brain-file-input"
+                              className="brain-upload-action-btn"
+                              style={{ opacity: isUploadingDoc ? 0.6 : 1, cursor: isUploadingDoc ? "not-allowed" : "pointer" }}
+                            >
+                              {isUploadingDoc ? <RefreshCw size={12} className="spin" /> : <UploadCloud size={12} />}
+                              <span>{isUploadingDoc ? "Indexing..." : "Upload Document"}</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {brainDocuments && brainDocuments.length > 0 ? (
+                          <div className="brain-docs-list">
+                            {brainDocuments.map((doc) => (
+                              <div key={doc.id} className="brain-doc-chip">
+                                <FileText size={11} color="#c8ff3d" />
+                                <span className="doc-name" title={doc.name}>{doc.name}</span>
+                                <span className="doc-meta">
+                                  ({doc.chunkCount || 0} chunks • {Math.round((doc.size || 0) / 1024)} KB)
+                                </span>
+                                <button
+                                  type="button"
+                                  className="brain-doc-delete-btn"
+                                  title="Remove document from Project Brain"
+                                  onClick={() => handleDeleteDocument(doc.id, doc.name)}
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic" }}>
+                            No external documents uploaded yet. Ingest architecture diagrams, API specs, or PRDs to enrich RAG context.
+                          </div>
+                        )}
+                      </div>
+
                       {/* Brain Query Explorer */}
                       <div className="brain-query-section">
+                        {/* RAG Source Filter Strip */}
+                        <div className="brain-filter-strip">
+                          <span className="mono-label" style={{ fontSize: "10px", color: "#64748b" }}>
+                            FILTER:
+                          </span>
+                          {[
+                            { id: "all", label: "All Sources" },
+                            { id: "code", label: "Codebase" },
+                            { id: "commit", label: "Commits & Diffs" },
+                            { id: "pull_request", label: "PRs & Reviews" },
+                            { id: "issue", label: "Discussions & Issues" },
+                            { id: "document", label: "Uploaded Specs" }
+                          ].map((pill) => (
+                            <button
+                              key={pill.id}
+                              type="button"
+                              className={`brain-filter-pill ${selectedFilterType === pill.id ? "is-active" : ""}`}
+                              onClick={() => setSelectedFilterType(pill.id)}
+                            >
+                              {pill.label}
+                            </button>
+                          ))}
+                        </div>
+
                         <div className="brain-query-input-wrap">
                           <input
                             type="text"
@@ -1385,19 +1557,69 @@ export default function CEODashboard() {
                                 {/* Sources */}
                                 {brainAnswer.sources && brainAnswer.sources.length > 0 && (
                                   <div className="brain-sources-list">
-                                    <span className="mono-label" style={{ color: "#888", fontSize: "10px" }}>
-                                      RETRIEVED KNOWLEDGE SOURCES:
-                                    </span>
-                                    {brainAnswer.sources.map((src, i) => (
-                                      <div key={i} className="brain-source-item">
-                                        <span>
-                                          📄 {src.filePath} {src.title && `— ${src.title}`}
-                                        </span>
-                                        <span className="brain-source-score">
-                                          {Math.round(src.score * 100)}% match
-                                        </span>
-                                      </div>
-                                    ))}
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                                      <span className="mono-label" style={{ color: "#c8ff3d", fontSize: "10px" }}>
+                                        RETRIEVED KNOWLEDGE SOURCES ({brainAnswer.sources.length}):
+                                      </span>
+                                      <span className="mono-label" style={{ color: "#64748b", fontSize: "10px" }}>
+                                        LOCAL all-MiniLM-L6-v2 384d
+                                      </span>
+                                    </div>
+                                    {brainAnswer.sources.map((src, i) => {
+                                      const isExpanded = expandedSourceIdx === i;
+                                      const getSourceIcon = (type) => {
+                                        switch (type) {
+                                          case "pull_request":
+                                            return <GitPullRequest size={12} color="#c8ff3d" />;
+                                          case "commit":
+                                            return <GitBranch size={12} color="#c8ff3d" />;
+                                          case "issue":
+                                          case "discussion":
+                                            return <Megaphone size={12} color="#c8ff3d" />;
+                                          case "document":
+                                            return <FileText size={12} color="#c8ff3d" />;
+                                          default:
+                                            return <Code2 size={12} color="#c8ff3d" />;
+                                        }
+                                      };
+
+                                      return (
+                                        <div key={i} className="brain-source-card">
+                                          <div className="brain-source-top">
+                                            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                              {getSourceIcon(src.type)}
+                                              <strong style={{ color: "#f8fafc", fontWeight: 500 }}>
+                                                {src.filePath || src.title || "Repository Source"}
+                                              </strong>
+                                              {src.title && src.filePath && src.title !== src.filePath && (
+                                                <span style={{ color: "#94a3b8", fontSize: "10.5px" }}>— {src.title}</span>
+                                              )}
+                                            </span>
+                                            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                                              <span className="brain-source-score">
+                                                {Math.round(src.score * 100)}% match
+                                              </span>
+                                              {src.snippet && (
+                                                <button
+                                                  type="button"
+                                                  className="brain-doc-delete-btn"
+                                                  style={{ color: "#94a3b8" }}
+                                                  onClick={() => setExpandedSourceIdx(isExpanded ? null : i)}
+                                                  title={isExpanded ? "Collapse preview" : "Expand preview"}
+                                                >
+                                                  {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                                </button>
+                                              )}
+                                            </div>
+                                          </div>
+                                          {isExpanded && src.snippet && (
+                                            <div className="brain-source-snippet">
+                                              {src.snippet}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </>

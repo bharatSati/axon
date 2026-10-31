@@ -3,7 +3,13 @@ import path from "path";
 import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 import * as workspaceService from "../services/workspaceService.js";
-import { queryWorkspaceBrain, synthesizeBrainAnswer } from "../services/rag/ragQueryService.js";
+import {
+  queryWorkspaceBrain,
+  synthesizeBrainAnswer,
+  ingestDocumentIntoBrain,
+  listBrainDocuments,
+  deleteBrainDocument
+} from "../services/rag/ragQueryService.js";
 import { getBrainStatus, loadBrainKnowledgeBase } from "../services/rag/brainStore.js";
 import { getActiveIntegrations } from "../services/integrationService.js";
 import { getUserGitHubToken } from "./authController.js";
@@ -143,13 +149,13 @@ export const getBrainStatusHandler = async (req, res) => {
 export const queryBrainHandler = async (req, res) => {
   try {
     const workspaceId = req.params.id;
-    const { query, topK = 5, filterType = "all" } = req.body;
+    const { query, topK = 5, filterType = "all", documentId = null } = req.body;
 
     if (!query || !query.trim()) {
       return res.status(400).json({ error: "Search query is required." });
     }
 
-    const result = await queryWorkspaceBrain(workspaceId, query.trim(), { topK, filterType });
+    const result = await queryWorkspaceBrain(workspaceId, query.trim(), { topK, filterType, documentId });
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -159,14 +165,81 @@ export const queryBrainHandler = async (req, res) => {
 export const askBrainHandler = async (req, res) => {
   try {
     const workspaceId = req.params.id;
-    const { query, topK = 4 } = req.body;
+    const { query, topK = 4, filterType = "all", documentId = null } = req.body;
 
     if (!query || !query.trim()) {
       return res.status(400).json({ error: "Engineering question is required." });
     }
 
-    const answerResult = await synthesizeBrainAnswer(workspaceId, query.trim(), { topK });
+    const answerResult = await synthesizeBrainAnswer(workspaceId, query.trim(), { topK, filterType, documentId });
     res.json(answerResult);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const uploadBrainDocumentHandler = async (req, res) => {
+  try {
+    const workspaceId = req.params.id;
+
+    let buffer = null;
+    let filename = "uploaded_document.txt";
+    let originalName = "uploaded_document.txt";
+    let mimeType = "text/plain";
+
+    if (req.file) {
+      buffer = req.file.buffer;
+      filename = req.file.originalname;
+      originalName = req.file.originalname;
+      mimeType = req.file.mimetype || "application/octet-stream";
+    } else if (req.body.text) {
+      buffer = Buffer.from(req.body.text, "utf-8");
+      filename = req.body.filename || "pasted_document.txt";
+      originalName = filename;
+      mimeType = req.body.mimeType || "text/plain";
+    } else {
+      return res.status(400).json({
+        error: "No file or text payload provided. Please upload a file (PDF, DOCX, TXT, MD) or pass a 'text' field."
+      });
+    }
+
+    const chunkSize = req.body.chunkSize ? parseInt(req.body.chunkSize, 10) : undefined;
+    const chunkOverlap = req.body.chunkOverlap ? parseInt(req.body.chunkOverlap, 10) : undefined;
+
+    const result = await ingestDocumentIntoBrain(workspaceId, {
+      filename,
+      originalName,
+      buffer,
+      mimeType,
+      options: { chunkSize, chunkOverlap }
+    });
+
+    res.status(201).json(result);
+  } catch (err) {
+    console.error("Document ingestion error:", err);
+    res.status(500).json({ error: err.message || "Failed to ingest document into Project Brain." });
+  }
+};
+
+export const getBrainDocumentsHandler = async (req, res) => {
+  try {
+    const workspaceId = req.params.id;
+    const result = await listBrainDocuments(workspaceId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteBrainDocumentHandler = async (req, res) => {
+  try {
+    const { id: workspaceId, docId } = req.params;
+    if (!docId) {
+      return res.status(400).json({ error: "Document ID is required." });
+    }
+
+    const result = await deleteBrainDocument(workspaceId, docId);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

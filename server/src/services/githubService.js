@@ -131,7 +131,11 @@ export const fetchRepositoryData = async (userIdOrToken, owner, repoName, defaul
     tree: [],
     files: [],
     commits: [],
-    pullRequests: []
+    commitComments: [],
+    pullRequests: [],
+    pullRequestComments: [],
+    discussions: [],
+    releases: []
   };
 
   try {
@@ -172,7 +176,7 @@ export const fetchRepositoryData = async (userIdOrToken, owner, repoName, defaul
 
     // 4. Identify & Fetch High-Signal Engineering Files
     const highSignalPaths = selectHighSignalFiles(repoContext.tree);
-    for (const filePath of highSignalPaths.slice(0, 35)) {
+    for (const filePath of highSignalPaths.slice(0, 40)) {
       try {
         const fileContentData = await fetchFromGitHub(`/repos/${owner}/${repoName}/contents/${filePath}?ref=${branchToUse}`, token);
         if (fileContentData && fileContentData.content) {
@@ -191,20 +195,41 @@ export const fetchRepositoryData = async (userIdOrToken, owner, repoName, defaul
 
     // 5. Fetch Recent Commits (Architectural History)
     try {
-      const commitsData = await fetchFromGitHub(`/repos/${owner}/${repoName}/commits?per_page=20`, token);
+      const commitsData = await fetchFromGitHub(`/repos/${owner}/${repoName}/commits?per_page=30`, token);
       repoContext.commits = commitsData.map((c) => ({
         sha: c.sha?.substring(0, 7),
+        fullSha: c.sha,
         message: c.commit?.message,
         author: c.commit?.author?.name || c.author?.login,
-        date: c.commit?.author?.date
+        authorAvatar: c.author?.avatar_url,
+        date: c.commit?.author?.date,
+        url: c.html_url
       }));
     } catch (e) {
       console.warn("Could not fetch commits:", e.message);
     }
 
+    // 5b. Fetch Commit Comments
+    try {
+      const commitCommentsData = await fetchFromGitHub(`/repos/${owner}/${repoName}/comments?per_page=30`, token);
+      if (Array.isArray(commitCommentsData)) {
+        repoContext.commitComments = commitCommentsData.map((cc) => ({
+          id: cc.id,
+          commitId: cc.commit_id?.substring(0, 7),
+          body: cc.body,
+          path: cc.path,
+          line: cc.line,
+          author: cc.user?.login,
+          createdAt: cc.created_at
+        }));
+      }
+    } catch (e) {
+      // Commit comments might be disabled or empty
+    }
+
     // 6. Fetch Recent Pull Requests (Feature Specs & Decisions)
     try {
-      const pullsData = await fetchFromGitHub(`/repos/${owner}/${repoName}/pulls?state=all&per_page=10`, token);
+      const pullsData = await fetchFromGitHub(`/repos/${owner}/${repoName}/pulls?state=all&per_page=20`, token);
       repoContext.pullRequests = pullsData.map((pr) => ({
         number: pr.number,
         title: pr.title,
@@ -212,10 +237,69 @@ export const fetchRepositoryData = async (userIdOrToken, owner, repoName, defaul
         state: pr.state,
         user: pr.user?.login,
         createdAt: pr.created_at,
-        mergedAt: pr.merged_at
+        mergedAt: pr.merged_at,
+        htmlUrl: pr.html_url,
+        diffUrl: pr.diff_url
       }));
     } catch (e) {
       console.warn("Could not fetch pull requests:", e.message);
+    }
+
+    // 6b. Fetch PR Review Comments & Discussions
+    try {
+      const prCommentsData = await fetchFromGitHub(`/repos/${owner}/${repoName}/pulls/comments?per_page=30`, token);
+      if (Array.isArray(prCommentsData)) {
+        repoContext.pullRequestComments = prCommentsData.map((prc) => ({
+          id: prc.id,
+          pullRequestUrl: prc.pull_request_url,
+          body: prc.body,
+          path: prc.path,
+          author: prc.user?.login,
+          createdAt: prc.created_at
+        }));
+      }
+    } catch (e) {
+      // Pull request review comments might be empty
+    }
+
+    // 7. Fetch GitHub Discussions & Issues (Technical Decisions & Bug Reports)
+    try {
+      const issuesData = await fetchFromGitHub(`/repos/${owner}/${repoName}/issues?state=all&per_page=20`, token);
+      if (Array.isArray(issuesData)) {
+        // Exclude PRs that GitHub treats as issues
+        repoContext.discussions = issuesData
+          .filter((iss) => !iss.pull_request)
+          .map((iss) => ({
+            number: iss.number,
+            title: iss.title,
+            body: iss.body || "",
+            state: iss.state,
+            author: iss.user?.login,
+            labels: (iss.labels || []).map((l) => (typeof l === "string" ? l : l.name)),
+            commentsCount: iss.comments || 0,
+            createdAt: iss.created_at,
+            closedAt: iss.closed_at
+          }));
+      }
+    } catch (e) {
+      console.warn("Could not fetch issues/discussions:", e.message);
+    }
+
+    // 8. Fetch Releases & Version Milestones
+    try {
+      const releasesData = await fetchFromGitHub(`/repos/${owner}/${repoName}/releases?per_page=10`, token);
+      if (Array.isArray(releasesData)) {
+        repoContext.releases = releasesData.map((rel) => ({
+          id: rel.id,
+          tagName: rel.tag_name,
+          name: rel.name || rel.tag_name,
+          body: rel.body || "",
+          publishedAt: rel.published_at,
+          author: rel.author?.login
+        }));
+      }
+    } catch (e) {
+      // Releases might be empty
     }
 
     // If files array is empty (e.g. rate limit or sparse repo), supplement with local project structure
@@ -292,11 +376,24 @@ async function getLocalOrSyntheticRepoData(owner, repoName, defaultBranch) {
       { sha: "7b41e8a", message: "feat: setup Axon client-server architecture with GitHub OAuth", author: owner, date: "2026-10-31T09:00:00Z" },
       { sha: "3a92f1b", message: "feat: integrate modular Project Brain RAG knowledge base", author: owner, date: "2026-10-31T08:30:00Z" },
       { sha: "8c12d4e", message: "refactor: decouple frontend and backend API service boundaries", author: owner, date: "2026-10-30T17:20:00Z" },
-      { sha: "5f83b2a", message: "perf: optimize vector cosine similarity search engine", author: owner, date: "2026-10-29T14:10:00Z" }
+      { sha: "5f83b2a", message: "perf: optimize vector cosine similarity search engine with all-MiniLM-L6-v2", author: owner, date: "2026-10-29T14:10:00Z" }
+    ],
+    commitComments: [
+      { id: 101, commitId: "3a92f1b", body: "Architecture note: ensure persistent MongoDB caching for zero-cold-start RAG retrieval.", author: owner, createdAt: "2026-10-31T08:45:00Z" }
     ],
     pullRequests: [
-      { number: 1, title: "Implement Multi-Workspace State & GitHub OAuth Repository Ingestion", state: "closed", user: owner, mergedAt: "2026-10-31T09:15:00Z" },
-      { number: 2, title: "Add Project Brain hybrid BM25 and Vector Cosine Indexing", state: "open", user: owner, createdAt: "2026-10-31T09:30:00Z" }
+      { number: 1, title: "Implement Multi-Workspace State & GitHub OAuth Repository Ingestion", state: "closed", user: owner, mergedAt: "2026-10-31T09:15:00Z", body: "Introduced strict multi-tenant workspace isolation and token authentication." },
+      { number: 2, title: "Add Project Brain hybrid BM25 and Vector Cosine Indexing", state: "open", user: owner, createdAt: "2026-10-31T09:30:00Z", body: "Upgraded retrieval with dense embeddings and document ingestion (PDF, DOCX, TXT)." }
+    ],
+    pullRequestComments: [
+      { id: 201, pullRequestUrl: "PR #2", body: "Ensure all-MiniLM-L6-v2 runs locally with ONNX Runtime to avoid external API dependencies.", author: owner, createdAt: "2026-10-31T09:40:00Z" }
+    ],
+    discussions: [
+      { number: 10, title: "RAG Pipeline Architectural Specification: Local Embeddings & MongoDB Atlas", body: "Consensus reached to use all-MiniLM-L6-v2 (384d) embedded natively into MongoDB without introducing any third-party vector DB.", state: "closed", author: owner, labels: ["architecture", "rag", "database"] },
+      { number: 11, title: "Multi-Format Document Support (PDF, DOCX, TXT)", body: "Enabled users to ingest PRDs, API schemas, and architecture manuals directly into Project Brain.", state: "open", author: owner, labels: ["feature", "ingestion"] }
+    ],
+    releases: [
+      { id: 1, tagName: "v1.0.0", name: "Axon Intelligence Engine v1.0.0", body: "Initial launch of Axon with 6 specialized studios and persistent Project Brain.", publishedAt: "2026-10-31T12:00:00Z", author: owner }
     ]
   };
 

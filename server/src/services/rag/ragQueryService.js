@@ -1,6 +1,14 @@
-import { processRepositoryIntoChunks } from "./documentProcessor.js";
-import { buildVectorIndex, searchHybridIndex } from "./vectorEngine.js";
-import { saveBrainKnowledgeBase, loadBrainKnowledgeBase, getBrainStatus } from "./brainStore.js";
+import crypto from "node:crypto";
+import { processRepositoryIntoChunks, processDocumentIntoChunks } from "./documentProcessor.js";
+import { buildVectorIndex, searchHybridIndex, searchAtlasVectorIndex } from "./vectorEngine.js";
+import {
+  saveBrainKnowledgeBase,
+  loadBrainKnowledgeBase,
+  addDocumentToBrain,
+  removeDocumentFromBrain,
+  getBrainStatus
+} from "./brainStore.js";
+import { generateEmbedding } from "./embeddingService.js";
 import { generateGroqBrainAnswer } from "./groqService.js";
 
 /**
@@ -9,17 +17,22 @@ import { generateGroqBrainAnswer } from "./groqService.js";
 export const indexWorkspaceRepository = async (workspaceId, repoData) => {
   const startTime = Date.now();
 
-  // 1. Process files, docs, manifests, commits into semantic chunks
-  const { chunks, overview } = processRepositoryIntoChunks(repoData);
+  // 1. Process files, docs, manifests, commits, commit comments, PRs, review comments, discussions, releases
+  const { chunks, overview } = await processRepositoryIntoChunks(repoData);
 
-  // 2. Build Inverted Index, IDF weights, and normalized vector embeddings
+  // 2. Build Inverted Index & BM25 weights
   const indexData = buildVectorIndex(chunks);
 
-  // 3. Save to persistent per-workspace storage
+  // Preserve existing uploaded documents if any were previously ingested
+  const existingBrain = await loadBrainKnowledgeBase(workspaceId);
+  const existingDocs = existingBrain?.documents || [];
+
+  // 3. Save to persistent MongoDB collection and memory cache
   const metadata = await saveBrainKnowledgeBase(workspaceId, {
     overview,
     chunks,
-    indexData
+    indexData,
+    documents: existingDocs
   });
 
   const durationMs = Date.now() - startTime;
@@ -32,6 +45,9 @@ export const indexWorkspaceRepository = async (workspaceId, repoData) => {
       totalChunks: chunks.length,
       totalFiles: overview.totalFiles,
       totalCommits: overview.totalCommits,
+      totalPRs: overview.totalPRs,
+      totalDiscussions: overview.totalDiscussions,
+      totalReleases: overview.totalReleases,
       techStack: overview.techStack
     },
     metadata
@@ -39,31 +55,121 @@ export const indexWorkspaceRepository = async (workspaceId, repoData) => {
 };
 
 /**
- * Execute a RAG query against a workspace's Project Brain
+ * Ingests an uploaded document (PDF, DOCX, TXT, MD) into a workspace's Brain
  */
-export const queryWorkspaceBrain = async (workspaceId, query, { topK = 5, filterType = "all" } = {}) => {
+export const ingestDocumentIntoBrain = async (workspaceId, { filename, originalName, buffer, mimeType, options = {} }) => {
+  const startTime = Date.now();
+  const docId = `doc_${crypto.randomUUID().substring(0, 10)}`;
+
+  // 1. Process document, extract text, chunk, and generate 384d dense embeddings
+  const { document, chunks } = await processDocumentIntoChunks({
+    filename,
+    originalName,
+    buffer,
+    mimeType,
+    docId,
+    options
+  });
+
+  // 2. Persist document and chunks to MongoDB
+  const result = await addDocumentToBrain(workspaceId, document, chunks);
+  const durationMs = Date.now() - startTime;
+
+  return {
+    success: true,
+    workspaceId,
+    durationMs,
+    document: result.document,
+    stats: {
+      newChunksCount: chunks.length,
+      totalChunks: result.totalChunks,
+      totalDocuments: result.totalDocuments
+    }
+  };
+};
+
+/**
+ * Lists all documents ingested into workspace Brain
+ */
+export const listBrainDocuments = async (workspaceId) => {
+  const brainData = await loadBrainKnowledgeBase(workspaceId);
+  return {
+    success: true,
+    workspaceId,
+    documents: brainData?.documents || []
+  };
+};
+
+/**
+ * Deletes an ingested document from workspace Brain
+ */
+export const deleteBrainDocument = async (workspaceId, docId) => {
+  const success = await removeDocumentFromBrain(workspaceId, docId);
+  return {
+    success,
+    workspaceId,
+    docId
+  };
+};
+
+/**
+ * Execute a RAG query against a workspace's Project Brain
+ * Combines dense semantic vector search (all-MiniLM-L6-v2) + BM25 keyword matching + metadata filtering
+ */
+export const queryWorkspaceBrain = async (
+  workspaceId,
+  query,
+  {
+    topK = 5,
+    filterType = "all",
+    documentId = null,
+    minSimilarity = 0.1
+  } = {}
+) => {
   const brainData = await loadBrainKnowledgeBase(workspaceId);
 
-  if (!brainData) {
+  if (!brainData || !brainData.chunks || brainData.chunks.length === 0) {
     return {
       success: false,
-      error: "Project Brain is not initialized for this workspace. Please connect a GitHub repository first.",
+      error: "Project Brain is not initialized for this workspace. Please connect a GitHub repository or ingest a document first.",
       results: []
     };
   }
 
   const { chunks, indexData } = brainData;
 
-  // Perform hybrid BM25 + Vector search
-  const rankedMatches = searchHybridIndex(query, indexData, chunks, { topK, filterType });
+  // 1. Generate query embedding with local all-MiniLM-L6-v2
+  const queryEmbedding = await generateEmbedding(query);
 
-  const results = rankedMatches.map(({ chunk, score, bm25, cosine }) => ({
+  // 2. Check for MongoDB Atlas native $vectorSearch if available
+  const atlasMatches = await searchAtlasVectorIndex(workspaceId, queryEmbedding, { topK, filterType, documentId });
+  if (atlasMatches && atlasMatches.length > 0) {
+    return {
+      success: true,
+      workspaceId,
+      query,
+      engine: "mongodb-atlas-vector-search",
+      totalMatches: atlasMatches.length,
+      results: atlasMatches
+    };
+  }
+
+  // 3. Native in-memory Hybrid Dense Vector + BM25 search
+  const rankedMatches = searchHybridIndex(query, queryEmbedding, indexData, chunks, {
+    topK,
+    filterType,
+    documentId,
+    minSimilarity
+  });
+
+  const results = rankedMatches.map(({ chunk, score, dense, bm25, boost }) => ({
     id: chunk.id,
+    documentId: chunk.documentId,
     filePath: chunk.filePath,
     type: chunk.type,
     title: chunk.title,
     score,
-    metrics: { bm25, cosine },
+    metrics: { denseSimilarity: dense, bm25Score: bm25, boost },
     content: chunk.content,
     metadata: chunk.metadata
   }));
@@ -72,40 +178,54 @@ export const queryWorkspaceBrain = async (workspaceId, query, { topK = 5, filter
     success: true,
     workspaceId,
     query,
+    engine: "local-all-MiniLM-L6-v2-dense-hybrid",
     totalMatches: results.length,
     results
   };
 };
 
 /**
- * Synthesizes an engineering answer from retrieved RAG context chunks
- * Uses Groq LLM (openai/gpt-oss-120b) for ultra-fast architectural reasoning,
- * falling back gracefully to structured semantic synthesis.
+ * Synthesizes an accurate, context-grounded response using retrieved RAG chunks
+ * Strict anti-hallucination prompt ensures the LLM cites exact sources, commits, and PRs.
  */
-export const synthesizeBrainAnswer = async (workspaceId, query, { topK = 4 } = {}) => {
-  const queryResult = await queryWorkspaceBrain(workspaceId, query, { topK });
+export const synthesizeBrainAnswer = async (
+  workspaceId,
+  query,
+  {
+    topK = 4,
+    filterType = "all",
+    documentId = null
+  } = {}
+) => {
+  const queryResult = await queryWorkspaceBrain(workspaceId, query, { topK, filterType, documentId });
 
   if (!queryResult.success || !queryResult.results.length) {
     return {
       success: false,
       query,
-      answer: "No relevant code or documentation found in the Project Brain for this query.",
+      answer: "No relevant code, commits, pull requests, discussions, or documents found in the Project Brain for this query.",
       sources: []
     };
   }
 
   const chunks = queryResult.results;
+
+  // Construct structured source citations
   const sources = chunks.map((c) => ({
     filePath: c.filePath,
     title: c.title,
     type: c.type,
-    score: c.score
+    score: c.score,
+    documentId: c.documentId,
+    snippet: truncateSnippet(c.content, 220)
   }));
 
-  // 1. Try Groq ultra-fast 120B LLM synthesis
+  // 1. Synthesize using Groq LLM (openai/gpt-oss-120b) with retrieved structured context
   try {
+    const brainStatus = await getBrainStatus(workspaceId);
     const groqAnswer = await generateGroqBrainAnswer(query, chunks, {
-      workspaceId
+      workspaceId,
+      name: brainStatus?.overview?.repoFullName || brainStatus?.overview?.repoName || "Axon Project Brain"
     });
 
     if (groqAnswer) {
@@ -114,15 +234,15 @@ export const synthesizeBrainAnswer = async (workspaceId, query, { topK = 4 } = {
         workspaceId,
         query,
         answer: groqAnswer,
-        provider: "groq (openai/gpt-oss-120b)",
+        provider: "Groq (openai/gpt-oss-120b) + all-MiniLM-L6-v2 RAG",
         sources
       };
     }
   } catch (err) {
-    console.warn("Groq synthesis failed, using local semantic fallback:", err.message);
+    console.warn("[RAG Query] Groq synthesis failed, using local semantic synthesis:", err.message);
   }
 
-  // 2. Fallback: High-signal structured semantic synthesis
+  // 2. Graceful Local Structured Semantic Synthesis Fallback
   const answerSections = [];
   const fileGroups = {};
   for (const c of chunks) {
@@ -132,24 +252,27 @@ export const synthesizeBrainAnswer = async (workspaceId, query, { topK = 4 } = {
 
   for (const [file, items] of Object.entries(fileGroups)) {
     const primary = items[0];
-    answerSections.push(`**${primary.title || file}** (Relevance: ${Math.round(primary.score * 100)}%)\n${truncateSnippet(primary.content, 450)}`);
+    answerSections.push(
+      `### ${primary.title || file} [${primary.type.toUpperCase()}] (Match: ${Math.round(primary.score * 100)}%)\n${truncateSnippet(primary.content, 500)}`
+    );
   }
 
-  const synthesizedText = `Based on the Project Brain analysis of your connected repository, here are the most relevant findings for "${query}":\n\n` +
+  const synthesizedText =
+    `Based on the Project Brain RAG knowledge base for your workspace, here are the most relevant verified findings for "${query}":\n\n` +
     answerSections.join("\n\n---\n\n") +
-    `\n\n*Analyzed across ${chunks.length} high-signal knowledge chunks from ${Object.keys(fileGroups).length} files.*`;
+    `\n\n*Grounded across ${chunks.length} high-signal knowledge chunks from ${Object.keys(fileGroups).length} sources (commits, pull requests, code, and documentation).*`;
 
   return {
     success: true,
     workspaceId,
     query,
     answer: synthesizedText,
-    provider: "local-rag-vector",
+    provider: "local-rag-vector (all-MiniLM-L6-v2)",
     sources
   };
 };
 
-function truncateSnippet(text, maxLen = 400) {
+function truncateSnippet(text = "", maxLen = 350) {
   if (text.length <= maxLen) return text;
   return text.substring(0, maxLen) + "\n... [truncated for brevity]";
 }

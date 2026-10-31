@@ -29,5 +29,13 @@ export const config = {
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || "",
     model: process.env.GEMINI_MODEL || "gemini-1.5-flash"
+  },
+  rag: {
+    chunkSize: parseInt(process.env.RAG_CHUNK_SIZE || "800", 10),
+    chunkOverlap: parseInt(process.env.RAG_CHUNK_OVERLAP || "120", 10),
+    topK: parseInt(process.env.RAG_TOP_K || "4", 10),
+    embeddingModel: process.env.RAG_EMBEDDING_MODEL || "all-MiniLM-L6-v2",
+    similarityThreshold: parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || "0.15"),
+    atlasIndexName: process.env.ATLAS_VECTOR_INDEX_NAME || "vector_index"
   }
 };

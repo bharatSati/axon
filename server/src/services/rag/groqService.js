@@ -78,31 +78,36 @@ export async function callGroqChat(messages, options = {}) {
 export const generateGroqBrainAnswer = async (query, contextChunks, workspaceMeta = {}) => {
   const formattedContext = contextChunks
     .map((chunk, index) => {
-      return `--- [SOURCE ${index + 1}: ${chunk.filePath}] (${chunk.title || chunk.type}) ---\n${chunk.content}`;
+      const typeLabel = (chunk.type || "source").toUpperCase();
+      const titleLabel = chunk.title ? ` | ${chunk.title}` : "";
+      return `=== [KNOWLEDGE CHUNK ${index + 1}: ${typeLabel} - ${chunk.filePath}${titleLabel}] ===\n${chunk.content}`;
     })
     .join("\n\n");
 
-  const systemPrompt = `You are the Axon Project Brain, an expert software architect with deep technical knowledge of this software project repository.
-Communicate in clean, natural, professional English without symbols, weird emojis, or escape sequences.
-Never output raw backslashes (\\) or escaped markdown characters like \\_ or \\*.
-- Be precise, technical, and concise.
-- Reference specific file paths, symbols, functions, or configurations when relevant.
-- If the context doesn't contain enough detail, state what is known from the context and suggest where to look.`;
+  const systemPrompt = `You are the Axon Project Brain, an authoritative software engineering and architecture copilot.
+You have direct access to verified repository code, commits, pull requests, discussions, issues, and ingested documents.
 
-  const userPrompt = `REPOSITORY CONTEXT (${workspaceMeta.name || "Axon Workspace"}):
+STRICT GROUNDING RULES:
+1. Answer strictly and honestly based on the provided REPOSITORY CONTEXT. Do not speculate or invent non-existent APIs, functions, or PRs.
+2. When answering, cite exact sources: mention file paths, commit SHAs, PR numbers, or discussion topics whenever relevant.
+3. Structure your response clearly using Markdown headings and bullet points.
+4. Communicate in clean, professional English without raw backslashes or escape artifacts.
+5. If the context does not contain enough information to answer definitively, state clearly what is documented and what remains unknown.`;
+
+  const userPrompt = `VERIFIED PROJECT BRAIN CONTEXT (${workspaceMeta.name || "Axon Workspace"}):
 ${formattedContext}
 
-ENGINEERING QUESTION:
+USER / ARCHITECT QUESTION:
 ${query}
 
-Please provide a clear, actionable architectural and engineering answer in plain English:`;
+Provide a structured, grounded engineering response with citations:`;
 
   return callGroqChat(
     [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
     ],
-    { temperature: 0.2, max_tokens: 1024 }
+    { temperature: 0.15, max_tokens: 1200 }
   );
 };
 

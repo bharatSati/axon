@@ -1,7 +1,13 @@
+import { computeCosineSimilarity } from "./embeddingService.js";
+import { BrainKnowledge } from "../../models/BrainKnowledge.js";
+import { getDBStatus } from "../../db/connection.js";
+import { config } from "../../config/index.js";
+
 /**
- * Vector Engine for Project Brain
- * Provides code-aware tokenization, Inverted Index generation, BM25 scoring,
- * and high-dimensional Cosine Similarity vector search.
+ * Hybrid Vector Engine for Project Brain
+ * Combines 384-dimensional Dense Vector Cosine Similarity (all-MiniLM-L6-v2),
+ * MongoDB Atlas native $vectorSearch (when available), Inverted Index BM25 token matching,
+ * and structural metadata filtering.
  */
 
 // Common English + Code stop words
@@ -20,13 +26,11 @@ const STOP_WORDS = new Set([
 ]);
 
 /**
- * Splits camelCase and snake_case into individual component tokens
- * e.g., "getUserById" -> ["get", "user", "by", "id", "getuserbyid"]
+ * Splits camelCase and snake_case into component tokens
  */
 export const tokenizeCodeAware = (text = "") => {
   if (!text) return [];
 
-  // Match words, identifiers, and terms
   const rawTokens = text
     .toLowerCase()
     .replace(/[^\w\s-]/g, " ")
@@ -40,7 +44,6 @@ export const tokenizeCodeAware = (text = "") => {
 
     tokens.push(raw);
 
-    // Split snake_case and kebab-case
     if (raw.includes("_") || raw.includes("-")) {
       const parts = raw.split(/[-_]+/);
       for (const p of parts) {
@@ -60,18 +63,16 @@ export const tokenizeCodeAware = (text = "") => {
 export const buildVectorIndex = (chunks = []) => {
   const N = chunks.length;
   if (N === 0) {
-    return { invertedIndex: {}, idf: {}, avgDocLength: 0, chunkVectors: [] };
+    return { invertedIndex: {}, idf: {}, avgDocLength: 0, chunkVectors: [], totalChunks: 0 };
   }
 
-  const invertedIndex = {}; // term -> { [chunkIdx]: frequency }
-  const docFrequencies = {}; // term -> count of docs containing term
+  const invertedIndex = {};
+  const docFrequencies = {};
   const chunkLengths = [];
   const chunkTokenFreqs = [];
 
-  // 1. Tokenize each chunk and calculate term frequencies
   for (let i = 0; i < N; i++) {
     const chunk = chunks[i];
-    // Combine title, path and content for indexing
     const combinedText = `${chunk.filePath} ${chunk.title || ""} ${chunk.content}`;
     const tokens = tokenizeCodeAware(combinedText);
     chunkLengths.push(tokens.length);
@@ -82,7 +83,6 @@ export const buildVectorIndex = (chunks = []) => {
     }
     chunkTokenFreqs.push(freqMap);
 
-    // Record inverted index postings
     for (const term of Object.keys(freqMap)) {
       if (!invertedIndex[term]) {
         invertedIndex[term] = [];
@@ -95,152 +95,165 @@ export const buildVectorIndex = (chunks = []) => {
 
   const avgDocLength = chunkLengths.reduce((a, b) => a + b, 0) / Math.max(1, N);
 
-  // 2. Compute Smoothed IDF: ln(1 + (N - df + 0.5) / (df + 0.5))
   const idf = {};
   for (const term of Object.keys(docFrequencies)) {
     const df = docFrequencies[term];
     idf[term] = Math.max(0.1, Math.log(1 + (N - df + 0.5) / (df + 0.5)));
   }
 
-  // 3. Compute Normalized Vector Embeddings for every chunk (Sub-linear TF-IDF)
-  const chunkVectors = [];
-  for (let i = 0; i < N; i++) {
-    const freqs = chunkTokenFreqs[i];
-    const vector = {};
-    let sumSquares = 0;
-
-    for (const [term, tf] of Object.entries(freqs)) {
-      const termIdf = idf[term] || 0.1;
-      const weight = (1 + Math.log(tf)) * termIdf;
-      vector[term] = weight;
-      sumSquares += weight * weight;
-    }
-
-    // Normalize to unit vector
-    const magnitude = Math.sqrt(sumSquares) || 1;
-    for (const term of Object.keys(vector)) {
-      vector[term] = vector[term] / magnitude;
-    }
-
-    chunkVectors.push(vector);
-  }
-
   return {
     invertedIndex,
     idf,
     avgDocLength,
-    chunkVectors,
     chunkLengths,
     totalChunks: N
   };
 };
 
 /**
- * Searches the index using a hybrid BM25 + Cosine Similarity ranking
+ * Executes native MongoDB Atlas $vectorSearch if configured
+ * Returns null if Atlas vector search is not configured or unsupported
  */
-export const searchHybridIndex = (query, indexData, chunks, { topK = 6, filterType = "all" } = {}) => {
-  const { invertedIndex, idf, avgDocLength, chunkVectors, chunkLengths, totalChunks } = indexData;
-  if (!totalChunks || !query) return [];
+export const searchAtlasVectorIndex = async (workspaceId, queryEmbedding, { topK = 6, filterType = "all", documentId = null } = {}) => {
+  if (!getDBStatus().isConnected || !queryEmbedding || queryEmbedding.length === 0) {
+    return null;
+  }
 
+  try {
+    const indexName = config.rag?.atlasIndexName || "vector_index";
+
+    // Attempt MongoDB Atlas vector search aggregation stage
+    const matchFilter = { workspaceId };
+    if (filterType !== "all") {
+      matchFilter["chunks.type"] = filterType;
+    }
+    if (documentId) {
+      matchFilter["chunks.documentId"] = documentId;
+    }
+
+    const pipeline = [
+      {
+        $vectorSearch: {
+          index: indexName,
+          path: "chunks.embedding",
+          queryVector: queryEmbedding,
+          numCandidates: Math.max(50, topK * 10),
+          limit: topK,
+          filter: matchFilter
+        }
+      },
+      {
+        $project: {
+          chunks: 1,
+          score: { $meta: "vectorSearchScore" }
+        }
+      }
+    ];
+
+    const results = await BrainKnowledge.aggregate(pipeline).exec();
+    if (Array.isArray(results) && results.length > 0) {
+      return results;
+    }
+  } catch (err) {
+    // Expected when running on local MongoDB or before Atlas index creation
+    // Graceful fallback to in-memory cosine similarity
+  }
+
+  return null;
+};
+
+/**
+ * Searches the RAG knowledge base using Hybrid Dense Vector + BM25 + Metadata Reranking
+ */
+export const searchHybridIndex = (
+  query,
+  queryEmbedding,
+  indexData = {},
+  chunks = [],
+  {
+    topK = 6,
+    filterType = "all",
+    documentId = null,
+    minSimilarity = 0.1
+  } = {}
+) => {
+  const totalChunks = chunks.length;
+  if (totalChunks === 0 || !query) return [];
+
+  const { invertedIndex = {}, idf = {}, avgDocLength = 100, chunkLengths = [] } = indexData;
   const queryTokens = tokenizeCodeAware(query);
-  if (queryTokens.length === 0) return [];
 
-  // 1. Build Query Vector
   const queryFreqs = {};
   for (const t of queryTokens) {
     queryFreqs[t] = (queryFreqs[t] || 0) + 1;
   }
 
-  const queryVector = {};
-  let querySumSquares = 0;
-  for (const [t, tf] of Object.entries(queryFreqs)) {
-    const termIdf = idf[t] || 0.5;
-    const weight = (1 + Math.log(tf)) * termIdf;
-    queryVector[t] = weight;
-    querySumSquares += weight * weight;
-  }
-  const queryMagnitude = Math.sqrt(querySumSquares) || 1;
-  for (const t of Object.keys(queryVector)) {
-    queryVector[t] = queryVector[t] / queryMagnitude;
-  }
-
-  // 2. Identify candidate chunks using Inverted Index
-  const candidateIndices = new Set();
-  for (const t of queryTokens) {
-    const postings = invertedIndex[t];
-    if (postings) {
-      for (const p of postings) {
-        candidateIndices.add(p.chunkIdx);
-      }
-    }
-  }
-
-  // If few or no candidates found, fallback to checking all chunks
-  const candidatesToScore = candidateIndices.size > 0
-    ? Array.from(candidateIndices)
-    : Array.from({ length: totalChunks }, (_, i) => i);
-
-  // 3. Compute BM25 and Vector Cosine Similarity
-  const k1 = 1.5;
+  const k1 = 1.4;
   const b = 0.75;
   const scoredResults = [];
 
-  for (const idx of candidatesToScore) {
+  for (let idx = 0; idx < totalChunks; idx++) {
     const chunk = chunks[idx];
+
+    // Metadata Filters
     if (filterType !== "all" && chunk.type !== filterType) {
       continue;
     }
+    if (documentId && chunk.documentId !== documentId) {
+      continue;
+    }
 
-    const docLen = chunkLengths[idx] || 1;
-    const docVector = chunkVectors[idx] || {};
+    // 1. Dense Semantic Vector Cosine Similarity (all-MiniLM-L6-v2)
+    let denseSim = 0;
+    if (queryEmbedding && chunk.embedding && chunk.embedding.length > 0) {
+      denseSim = computeCosineSimilarity(queryEmbedding, chunk.embedding);
+    }
 
-    // Calculate BM25 score
+    // 2. BM25 Keyword Search Score
     let bm25Score = 0;
+    const docLen = chunkLengths[idx] || 100;
+    const lowerContent = chunk.content.toLowerCase();
+    const lowerPath = chunk.filePath.toLowerCase();
+    const lowerTitle = (chunk.title || "").toLowerCase();
+
     for (const [qTerm, qCount] of Object.entries(queryFreqs)) {
-      const termIdf = idf[qTerm] || 0;
-      const termWeight = docVector[qTerm]; // Indicates term is present
-      if (termWeight) {
-        const tf = docLen * termWeight; // Approximate original TF
-        const num = tf * (k1 + 1);
-        const den = tf + k1 * (1 - b + b * (docLen / avgDocLength));
+      const termIdf = idf[qTerm] || 0.2;
+      // Match count in chunk
+      const occurrences = (lowerContent.match(new RegExp(`\\b${qTerm}\\b`, "g")) || []).length;
+      if (occurrences > 0) {
+        const num = occurrences * (k1 + 1);
+        const den = occurrences + k1 * (1 - b + b * (docLen / (avgDocLength || 100)));
         bm25Score += termIdf * (num / den) * qCount;
       }
     }
 
-    // Calculate Cosine Similarity: queryVector · docVector
-    let cosineSim = 0;
-    for (const [qTerm, qWeight] of Object.entries(queryVector)) {
-      if (docVector[qTerm]) {
-        cosineSim += qWeight * docVector[qTerm];
-      }
-    }
+    const normBM25 = Math.min(1, bm25Score / 7);
 
-    // Boost score if file path directly matches query terms
+    // 3. Keyword / Path Relevance Boost
     let pathBoost = 0;
-    const lowerPath = chunk.filePath.toLowerCase();
     for (const qTerm of queryTokens) {
-      if (lowerPath.includes(qTerm)) {
-        pathBoost += 0.2;
+      if (lowerPath.includes(qTerm) || lowerTitle.includes(qTerm)) {
+        pathBoost += 0.15;
       }
     }
 
-    // Normalize BM25 score roughly into [0, 1]
-    const normBM25 = Math.min(1, bm25Score / 8);
+    // 4. Hybrid Score Fusion: 65% Dense Semantic Vector + 35% Exact BM25 + Path Boost
+    const hybridScore = denseSim > 0
+      ? 0.65 * denseSim + 0.35 * normBM25 + pathBoost
+      : 0.85 * normBM25 + pathBoost;
 
-    // Hybrid Score: 50% BM25 + 50% Cosine Similarity + Path Boost
-    const hybridScore = 0.5 * normBM25 + 0.5 * cosineSim + pathBoost;
-
-    if (hybridScore > 0.05) {
+    if (hybridScore >= minSimilarity) {
       scoredResults.push({
         chunk,
         score: parseFloat(hybridScore.toFixed(4)),
+        dense: parseFloat(denseSim.toFixed(4)),
         bm25: parseFloat(normBM25.toFixed(4)),
-        cosine: parseFloat(cosineSim.toFixed(4))
+        boost: parseFloat(pathBoost.toFixed(4))
       });
     }
   }
 
-  // 4. Sort by highest relevance score
+  // 5. Rank by highest relevance score
   scoredResults.sort((a, b) => b.score - a.score);
 
   return scoredResults.slice(0, topK);

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 import {
   getWorkspaces,
   getWorkspace,
@@ -11,6 +12,9 @@ import {
   queryBrainHandler,
   askBrainHandler,
   getBrainKnowledgeChunks,
+  uploadBrainDocumentHandler,
+  getBrainDocumentsHandler,
+  deleteBrainDocumentHandler,
   getWorkspaceFiles,
   getWorkspaceFileContent,
   inspectCodeHandler,
@@ -44,6 +48,11 @@ import { authenticateToken } from "../middleware/auth.js";
 
 const router = Router();
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 } // 25MB max document size
+});
+
 // Legacy status and integrations
 router.get("/status", getWorkspaceStatus);
 router.post("/sync", syncWorkspaceState);
@@ -65,6 +74,9 @@ router.get("/:id/brain/status", authenticateToken, getBrainStatusHandler);
 router.post("/:id/brain/query", authenticateToken, queryBrainHandler);
 router.post("/:id/brain/ask", authenticateToken, askBrainHandler);
 router.get("/:id/brain/chunks", authenticateToken, getBrainKnowledgeChunks);
+router.get("/:id/brain/documents", authenticateToken, getBrainDocumentsHandler);
+router.post("/:id/brain/documents", authenticateToken, upload.single("file"), uploadBrainDocumentHandler);
+router.delete("/:id/brain/documents/:docId", authenticateToken, deleteBrainDocumentHandler);
 router.get("/:id/files", authenticateToken, getWorkspaceFiles);
 router.get("/:id/file-content", authenticateToken, getWorkspaceFileContent);
 router.post("/:id/brain/inspect-code", authenticateToken, inspectCodeHandler);
