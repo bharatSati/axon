@@ -1637,6 +1637,225 @@
   min-height: 425px;
 }
 
+/* Apollo Deep Research Meta-Agent Showcase Card */
+.bento-card--apollo {
+  grid-column: span 12;
+  min-height: 380px;
+  background:
+    radial-gradient(ellipse at 85% 50%, rgba(200, 255, 61, 0.05), transparent 60%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(12, 16, 12, 0.95)),
+    #090b08;
+  border: 1px solid rgba(200, 255, 61, 0.22);
+  transition: all 0.35s ease;
+}
+
+.bento-card--apollo:hover {
+  border-color: rgba(200, 255, 61, 0.45);
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(200, 255, 61, 0.08);
+}
+
+.apollo-grid-content {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 32px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+@media (max-width: 960px) {
+  .apollo-grid-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.apollo-copy h3 {
+  font-size: clamp(22px, 2.2vw, 28px);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 12px 0 10px;
+}
+
+.apollo-copy p {
+  color: #94a3b8;
+  font-size: 13.5px;
+  line-height: 1.65;
+  margin-bottom: 20px;
+}
+
+.apollo-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.apollo-pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.apollo-pill--accent {
+  background: rgba(200, 255, 61, 0.1);
+  border-color: rgba(200, 255, 61, 0.3);
+  color: #c8ff3d;
+}
+
+.apollo-cta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.apollo-url-hint {
+  font-size: 10px;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+/* Apollo 3-Agent Visual Cluster */
+.apollo-visual {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.25s ease;
+}
+
+.apollo-visual:hover {
+  border-color: rgba(200, 255, 61, 0.3);
+  background: rgba(8, 12, 8, 0.65);
+}
+
+.apollo-agents-cluster {
+  display: grid;
+  grid-template-columns: 1fr auto 1.15fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .apollo-agents-cluster {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .apollo-connector-flow {
+    display: none;
+  }
+}
+
+.apollo-agent-node {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.25s ease;
+}
+
+.apollo-agent-node.is-lead {
+  background: rgba(200, 255, 61, 0.05);
+  border-color: rgba(200, 255, 61, 0.35);
+  box-shadow: 0 0 20px rgba(200, 255, 61, 0.08);
+}
+
+.apollo-agent-node strong {
+  font-size: 12px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.apollo-agent-node span {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.node-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.node-head .mono-label {
+  font-size: 8.5px;
+  color: #64748b;
+}
+
+.node-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c8ff3d;
+  box-shadow: 0 0 6px #c8ff3d;
+}
+
+.node-pulse--cyan {
+  background: #61dafb;
+  box-shadow: 0 0 6px #61dafb;
+}
+
+.apollo-connector-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.connector-line {
+  width: 14px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(200, 255, 61, 0.4), rgba(200, 255, 61, 0.8));
+}
+
+.connector-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #c8ff3d;
+}
+
+.apollo-metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.apollo-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.apollo-metric .m-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--mono);
+}
+
+.apollo-metric .m-lbl {
+  font-size: 8.5px;
+  color: #64748b;
+}
+
 .bento-top {
   display: flex;
   align-items: center;

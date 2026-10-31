@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, Github, LayoutDashboard, Menu, X } from "lucide-react";
+import { ArrowUpRight, Github, LayoutDashboard, Menu, X, Sparkles } from "lucide-react";
 import Brand from "./Brand";
 import Magnetic from "./Magnetic";
 import { scrollToSection } from "../hooks/useSmoothScroll";
@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 
 const links = [
   { label: "Workspace", href: "#features" },
+  { label: "Apollo AI", href: "https://apollo-bnok-theta.vercel.app/", isExternal: true },
   { label: "Architecture", href: "#architecture" },
   { label: "How It Works", href: "#platform" },
   { label: "Principles", href: "#metrics" },
@@ -75,19 +76,47 @@ export default function Navbar({ ready }) {
           <Brand />
 
           <nav className="nav-links" aria-label="Main navigation">
-            {links.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className={active === link.href ? "is-active" : ""}
-                onClick={(event) => go(event, link.href)}
-              >
-                {link.label}
-              </a>
-            ))}
+            {links.map((link) => {
+              if (link.isExternal) {
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="nav-link-apollo"
+                    title="Launch Apollo Deep Research Meta-Agent"
+                  >
+                    <span>{link.label}</span>
+                    <ArrowUpRight size={13} />
+                  </a>
+                );
+              }
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className={active === link.href ? "is-active" : ""}
+                  onClick={(event) => go(event, link.href)}
+                >
+                  {link.label}
+                </a>
+              );
+            })}
           </nav>
 
           <div className="nav-actions">
+            <a
+              href="https://apollo-bnok-theta.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="nav-apollo-pill"
+              title="Launch Apollo Deep Research Meta-Agent"
+            >
+              <Sparkles size={12} color="#c8ff3d" />
+              <span>Apollo Research</span>
+              <ArrowUpRight size={12} />
+            </a>
             {user ? (
               <>
                 <button
@@ -173,20 +202,40 @@ export default function Navbar({ ready }) {
             </div>
 
             <nav className="mobile-links" aria-label="Mobile navigation">
-              {links.map((link, index) => (
-                <motion.a
-                  key={link.href}
-                  href={link.href}
-                  onClick={(event) => go(event, link.href)}
-                  initial={{ y: 42, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.16 + index * 0.06, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  <span className="mobile-link-index">0{index + 1}</span>
-                  {link.label}
-                  <ArrowUpRight size={24} />
-                </motion.a>
-              ))}
+              {links.map((link, index) => {
+                if (link.isExternal) {
+                  return (
+                    <motion.a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      initial={{ y: 42, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.16 + index * 0.06, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ color: "#c8ff3d" }}
+                    >
+                      <span className="mobile-link-index">0{index + 1}</span>
+                      {link.label}
+                      <ArrowUpRight size={24} />
+                    </motion.a>
+                  );
+                }
+                return (
+                  <motion.a
+                    key={link.href}
+                    href={link.href}
+                    onClick={(event) => go(event, link.href)}
+                    initial={{ y: 42, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.16 + index * 0.06, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <span className="mobile-link-index">0{index + 1}</span>
+                    {link.label}
+                    <ArrowUpRight size={24} />
+                  </motion.a>
+                );
+              })}
             </nav>
 
             <div className="mobile-menu-footer">
