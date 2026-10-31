@@ -143,7 +143,8 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
           role,
           position: position.trim() || "Software Engineer",
           department,
-          email: email.trim() || matchedUser?.email || ""
+          email: email.trim() || matchedUser?.email || "",
+          clientOrigin: window.location.origin
         })
       });
 
@@ -191,7 +192,8 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
           role,
           position: position.trim() || "Software Engineer",
           department,
-          email: email.trim() || matchedUser?.email || ""
+          email: email.trim() || matchedUser?.email || "",
+          clientOrigin: window.location.origin
         })
       });
 

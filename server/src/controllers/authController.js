@@ -47,11 +47,26 @@ export const initiateGitHubOAuth = (req, res) => {
   const clientId = rawClientId ? rawClientId.trim() : "";
   const callbackUrl = rawCallbackUrl ? rawCallbackUrl.trim() : "";
 
+  // Determine return URL: query param > referer > origin > configured clientUrl
+  let returnTo = req.query.return_to;
+  if (!returnTo && req.headers.referer) {
+    try {
+      returnTo = new URL(req.headers.referer).origin;
+    } catch (e) {}
+  }
+  if (!returnTo && req.headers.origin) {
+    returnTo = req.headers.origin;
+  }
+  if (!returnTo) {
+    returnTo = config.clientUrl || "http://localhost:5173";
+  }
+  returnTo = returnTo.replace(/\/$/, "");
+
   // Check if real GitHub OAuth credentials have been set in .env
   const isConfigured = clientId && clientId !== "your_github_client_id_here" && !clientId.startsWith("your_");
 
   if (!isConfigured) {
-    const devFallbackUrl = `${config.clientUrl}?auth_status=need_config&message=GitHub+OAuth+credentials+not+configured+in+.env`;
+    const devFallbackUrl = `${returnTo}?auth_status=need_config&message=GitHub+OAuth+credentials+not+configured+in+.env`;
     return res.redirect(devFallbackUrl);
   }
 
@@ -70,9 +85,31 @@ export const initiateGitHubOAuth = (req, res) => {
     githubAuthUrl.searchParams.set("scope", "repo read:user user:email");
   }
 
-  githubAuthUrl.searchParams.set("state", Math.random().toString(36).substring(7));
+  // Preserve state payload with returnTo so callback redirects back to the exact client origin
+  const statePayload = {
+    nonce: Math.random().toString(36).substring(7),
+    returnTo
+  };
+  const stateEncoded = Buffer.from(JSON.stringify(statePayload)).toString("base64url");
+  githubAuthUrl.searchParams.set("state", stateEncoded);
 
   res.redirect(githubAuthUrl.toString());
+};
+
+// Helper to extract returnUrl from OAuth state
+const getReturnUrlFromState = (state) => {
+  if (state) {
+    try {
+      const decoded = Buffer.from(state, "base64url").toString("utf-8");
+      const parsed = JSON.parse(decoded);
+      if (parsed?.returnTo && (parsed.returnTo.startsWith("http://") || parsed.returnTo.startsWith("https://"))) {
+        return parsed.returnTo.replace(/\/$/, "");
+      }
+    } catch (e) {
+      // not base64url JSON, fallback to config
+    }
+  }
+  return (config.clientUrl || "http://localhost:5173").replace(/\/$/, "");
 };
 
 // Reusable helper to exchange GitHub code for CEO profile and JWT
@@ -179,19 +216,20 @@ export const exchangeCodeForCEO = async (code) => {
 
 // GET /api/auth/github/callback (Used when GitHub redirects to the backend)
 export const handleGitHubCallback = async (req, res) => {
-  const { code, error, error_description } = req.query;
+  const { code, error, error_description, state } = req.query;
+  const targetClientUrl = getReturnUrlFromState(state);
 
   if (error || !code) {
     const errorMsg = encodeURIComponent(error_description || "GitHub authentication was canceled or failed.");
-    return res.redirect(`${config.clientUrl}?error=${errorMsg}`);
+    return res.redirect(`${targetClientUrl}?error=${errorMsg}`);
   }
 
   try {
     const { token } = await exchangeCodeForCEO(code);
-    res.redirect(`${config.clientUrl}?token=${token}&auth=github_success`);
+    res.redirect(`${targetClientUrl}?token=${token}&auth=github_success`);
   } catch (err) {
     console.error("GitHub OAuth Callback Error:", err);
-    res.redirect(`${config.clientUrl}?error=${encodeURIComponent(err.message || "Authentication failed")}`);
+    res.redirect(`${targetClientUrl}?error=${encodeURIComponent(err.message || "Authentication failed")}`);
   }
 };
 

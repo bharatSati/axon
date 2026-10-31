@@ -94,8 +94,12 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const loginWithGitHub = () => {
-    // Strictly redirect to backend GitHub OAuth endpoint
-    window.location.href = `${API_BASE}/auth/github`;
+    // Strictly redirect to backend GitHub OAuth endpoint preserving frontend origin
+    const returnTo = typeof window !== "undefined" ? window.location.origin : "";
+    const redirectUrl = returnTo
+      ? `${API_BASE}/auth/github?return_to=${encodeURIComponent(returnTo)}`
+      : `${API_BASE}/auth/github`;
+    window.location.href = redirectUrl;
   };
 
   const devLogin = async (username = "bharatSati", name = "Bharat Sati", email = "ceo@axon.workspace") => {

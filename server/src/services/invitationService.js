@@ -10,7 +10,7 @@ import { config } from "../config/index.js";
  */
 export async function createWorkspaceInvitation(
   workspaceId,
-  { targetGithubUsername, role = "developer", position = "Software Engineer", department = "Engineering", email = "" },
+  { targetGithubUsername, role = "developer", position = "Software Engineer", department = "Engineering", email = "", clientOrigin = "" },
   invitedByUser = {}
 ) {
   if (!workspaceId) throw new Error("Workspace ID is required");
@@ -70,7 +70,7 @@ export async function createWorkspaceInvitation(
 
   await invitation.save();
 
-  const clientBase = config.clientUrl || "http://localhost:5173";
+  const clientBase = (clientOrigin || config.clientUrl || "http://localhost:5173").replace(/\/$/, "");
   const inviteUrl = `${clientBase}?invite=${token}`;
 
   return {

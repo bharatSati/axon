@@ -13,9 +13,15 @@ import {
 export const createInvitationHandler = async (req, res) => {
   try {
     const { workspaceId, targetGithubUsername, role, position, department, email } = req.body;
+    let clientOrigin = req.body.clientOrigin || req.headers.origin;
+    if (!clientOrigin && req.headers.referer) {
+      try {
+        clientOrigin = new URL(req.headers.referer).origin;
+      } catch (e) {}
+    }
     const result = await createWorkspaceInvitation(
       workspaceId,
-      { targetGithubUsername, role, position, department, email },
+      { targetGithubUsername, role, position, department, email, clientOrigin },
       req.user
     );
     res.json(result);
