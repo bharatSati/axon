@@ -5818,11 +5818,45 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.25);
   border-radius: 10px;
   margin: 20px;
+}
+
+.error-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.error-box-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-repair-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(200, 255, 61, 0.12);
+  border: 1px solid rgba(200, 255, 61, 0.4);
+  color: #c8ff3d;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.error-repair-btn:hover {
+  background: rgba(200, 255, 61, 0.22);
+  border-color: #c8ff3d;
+  transform: translateY(-1px);
 }
 
 .flowchart-error-box h4 {
