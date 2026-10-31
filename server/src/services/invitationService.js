@@ -24,10 +24,24 @@ export async function createWorkspaceInvitation(
   // Normalize username (strip leading @ and lowercase)
   const cleanUsername = targetGithubUsername.trim().replace(/^@/, "").toLowerCase();
 
-  // Look up if user has signed into Axon previously
+  // STRICT REQUIREMENT: User must have logged into Axon previously via GitHub OAuth
   const existingUser = await User.findOne({
     username: new RegExp(`^${cleanUsername}$`, "i")
   }).lean();
+
+  if (!existingUser) {
+    throw new Error(
+      `Cannot generate invite link: User @${cleanUsername} has not logged in to Axon yet. They must sign in with GitHub on the website at least once so their verified account and email are registered in the system.`
+    );
+  }
+
+  // Check if they are already an active member of this workspace
+  const isAlreadyMember = (workspace.members || []).some(
+    (m) => m.githubUsername?.toLowerCase() === cleanUsername
+  );
+  if (isAlreadyMember) {
+    throw new Error(`@${cleanUsername} is already an active member of ${workspace.name}.`);
+  }
 
   const token = `inv_${crypto.randomBytes(16).toString("hex")}`;
   const invitationId = `inv_id_${Date.now()}_${Math.random().toString(36).substring(7)}`;
@@ -41,9 +55,9 @@ export async function createWorkspaceInvitation(
     position: position || "Software Engineer",
     department: department || "Engineering",
     targetGithubUsername: cleanUsername,
-    targetEmail: email || existingUser?.email || `${cleanUsername}@users.noreply.github.com`,
-    targetName: existingUser?.name || cleanUsername,
-    targetAvatar: existingUser?.avatar || `https://github.com/${cleanUsername}.png`,
+    targetEmail: existingUser.email || email || `${cleanUsername}@users.noreply.github.com`,
+    targetName: existingUser.name || cleanUsername,
+    targetAvatar: existingUser.avatar || `https://github.com/${cleanUsername}.png`,
     invitedBy: {
       userId: invitedByUser?.id || "ceo",
       username: invitedByUser?.username || "ceo",
@@ -63,13 +77,13 @@ export async function createWorkspaceInvitation(
     success: true,
     invitation,
     inviteUrl,
-    isRegisteredUser: Boolean(existingUser),
-    targetUser: existingUser ? {
+    isRegisteredUser: true,
+    targetUser: {
       username: existingUser.username,
       name: existingUser.name,
       email: existingUser.email,
       avatar: existingUser.avatar
-    } : null
+    }
   };
 }
 
@@ -288,17 +302,23 @@ export async function directAddMemberToWorkspace(
 
   const cleanUsername = targetGithubUsername.trim().replace(/^@/, "").toLowerCase();
 
-  // Look up registered user details
+  // STRICT REQUIREMENT: User must have logged into Axon previously via GitHub OAuth
   const registeredUser = await User.findOne({
     username: new RegExp(`^${cleanUsername}$`, "i")
   }).lean();
 
+  if (!registeredUser) {
+    throw new Error(
+      `Cannot add member: GitHub user @${cleanUsername} has not logged into Axon yet. They must sign in with GitHub on the website at least once so their account and verified email are stored.`
+    );
+  }
+
   const memberData = {
-    userId: registeredUser?.id || `gh_${cleanUsername}_${Date.now()}`,
+    userId: registeredUser.id,
     githubUsername: cleanUsername,
-    name: name || registeredUser?.name || cleanUsername,
-    email: email || registeredUser?.email || `${cleanUsername}@users.noreply.github.com`,
-    avatar: registeredUser?.avatar || `https://github.com/${cleanUsername}.png`,
+    name: name || registeredUser.name || cleanUsername,
+    email: registeredUser.email || email || `${cleanUsername}@users.noreply.github.com`,
+    avatar: registeredUser.avatar || `https://github.com/${cleanUsername}.png`,
     role: role.toLowerCase(),
     position: position || "Software Engineer",
     department: department || "Engineering",
@@ -382,7 +402,8 @@ export async function removeWorkspaceMember(workspaceId, githubUsername) {
  * 9. Search Registered Users (for invite autocomplete)
  */
 export async function searchRegisteredGitHubUsers(query = "") {
-  if (!query || query.trim().length < 1) {
+  const clean = (query || "").trim().replace(/^@/, "");
+  if (!clean) {
     const recent = await User.find().sort({ lastLoginAt: -1 }).limit(10).lean();
     return {
       users: recent.map((u) => ({
@@ -395,7 +416,7 @@ export async function searchRegisteredGitHubUsers(query = "") {
     };
   }
 
-  const regex = new RegExp(query.trim(), "i");
+  const regex = new RegExp(clean, "i");
   const users = await User.find({
     $or: [{ username: regex }, { name: regex }, { email: regex }]
   })

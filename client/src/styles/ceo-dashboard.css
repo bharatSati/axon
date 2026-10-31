@@ -8225,3 +8225,91 @@
 }
 
 
+
+/* User Verification Card in Invite Modal */
+.user-verification-card {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.user-verification-card.is-verified {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.user-verification-card.is-unregistered {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  align-items: flex-start;
+}
+
+.verified-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid #10b981;
+}
+
+.verified-user-info,
+.unregistered-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.verified-user-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.verified-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.verified-email {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.verified-email strong {
+  color: #f1f5f9;
+}
+
+.unregistered-user-info strong {
+  color: #f87171;
+  font-size: 12px;
+}
+
+.unregistered-user-info p {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.requirements-note {
+  background: rgba(192, 132, 252, 0.06);
+  border: 1px dashed rgba(192, 132, 252, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #d8b4fe;
+}

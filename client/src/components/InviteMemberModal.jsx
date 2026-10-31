@@ -35,6 +35,7 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
 
   // Search & autocomplete
   const [searchResults, setSearchResults] = useState([]);
+  const [allRegisteredUsers, setAllRegisteredUsers] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
   // Invitation generated state
@@ -43,6 +44,27 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
   const [emailSentToast, setEmailSentToast] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Live user search
+  const searchUsers = async (query = "") => {
+    try {
+      setIsSearching(true);
+      const res = await fetch(`${API_BASE}/invitations/users/search?q=${encodeURIComponent(query)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.users) {
+        setSearchResults(data.users);
+        if (!query) {
+          setAllRegisteredUsers(data.users);
+        }
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   // Reset form when modal opens
   useEffect(() => {
@@ -70,36 +92,39 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
     }
   };
 
-  // Live user search
-  const searchUsers = async (query) => {
-    try {
-      setIsSearching(true);
-      const res = await fetch(`${API_BASE}/invitations/users/search?q=${encodeURIComponent(query)}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (res.ok && data.users) {
-        setSearchResults(data.users);
-      }
-    } catch (e) {
-      // ignore
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  const cleanTyped = githubUsername.trim().replace(/^@/, "").toLowerCase();
+  const matchedUser =
+    (allRegisteredUsers || []).find((u) => u.username?.toLowerCase() === cleanTyped) ||
+    (searchResults || []).find((u) => u.username?.toLowerCase() === cleanTyped);
+  const isRegistered = Boolean(matchedUser);
 
   const handleSelectUser = (user) => {
     setGithubUsername(user.username);
     if (user.email && !user.email.includes("noreply")) {
       setEmail(user.email);
     }
+    setErrorMsg("");
   };
+
+  // Auto-fill email when matchedUser changes
+  useEffect(() => {
+    if (matchedUser?.email && !matchedUser.email.includes("noreply") && !email) {
+      setEmail(matchedUser.email);
+    }
+  }, [matchedUser]);
 
   // 1. Generate Unique Invitation Link
   const handleGenerateInvite = async (e) => {
     if (e) e.preventDefault();
-    if (!githubUsername.trim()) {
+    if (!cleanTyped) {
       setErrorMsg("Please enter a target GitHub username.");
+      return;
+    }
+
+    if (!isRegistered) {
+      setErrorMsg(
+        `User @${cleanTyped} has NOT logged into Axon yet. You cannot generate an invite link for unregistered users. They must log in with GitHub on this website at least once so their verified email is saved for email invitations.`
+      );
       return;
     }
 
@@ -115,11 +140,11 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
         },
         body: JSON.stringify({
           workspaceId: workspace?.id,
-          targetGithubUsername: githubUsername.trim().replace(/^@/, ""),
+          targetGithubUsername: cleanTyped,
           role,
           position: position.trim() || "Software Engineer",
           department,
-          email: email.trim()
+          email: email.trim() || matchedUser?.email || ""
         })
       });
 
@@ -139,8 +164,15 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
 
   // 2. Direct Add to Workspace (Instant CEO Add)
   const handleDirectAdd = async () => {
-    if (!githubUsername.trim()) {
+    if (!cleanTyped) {
       setErrorMsg("Please enter a target GitHub username.");
+      return;
+    }
+
+    if (!isRegistered) {
+      setErrorMsg(
+        `User @${cleanTyped} has NOT logged into Axon yet. Direct adding is strictly permitted only for developers who have signed into this website with GitHub.`
+      );
       return;
     }
 
@@ -156,11 +188,11 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
         },
         body: JSON.stringify({
           workspaceId: workspace?.id,
-          targetGithubUsername: githubUsername.trim().replace(/^@/, ""),
+          targetGithubUsername: cleanTyped,
           role,
           position: position.trim() || "Software Engineer",
           department,
-          email: email.trim()
+          email: email.trim() || matchedUser?.email || ""
         })
       });
 
@@ -211,6 +243,11 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
 
         {/* Modal Body */}
         <div className="invite-modal-body">
+          <div className="requirements-note mono-label">
+            <Shield size={14} color="#c084fc" />
+            <span>Strict Policy: Only developers who have signed into Axon with GitHub can be invited or added (required for email dispatch).</span>
+          </div>
+
           {errorMsg && (
             <div className="invite-error-banner mono-label">
               <AlertCircle size={14} />
@@ -226,7 +263,7 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
                   <span className="input-prefix">@</span>
                   <input
                     type="text"
-                    placeholder="e.g. johndoe, alex-security"
+                    placeholder="e.g. bharatSati"
                     value={githubUsername}
                     onChange={(e) => {
                       setGithubUsername(e.target.value);
@@ -237,12 +274,51 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
                   />
                 </div>
 
-                {/* Auto-suggest from previously registered Axon users */}
-                {searchResults.length > 0 && !githubUsername && (
+                {/* Live verification indicator when username is typed */}
+                {cleanTyped && (
+                  <>
+                    {matchedUser ? (
+                      <div className="user-verification-card is-verified">
+                        <img
+                          src={matchedUser.avatar || `https://github.com/${matchedUser.username}.png`}
+                          alt={matchedUser.username}
+                          className="verified-user-avatar"
+                        />
+                        <div className="verified-user-info">
+                          <div className="verified-user-title">
+                            <strong>@{matchedUser.username}</strong>
+                            <span className="mono-label verified-tag">
+                              <CheckCircle2 size={11} /> SIGNED IN TO AXON
+                            </span>
+                          </div>
+                          <span className="mono-label verified-email">
+                            Verified Email: <strong>{matchedUser.email || "Saved in database"}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      !isSearching && (
+                        <div className="user-verification-card is-unregistered">
+                          <AlertCircle size={16} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                          <div className="unregistered-user-info">
+                            <strong>@{cleanTyped} has NOT signed into Axon yet!</strong>
+                            <p>
+                              Invite links and adding are strictly blocked for unregistered users.
+                              Please ask @{cleanTyped} to log into this website with GitHub first so their verified email is saved for invitations.
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </>
+                )}
+
+                {/* Auto-suggest from previously registered Axon users when input is empty */}
+                {!cleanTyped && (allRegisteredUsers.length > 0 || searchResults.length > 0) && (
                   <div className="registered-users-suggestion">
-                    <span className="mono-label suggestion-label">Previously Signed In Developers:</span>
+                    <span className="mono-label suggestion-label">Signed In Developers (Click to Select):</span>
                     <div className="suggestion-chips">
-                      {searchResults.slice(0, 5).map((u) => (
+                      {(searchResults.length > 0 ? searchResults : allRegisteredUsers).slice(0, 6).map((u) => (
                         <button
                           key={u.id}
                           type="button"
@@ -314,7 +390,7 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
 
               {/* Optional Email */}
               <div className="invite-field">
-                <label className="mono-label">EMAIL ADDRESS (OPTIONAL FOR EMAIL DISPATCH):</label>
+                <label className="mono-label">EMAIL ADDRESS (VERIFIED FROM GITHUB LOGIN):</label>
                 <div className="input-with-icon">
                   <Mail size={14} className="input-icon" />
                   <input
@@ -332,8 +408,8 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
                   type="button"
                   className="direct-add-btn mono-label"
                   onClick={handleDirectAdd}
-                  disabled={submitting || !githubUsername.trim()}
-                  title="Directly adds this user to the workspace members table immediately"
+                  disabled={submitting || !cleanTyped || !isRegistered}
+                  title={!isRegistered ? "Target developer must be signed into Axon" : "Directly adds this user to the workspace"}
                 >
                   <Zap size={13} />
                   <span>Direct Add Now</span>
@@ -342,7 +418,8 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
                 <button
                   type="submit"
                   className="generate-link-btn mono-label"
-                  disabled={submitting || !githubUsername.trim()}
+                  disabled={submitting || !cleanTyped || !isRegistered}
+                  title={!isRegistered ? "Target developer must be signed into Axon" : "Generate unique invite link"}
                 >
                   {submitting ? (
                     <RefreshCw size={13} className="spin" />

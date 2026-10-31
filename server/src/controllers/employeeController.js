@@ -1,4 +1,5 @@
 import { Employee } from "../models/Employee.js";
+import { User } from "../models/User.js";
 
 // Standard Roles available in Axon Workspace (CEO, Developer, Tester, Marketer)
 export const AVAILABLE_ROLES = [
@@ -69,14 +70,25 @@ export const addEmployee = async (req, res) => {
     return res.status(409).json({ error: "An employee with this email already exists in the workspace." });
   }
 
-  const cleanGithubUsername = (githubUsername || name.toLowerCase().replace(/\s+/g, "")).replace(/^@/, "");
+  const cleanGithubUsername = (githubUsername || name.toLowerCase().replace(/\s+/g, "")).replace(/^@/, "").toLowerCase();
+
+  // STRICT REQUIREMENT: User must have logged into Axon previously via GitHub OAuth
+  const registeredUser = await User.findOne({
+    username: new RegExp(`^${cleanGithubUsername}$`, "i")
+  }).lean();
+
+  if (!registeredUser) {
+    return res.status(400).json({
+      error: `Cannot add @${cleanGithubUsername}: User has not logged into Axon yet. They must sign in with GitHub on this website first so their account and verified email are registered.`
+    });
+  }
 
   const newEmployee = {
-    id: `emp_${Date.now()}`,
-    name,
-    email,
+    id: registeredUser.id || `emp_${Date.now()}`,
+    name: name || registeredUser.name || cleanGithubUsername,
+    email: registeredUser.email || email,
     githubUsername: cleanGithubUsername,
-    avatar: `https://avatars.githubusercontent.com/${cleanGithubUsername}`,
+    avatar: registeredUser.avatar || `https://avatars.githubusercontent.com/${cleanGithubUsername}`,
     role,
     department,
     status,
