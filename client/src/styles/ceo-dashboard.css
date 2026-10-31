@@ -1653,10 +1653,10 @@
 }
 
 .brain-answer-text {
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.65;
   color: #e5e5e5;
-  white-space: pre-line;
+  white-space: normal;
 }
 
 .brain-sources-list {
@@ -3332,6 +3332,102 @@
   color: #e2e8f0;
   overflow-x: auto;
   background: #030405;
+}
+
+/* AI Section Break Component (Replaces raw dashes like '----' with sleek UI) */
+.ai-section-break {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  width: 100%;
+}
+
+.ai-section-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(200, 255, 61, 0.25), transparent);
+}
+
+.ai-section-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(200, 255, 61, 0.08);
+  border: 1px solid rgba(200, 255, 61, 0.25);
+  color: #c8ff3d;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ai-section-dot-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ai-section-dot-cluster .dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ai-section-dot-cluster .dot.dot-active {
+  width: 6px;
+  height: 6px;
+  background: #c8ff3d;
+  box-shadow: 0 0 6px rgba(200, 255, 61, 0.6);
+}
+
+/* AI Markdown Tables */
+.ai-table-wrapper {
+  overflow-x: auto;
+  margin: 12px 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.ai-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.ai-table th {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #c8ff3d;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-table td {
+  padding: 8px 12px;
+  color: #d1d5db;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ai-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ai-table tr:hover td {
+  background: rgba(200, 255, 61, 0.02);
+}
+
+.ai-italic-text {
+  font-style: italic;
+  color: #cbd5e1;
 }
 
 .analysis-content-markdown {

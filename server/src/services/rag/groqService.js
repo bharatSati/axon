@@ -13,6 +13,10 @@ export function sanitizeAIOutput(text) {
     .replace(/\\([*_#[\]()~`>+\-=|{}!\\])/g, "$1")
     .replace(/[\u202F\u00A0]/g, " ")
     .replace(/\\/g, "")
+    // Remove decorative horizontal rules like "---", "----", "====", "_____"
+    .replace(/^[ \t]*[-=_*~]{3,}[ \t]*$/gm, "")
+    // Remove decorative bracket-dash wrappers e.g. "--- [Overview] ---" -> "Overview"
+    .replace(/^[ \t]*[-=_]+\s*\[?([^\]\n]+?)\]?\s*[-=_]+$/gm, "$1")
     .trim();
 }
 
@@ -87,12 +91,20 @@ export const generateGroqBrainAnswer = async (query, contextChunks, workspaceMet
   const systemPrompt = `You are the Axon Project Brain, an authoritative software engineering and architecture copilot.
 You have direct access to verified repository code, commits, pull requests, discussions, issues, and ingested documents.
 
-STRICT GROUNDING RULES:
-1. Answer strictly and honestly based on the provided REPOSITORY CONTEXT. Do not speculate or invent non-existent APIs, functions, or PRs.
-2. When answering, cite exact sources: mention file paths, commit SHAs, PR numbers, or discussion topics whenever relevant.
-3. Structure your response clearly using Markdown headings and bullet points.
-4. Communicate in clean, professional English without raw backslashes or escape artifacts.
-5. If the context does not contain enough information to answer definitively, state clearly what is documented and what remains unknown.`;
+STRICT COMMUNICATION RULES (BEAUTIFIED, CLEAN ENGLISH):
+1. Write in natural, fluent, and professional English.
+2. ABSOLUTELY NO SYMBOL CLUTTER:
+   - NEVER output decorative dashes, horizontal divider lines like "---", "----", "=====", or "_____".
+   - Do NOT surround headings with dashes or brackets (e.g. do not write "--- Section Title ---" or "=== [Title] ===").
+   - Do NOT use weird ASCII borders, box drawings, or symbol mixes.
+3. STRUCTURE & FORMATTING:
+   - Use clean, standard Markdown headings (e.g. "### Overview", "### Architectural Flow", "### Impacted Routes").
+   - Use clean bullet points (- ) or clean descriptive paragraphs.
+   - Mention filenames, functions, routes, and variables naturally in backticks (e.g. \`authMiddleware.js\`, \`POST /api/workspaces\`) so the UI formats them as interactive code badges.
+4. GROUNDING & ACCURACY:
+   - Base your answer entirely on the provided REPOSITORY CONTEXT.
+   - Cite exact file paths, commit SHAs, PR numbers, or documentation points.
+   - Never speculate or invent non-existent APIs or libraries.`;
 
   const userPrompt = `VERIFIED PROJECT BRAIN CONTEXT (${workspaceMeta.name || "Axon Workspace"}):
 ${formattedContext}

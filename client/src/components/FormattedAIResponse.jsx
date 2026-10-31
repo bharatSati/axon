@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy, Code2, Terminal, AlertCircle, Info, Sparkles } from "lucide-react";
+import { Check, Copy, Terminal, Sparkles, Layers } from "lucide-react";
 
 /**
  * Clean all backslashes, escape sequences, and symbol artifacts from raw AI text.
@@ -13,12 +13,12 @@ function sanitizeText(raw) {
     .replace(/\\'/g, "'")
     .replace(/\\([*_#[\]()~`>+\-=|{}!\\])/g, "$1") // unescape backslash escapes
     .replace(/[\u202F\u00A0]/g, " ")
-    .replace(/\\/g, "") // strip any stray backslashes
+    .replace(/\\/g, "") // strip stray backslashes
     .trim();
 }
 
 /**
- * Format inline tokens like `inline code` and **bold text** without showing symbols.
+ * Format inline tokens like `inline code`, **bold text**, and *italic* without showing raw symbols.
  */
 function formatInlineTokens(str) {
   if (!str) return "";
@@ -45,9 +45,46 @@ function formatInlineTokens(str) {
           </strong>
         );
       }
-      return bPart;
+
+      // Check for *italic*
+      const italicParts = bPart.split(/\*([^*]+)\*/g);
+      return italicParts.map((iPart, iIdx) => {
+        if (iIdx % 2 === 1) {
+          return (
+            <em key={`${idx}-${bIdx}-${iIdx}`} className="ai-italic-text">
+              {iPart}
+            </em>
+          );
+        }
+        return iPart;
+      });
     });
   });
+}
+
+/**
+ * Gorgeous Section Divider Component:
+ * Replaces ugly raw dashes like "----", "---", or "--- Title ---" with a sleek UI element.
+ */
+function SectionDivider({ label }) {
+  return (
+    <div className="ai-section-break">
+      <span className="ai-section-line" />
+      {label ? (
+        <span className="ai-section-pill">
+          <Sparkles size={11} color="#c8ff3d" />
+          <span>{label}</span>
+        </span>
+      ) : (
+        <span className="ai-section-dot-cluster">
+          <span className="dot" />
+          <span className="dot dot-active" />
+          <span className="dot" />
+        </span>
+      )}
+      <span className="ai-section-line" />
+    </div>
+  );
 }
 
 /**
@@ -87,8 +124,38 @@ function CodeBlock({ language, code }) {
 }
 
 /**
+ * Clean Markdown Table Component
+ */
+function TableBlock({ headers, rows }) {
+  if (!headers || !headers.length) return null;
+
+  return (
+    <div className="ai-table-wrapper">
+      <table className="ai-table">
+        <thead>
+          <tr>
+            {headers.map((h, i) => (
+              <th key={i}>{formatInlineTokens(h.trim())}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rIdx) => (
+            <tr key={rIdx}>
+              {row.map((cell, cIdx) => (
+                <td key={cIdx}>{formatInlineTokens(cell.trim())}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/**
  * Main Formatted AI Response Component:
- * Removes backslashes, markdown hash symbols, and renders clean readable English.
+ * Removes backslashes, markdown hashes, repetitive dashes, and renders natural English with sleek UI components.
  */
 export default function FormattedAIResponse({ content }) {
   if (!content) return null;
@@ -143,13 +210,52 @@ export default function FormattedAIResponse({ content }) {
       continue;
     }
 
-    // 2. Headings (#, ##, ###, ####) - Remove symbols, keep clean title
+    // 2. Dash / Equals Section Dividers (e.g. "----", "====", "--- [Section Name] ---")
+    const titleDividerMatch = trimmed.match(/^[ \t]*[-=_*~]{2,}\s*\[?([^\]\n]+?)\]?\s*[-=_*~]{2,}[ \t]*$/);
+    if (titleDividerMatch) {
+      flushList();
+      const cleanTitle = titleDividerMatch[1].replace(/^[#\s]+/, "").trim();
+      blocks.push({ type: "divider", label: cleanTitle });
+      continue;
+    }
+
+    if (/^[ \t]*[-=_*~]{3,}[ \t]*$/.test(trimmed)) {
+      flushList();
+      blocks.push({ type: "divider" });
+      continue;
+    }
+
+    // 3. Markdown Tables (| Header | Header |)
+    if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+      // Check if this is the start of a table
+      const tableLines = [trimmed];
+      let j = i + 1;
+      while (j < lines.length && lines[j].trim().startsWith("|") && lines[j].trim().endsWith("|")) {
+        tableLines.push(lines[j].trim());
+        j++;
+      }
+
+      // If at least 2 lines and second is separator |---|---|
+      if (tableLines.length >= 2 && /^\|[-:\s|]+\|$/.test(tableLines[1])) {
+        flushList();
+        const headers = tableLines[0].split("|").slice(1, -1);
+        const rows = tableLines.slice(2).map((r) => r.split("|").slice(1, -1));
+        blocks.push({ type: "table", headers, rows });
+        i = j - 1;
+        continue;
+      }
+    }
+
+    // 4. Headings (#, ##, ###, ####) - Remove symbols, keep clean title
     const headerMatch = trimmed.match(/^(#{1,4})\s+(.+)$/);
     if (headerMatch) {
       flushList();
       const level = headerMatch[1].length;
       // Strip any leading emoji or symbols from title for a clean look
-      const title = headerMatch[2].replace(/^[📦🛡️🔍⚡🧪💡⚠️\s]+/, "").trim();
+      const title = headerMatch[2]
+        .replace(/^[📦🛡️🔍⚡🧪💡⚠️\s#\-*~_]+/, "")
+        .replace(/[\[\]]/g, "")
+        .trim();
       blocks.push({
         type: "header",
         level,
@@ -158,28 +264,30 @@ export default function FormattedAIResponse({ content }) {
       continue;
     }
 
-    // 3. Highlighted Callout / Verdict Cards
+    // 5. Highlighted Callout / Verdict / Summary Cards
     const lower = trimmed.toLowerCase();
     if (
       lower.startsWith("quick verdict") ||
       lower.startsWith("verdict:") ||
       lower.startsWith("security verdict:") ||
       lower.startsWith("key recommendation:") ||
-      lower.startsWith("summary:")
+      lower.startsWith("summary:") ||
+      lower.startsWith("note:") ||
+      lower.startsWith("important:")
     ) {
       flushList();
       blocks.push({ type: "callout", text: trimmed });
       continue;
     }
 
-    // 4. Bullet Items (* , - , • , 1. , 2.)
-    const bulletMatch = trimmed.match(/^([*\-•]|\d+\.)\s+(.+)$/);
+    // 6. Bullet Items (* , - , + , • , 1. , 2.)
+    const bulletMatch = trimmed.match(/^([*\-+•]|\d+\.)\s+(.+)$/);
     if (bulletMatch) {
       currentList.push(bulletMatch[2]);
       continue;
     }
 
-    // 5. Normal Paragraph
+    // 7. Normal Paragraph
     flushList();
     blocks.push({ type: "paragraph", text: trimmed });
   }
@@ -192,6 +300,10 @@ export default function FormattedAIResponse({ content }) {
   return (
     <div className="formatted-ai-response">
       {blocks.map((block, idx) => {
+        if (block.type === "divider") {
+          return <SectionDivider key={idx} label={block.label} />;
+        }
+
         if (block.type === "header") {
           return (
             <div key={idx} className={`ai-header ai-header-h${block.level}`}>
@@ -207,6 +319,16 @@ export default function FormattedAIResponse({ content }) {
               key={idx}
               language={block.language}
               code={block.code}
+            />
+          );
+        }
+
+        if (block.type === "table") {
+          return (
+            <TableBlock
+              key={idx}
+              headers={block.headers}
+              rows={block.rows}
             />
           );
         }

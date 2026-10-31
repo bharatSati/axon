@@ -242,7 +242,7 @@ export const synthesizeBrainAnswer = async (
     console.warn("[RAG Query] Groq synthesis failed, using local semantic synthesis:", err.message);
   }
 
-  // 2. Graceful Local Structured Semantic Synthesis Fallback
+  // 2. Graceful Local Structured Semantic Synthesis Fallback (Clean Natural English)
   const answerSections = [];
   const fileGroups = {};
   for (const c of chunks) {
@@ -252,15 +252,20 @@ export const synthesizeBrainAnswer = async (
 
   for (const [file, items] of Object.entries(fileGroups)) {
     const primary = items[0];
+    const cleanTitle = primary.title ? primary.title.replace(/^[#\-_\s*]+/, "").trim() : file;
+    const cleanSnippet = truncateSnippet(primary.content, 450);
+
     answerSections.push(
-      `### ${primary.title || file} [${primary.type.toUpperCase()}] (Match: ${Math.round(primary.score * 100)}%)\n${truncateSnippet(primary.content, 500)}`
+      `### ${cleanTitle}\n` +
+      `Source type: ${primary.type} (${Math.round(primary.score * 100)} percent relevance match)\n\n` +
+      cleanSnippet
     );
   }
 
   const synthesizedText =
-    `Based on the Project Brain RAG knowledge base for your workspace, here are the most relevant verified findings for "${query}":\n\n` +
-    answerSections.join("\n\n---\n\n") +
-    `\n\n*Grounded across ${chunks.length} high-signal knowledge chunks from ${Object.keys(fileGroups).length} sources (commits, pull requests, code, and documentation).*`;
+    `Based on the Project Brain verified knowledge base for your workspace, here is the relevant engineering context found for "${query}":\n\n` +
+    answerSections.join("\n\n") +
+    `\n\nSummary: Verified across ${chunks.length} high-signal knowledge chunks from ${Object.keys(fileGroups).length} repository sources including code files, commits, pull requests, and documentation.`;
 
   return {
     success: true,

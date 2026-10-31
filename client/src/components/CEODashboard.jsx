@@ -60,6 +60,7 @@ import TimeMachine from "./TimeMachine";
 import FlowchartStudio from "./FlowchartStudio";
 import PRIntelligenceStudio from "./PRIntelligenceStudio";
 import InviteMemberModal from "./InviteMemberModal";
+import FormattedAIResponse from "./FormattedAIResponse";
 import { API_BASE } from "../config/api.js";
 
 const ROLES_LIST = [
@@ -1552,7 +1553,9 @@ export default function CEODashboard() {
                                   <span>ANSWER (ENGINEERING SYNTHESIS)</span>
                                   <span>{brainAnswer.provider || "Groq openai/gpt-oss-120b"}</span>
                                 </div>
-                                <div className="brain-answer-text">{brainAnswer.answer}</div>
+                                <div className="brain-answer-text">
+                                  <FormattedAIResponse content={brainAnswer.answer} />
+                                </div>
 
                                 {/* Sources */}
                                 {brainAnswer.sources && brainAnswer.sources.length > 0 && (
