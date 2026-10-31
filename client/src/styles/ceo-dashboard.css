@@ -8323,19 +8323,22 @@
   min-height: 100vh;
   position: relative;
   z-index: 2;
-  background: transparent;
-  color: #fff;
+  background: #050506;
+  background-image:
+    radial-gradient(ellipse 900px 450px at 85% 0%, rgba(200, 255, 61, 0.04), transparent),
+    radial-gradient(ellipse 700px 350px at 10% 100%, rgba(127, 255, 217, 0.02), transparent);
+  color: #f3f5ec;
 }
 
 /* Sidebar Styles */
 .axon-sidebar {
-  width: 275px;
-  min-width: 275px;
-  max-width: 275px;
-  background: rgba(12, 12, 14, 0.95);
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
+  background: rgba(9, 10, 9, 0.88);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -8555,6 +8558,19 @@
   border-color: rgba(200, 255, 61, 0.2);
   color: #fff;
   font-weight: 600;
+  position: relative;
+}
+
+.sidebar-nav-item.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: #c8ff3d;
+  box-shadow: 0 0 10px rgba(200, 255, 61, 0.5);
 }
 
 .sidebar-nav-item.is-active .nav-icon {
@@ -8638,7 +8654,7 @@
 /* Main Content Wrapper */
 .axon-main-container {
   flex: 1;
-  margin-left: 275px;
+  margin-left: 260px;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -8651,7 +8667,7 @@
   position: sticky;
   top: 0;
   z-index: 80;
-  background: rgba(11, 11, 13, 0.85);
+  background: rgba(9, 10, 9, 0.82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -8745,4 +8761,241 @@
   .axon-main-container {
     margin-left: 240px;
   }
+}
+
+/* ============================================================
+   BENTO 3D TILT & STUDIO LAUNCHPAD REDESIGN
+   ============================================================ */
+
+.bento-tilt {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.bento-tilt > .ws-card {
+  height: 100%;
+  margin-bottom: 0;
+}
+
+/* Studio Launchpad Bento Section */
+.ws-studio-launchpad-section {
+  margin-top: 28px;
+  margin-bottom: 28px;
+}
+
+.launchpad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.launchpad-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.launchpad-title-group h3 {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f4f6ee;
+  margin: 0;
+}
+
+.studio-launchpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .studio-launchpad-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .studio-launchpad-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.studio-tile-tilt {
+  height: 100%;
+  width: 100%;
+}
+
+.studio-tile-card {
+  width: 100%;
+  height: 100%;
+  padding: 22px 20px;
+  background: rgba(14, 16, 14, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.studio-tile-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 0%, rgba(200, 255, 61, 0.06), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.studio-tile-card:hover {
+  border-color: rgba(200, 255, 61, 0.3);
+  background: rgba(18, 22, 17, 0.85);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6), 0 0 20px rgba(200, 255, 61, 0.05);
+}
+
+.studio-tile-card:hover::before {
+  opacity: 1;
+}
+
+.studio-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.studio-tile-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c8ff3d;
+  transition: all 0.2s ease;
+}
+
+.studio-tile-card:hover .studio-tile-icon-box {
+  background: rgba(200, 255, 61, 0.12);
+  border-color: rgba(200, 255, 61, 0.4);
+  box-shadow: 0 0 12px rgba(200, 255, 61, 0.2);
+}
+
+.studio-tile-arrow {
+  color: rgba(255, 255, 255, 0.3);
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+
+.studio-tile-card:hover .studio-tile-arrow {
+  color: #c8ff3d;
+  transform: translateX(4px);
+}
+
+.studio-tile-kicker {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.studio-tile-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.studio-tile-desc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Minimalist System Architecture Metrics Bar */
+.system-arch-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+@media (max-width: 900px) {
+  .system-arch-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.system-arch-tile {
+  padding: 16px 18px;
+  background: rgba(14, 16, 14, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.system-arch-tile:hover {
+  border-color: rgba(200, 255, 61, 0.2);
+  background: rgba(18, 22, 18, 0.75);
+}
+
+.arch-tile-icon {
+  color: #c8ff3d;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.arch-tile-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.arch-tile-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.arch-tile-val {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 3D Tilt for All Workspaces View */
+.all-ws-tilt {
+  height: 100%;
+  width: 100%;
+}
+
+.all-ws-tilt > .ws-project-card {
+  height: 100%;
+  margin-bottom: 0;
 }

@@ -48,6 +48,7 @@ import ConnectRepoModal from "./ConnectRepoModal";
 import WorkspaceModal from "./WorkspaceModal";
 import Brand from "./Brand";
 import SectionHeading from "./SectionHeading";
+import Tilt3D from "./Tilt3D";
 import Footer from "./Footer";
 import DeveloperStudio from "./DeveloperStudio";
 import TesterLab from "./TesterLab";
@@ -60,12 +61,12 @@ import { API_BASE } from "../config/api.js";
 
 const ROLES_LIST = [
   { id: "ceo", name: "CEO", department: "Leadership", color: "#c8ff3d", level: "Executive" },
-  { id: "developer", name: "Developer", department: "Engineering", color: "#61dafb", level: "Engineering" },
-  { id: "tester", name: "Tester", department: "Engineering", color: "#10b981", level: "Quality Assurance" },
-  { id: "marketer", name: "Marketer", department: "Marketing", color: "#f59e0b", level: "Growth & Marketing" }
+  { id: "developer", name: "Developer", department: "Engineering", color: "#c8ff3d", level: "Engineering" },
+  { id: "tester", name: "Tester", department: "Engineering", color: "#c8ff3d", level: "Quality Assurance" },
+  { id: "marketer", name: "Marketer", department: "Marketing", color: "#c8ff3d", level: "Growth & Marketing" }
 ];
 
-// Role-Based Access Control (RBAC) & Feature Permissions
+// Role-Based Access Control (RBAC) & Feature Permissions (Clean Minimal Palette)
 export const ROLE_DEFINITIONS = {
   ceo: {
     id: "ceo",
@@ -92,7 +93,7 @@ export const ROLE_DEFINITIONS = {
     title: "Software Engineer",
     badgeLabel: "DEVELOPER",
     department: "Engineering",
-    color: "#61dafb",
+    color: "#c8ff3d",
     icon: Code2,
     description: "Code inspection, RAG Project Brain, PR reviews, time machine evolution, and architecture diagrams.",
     allowedFeatures: [
@@ -109,7 +110,7 @@ export const ROLE_DEFINITIONS = {
     title: "QA Automation Engineer",
     badgeLabel: "TESTER QA",
     department: "Quality Assurance",
-    color: "#10b981",
+    color: "#c8ff3d",
     icon: TestTube,
     description: "Automated test suites, edge case verification, PR regression analysis, and testing flowcharts.",
     allowedFeatures: [
@@ -125,7 +126,7 @@ export const ROLE_DEFINITIONS = {
     title: "Growth & Product Marketer",
     badgeLabel: "MARKETER",
     department: "Growth & Marketing",
-    color: "#f59e0b",
+    color: "#c8ff3d",
     icon: Megaphone,
     description: "Product positioning, launch campaigns, customer journey flowcharts, and release tracking.",
     allowedFeatures: [
@@ -147,19 +148,19 @@ const ALL_SIDEBAR_ITEMS = [
   {
     group: "ROLE STUDIOS",
     items: [
-      { id: "developer", label: "Developer Studio", icon: Code2, color: "#61dafb" },
-      { id: "pr-review", label: "AI PR Reviewer", icon: GitPullRequest, color: "#c084fc" },
-      { id: "tester", label: "Tester QA Lab", icon: TestTube, color: "#10b981" },
-      { id: "timemachine", label: "Time Machine", icon: History, color: "#a855f7" },
-      { id: "flowchart", label: "Flowchart Studio", icon: Palette, color: "#c8ff3d" },
-      { id: "marketer", label: "Marketer Deck", icon: Megaphone, color: "#f59e0b" }
+      { id: "developer", label: "Developer Studio", icon: Code2, color: "#8a8f88" },
+      { id: "pr-review", label: "AI PR Reviewer", icon: GitPullRequest, color: "#8a8f88" },
+      { id: "tester", label: "Tester QA Lab", icon: TestTube, color: "#8a8f88" },
+      { id: "timemachine", label: "Time Machine", icon: History, color: "#8a8f88" },
+      { id: "flowchart", label: "Flowchart Studio", icon: Palette, color: "#8a8f88" },
+      { id: "marketer", label: "Marketer Deck", icon: Megaphone, color: "#8a8f88" }
     ]
   },
   {
     group: "GOVERNANCE & ADMIN",
     items: [
-      { id: "team", label: "Team & Roles", icon: Users, color: "#c8ff3d" },
-      { id: "all-workspaces", label: "All Workspaces", icon: Building, color: "#c8ff3d" }
+      { id: "team", label: "Team & Roles", icon: Users, color: "#8a8f88" },
+      { id: "all-workspaces", label: "All Workspaces", icon: Building, color: "#8a8f88" }
     ]
   }
 ];
@@ -1114,340 +1115,500 @@ export default function CEODashboard() {
             {/* Core Two-Column Architecture Grid */}
             <div className="ws-core-grid">
               {/* Column 1: Connected GitHub Repository (Exactly ONE per workspace) */}
-              <div className="ws-card">
-                <div className="ws-card-header">
-                  <div className="ws-card-title-group">
-                    <FolderGit2 size={18} color="#c8ff3d" />
-                    <h3>Connected GitHub Repository</h3>
-                  </div>
-                  <span className="mono-label" style={{ fontSize: "11px", color: "#888" }}>
-                    ONE REPO PER WORKSPACE
-                  </span>
-                </div>
-
-                {activeWorkspace.repository ? (
-                  <div className="repo-connected-box">
-                    <div className="repo-connected-top">
-                      <div className="repo-connected-name">
-                        <Github size={18} />
-                        <span>{activeWorkspace.repository.fullName || activeWorkspace.repository.name}</span>
-                        <a
-                          href={activeWorkspace.repository.htmlUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="repo-ext-link"
-                          title="Open on GitHub"
-                        >
-                          <ExternalLink size={14} />
-                        </a>
-                      </div>
-
-                      {activeWorkspace.repository.visibility === "private" ? (
-                        <span className="repo-badge repo-badge--private">
-                          <Lock size={10} /> Private
-                        </span>
-                      ) : (
-                        <span className="repo-badge repo-badge--public">
-                          <Globe size={10} /> Public
-                        </span>
-                      )}
+              <Tilt3D max={4} scale={1.008} className="bento-tilt">
+                <div className="ws-card">
+                  <div className="ws-card-header">
+                    <div className="ws-card-title-group">
+                      <FolderGit2 size={18} color="#c8ff3d" />
+                      <h3>Connected GitHub Repository</h3>
                     </div>
-
-                    <p className="repo-connected-desc">
-                      {activeWorkspace.repository.description || "Software repository connected to Axon workspace."}
-                    </p>
-
-                    <div className="repo-connected-meta mono-label">
-                      {activeWorkspace.repository.language && (
-                        <span className="repo-meta-item">
-                          <i className="lang-dot" /> {activeWorkspace.repository.language}
-                        </span>
-                      )}
-                      <span className="repo-meta-item">
-                        <GitBranch size={11} /> {activeWorkspace.repository.defaultBranch || "main"}
-                      </span>
-                      {activeWorkspace.repository.stars !== undefined && (
-                        <span className="repo-meta-item">
-                          <Star size={11} /> {activeWorkspace.repository.stars} stars
-                        </span>
-                      )}
-                      <span className="repo-meta-item">
-                        Owner: <strong>{activeWorkspace.repository.owner}</strong>
-                      </span>
-                    </div>
-
-                    <div className="repo-connected-actions">
-                      <button
-                        type="button"
-                        className="button button--ghost button--small"
-                        onClick={() => setIsConnectRepoModalOpen(true)}
-                      >
-                        <RefreshCw size={13} />
-                        <span>Replace Repository</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="button button--danger-outline button--small"
-                        onClick={() => {
-                          if (window.confirm(`Disconnect "${activeWorkspace.repository.name}"? Project Brain will be paused.`)) {
-                            fetch(`${API_BASE}/workspaces/${activeWorkspace.id}/repository`, {
-                              method: "DELETE",
-                              headers: { Authorization: `Bearer ${token}` }
-                            })
-                              .then((r) => r.json())
-                              .then((data) => handleRepoDisconnected(data.workspace))
-                              .catch(console.error);
-                          }
-                        }}
-                      >
-                        <Unlink size={13} />
-                        <span>Disconnect</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="repo-empty-card">
-                    <div className="icon-wrap">
-                      <Github size={26} />
-                    </div>
-                    <strong style={{ color: "#fff", fontSize: "15px" }}>No Repository Connected</strong>
-                    <p>
-                      Every workspace requires exactly ONE connected GitHub repository to power its
-                      persistent Project Brain knowledge base.
-                    </p>
-                    <button
-                      type="button"
-                      className="button button--lime button--small"
-                      style={{ marginTop: "8px" }}
-                      onClick={() => setIsConnectRepoModalOpen(true)}
-                    >
-                      <FolderGit2 size={14} />
-                      <span>Connect GitHub Repository</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Column 2: Workspace Project Brain (RAG Engine + Groq LLM) */}
-              <div className="ws-card">
-                <div className="ws-card-header">
-                  <div className="ws-card-title-group">
-                    <Sparkles size={18} color="#c8ff3d" />
-                    <h3>Project Brain // RAG Engine</h3>
+                    <span className="mono-label" style={{ fontSize: "11px", color: "#888" }}>
+                      ONE REPO PER WORKSPACE
+                    </span>
                   </div>
 
-                  <span
-                    className={`brain-status-badge brain-status-badge--${
-                      brainStatus === "ready"
-                        ? "ready"
-                        : brainStatus === "indexing"
-                        ? "indexing"
-                        : "uninitialized"
-                    }`}
-                  >
-                    {brainStatus === "ready" && <CheckCircle2 size={12} />}
-                    {brainStatus === "indexing" && <RefreshCw size={12} className="spin" />}
-                    {brainStatus === "ready"
-                      ? "BRAIN READY & SYNCED"
-                      : brainStatus === "indexing"
-                      ? "INDEXING REPO..."
-                      : "AWAITING REPO"}
-                  </span>
-                </div>
+                  {activeWorkspace.repository ? (
+                    <div className="repo-connected-box">
+                      <div className="repo-connected-top">
+                        <div className="repo-connected-name">
+                          <Github size={18} />
+                          <span>{activeWorkspace.repository.fullName || activeWorkspace.repository.name}</span>
+                          <a
+                            href={activeWorkspace.repository.htmlUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="repo-ext-link"
+                            title="Open on GitHub"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        </div>
 
-                {brainStatus === "ready" ? (
-                  <>
-                    {/* Brain Mini Stats */}
-                    <div className="brain-stats-mini-grid">
-                      <div className="brain-stat-item">
-                        <span className="val">{brainStats.totalFiles}</span>
-                        <span className="lbl">INDEXED FILES</span>
-                      </div>
-                      <div className="brain-stat-item">
-                        <span className="val" style={{ color: "#c8ff3d" }}>
-                          {brainStats.totalChunks}
-                        </span>
-                        <span className="lbl">RAG CHUNKS</span>
-                      </div>
-                      <div className="brain-stat-item">
-                        <span className="val">{brainStats.totalCommits || 0}</span>
-                        <span className="lbl">COMMITS ANALYZED</span>
-                      </div>
-                      <div className="brain-stat-item">
-                        <span className="val" style={{ color: "#a78bfa" }}>
-                          Groq 120B
-                        </span>
-                        <span className="lbl">AI SYNTHESIS</span>
-                      </div>
-                    </div>
-
-                    {/* Detected Tech Stack */}
-                    {brainStats.techStack && brainStats.techStack.length > 0 && (
-                      <div className="tech-stack-row">
-                        <span className="mono-label" style={{ fontSize: "10px", color: "#888" }}>
-                          TECH STACK:
-                        </span>
-                        {brainStats.techStack.map((tech) => (
-                          <span key={tech} className="tech-tag">
-                            {tech}
+                        {activeWorkspace.repository.visibility === "private" ? (
+                          <span className="repo-badge repo-badge--private">
+                            <Lock size={10} /> Private
                           </span>
-                        ))}
+                        ) : (
+                          <span className="repo-badge repo-badge--public">
+                            <Globe size={10} /> Public
+                          </span>
+                        )}
                       </div>
-                    )}
 
-                    {/* Brain Query Explorer */}
-                    <div className="brain-query-section">
-                      <div className="brain-query-input-wrap">
-                        <input
-                          type="text"
-                          placeholder="Ask Project Brain (e.g. auth flow, architecture, routes, schemas)..."
-                          value={brainQuery}
-                          onChange={(e) => setBrainQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleAskBrain()}
-                        />
+                      <p className="repo-connected-desc">
+                        {activeWorkspace.repository.description || "Software repository connected to Axon workspace."}
+                      </p>
+
+                      <div className="repo-connected-meta mono-label">
+                        {activeWorkspace.repository.language && (
+                          <span className="repo-meta-item">
+                            <i className="lang-dot" /> {activeWorkspace.repository.language}
+                          </span>
+                        )}
+                        <span className="repo-meta-item">
+                          <GitBranch size={11} /> {activeWorkspace.repository.defaultBranch || "main"}
+                        </span>
+                        {activeWorkspace.repository.stars !== undefined && (
+                          <span className="repo-meta-item">
+                            <Star size={11} /> {activeWorkspace.repository.stars} stars
+                          </span>
+                        )}
+                        <span className="repo-meta-item">
+                          Owner: <strong>{activeWorkspace.repository.owner}</strong>
+                        </span>
+                      </div>
+
+                      <div className="repo-connected-actions">
                         <button
                           type="button"
-                          className="button button--lime button--small"
-                          onClick={() => handleAskBrain()}
-                          disabled={isBrainSearching || !brainQuery.trim()}
+                          className="button button--ghost button--small"
+                          onClick={() => handleSelectFeature("developer")}
                         >
-                          {isBrainSearching ? (
-                            <RefreshCw size={14} className="spin" />
-                          ) : (
-                            <Send size={14} />
-                          )}
-                          <span>Ask Brain</span>
+                          <Code2 size={13} />
+                          <span>Explore in IDE</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="button button--ghost button--small"
+                          onClick={() => setIsConnectRepoModalOpen(true)}
+                        >
+                          <RefreshCw size={13} />
+                          <span>Replace</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="button button--danger-outline button--small"
+                          onClick={() => {
+                            if (window.confirm(`Disconnect "${activeWorkspace.repository.name}"? Project Brain will be paused.`)) {
+                              fetch(`${API_BASE}/workspaces/${activeWorkspace.id}/repository`, {
+                                method: "DELETE",
+                                headers: { Authorization: `Bearer ${token}` }
+                              })
+                                .then((r) => r.json())
+                                .then((data) => handleRepoDisconnected(data.workspace))
+                                .catch(console.error);
+                            }
+                          }}
+                        >
+                          <Unlink size={13} />
+                          <span>Disconnect</span>
                         </button>
                       </div>
+                    </div>
+                  ) : (
+                    <div className="repo-empty-card">
+                      <div className="icon-wrap">
+                        <Github size={26} />
+                      </div>
+                      <strong style={{ color: "#fff", fontSize: "15px" }}>No Repository Connected</strong>
+                      <p>
+                        Every workspace requires exactly ONE connected GitHub repository to power its
+                        persistent Project Brain knowledge base.
+                      </p>
+                      <button
+                        type="button"
+                        className="button button--lime button--small"
+                        style={{ marginTop: "8px" }}
+                        onClick={() => setIsConnectRepoModalOpen(true)}
+                      >
+                        <FolderGit2 size={14} />
+                        <span>Connect GitHub Repository</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Tilt3D>
 
-                      {/* Quick Query Suggestions */}
-                      <div className="brain-quick-queries">
-                        <span className="mono-label" style={{ fontSize: "10px", color: "#666" }}>
-                          TRY:
-                        </span>
-                        {[
-                          "How does authentication work?",
-                          "Explain project architecture",
-                          "What API routes are exposed?",
-                          "Database and state models"
-                        ].map((suggestion) => (
-                          <button
-                            type="button"
-                            key={suggestion}
-                            className="quick-q-btn"
-                            onClick={() => {
-                              setBrainQuery(suggestion);
-                              handleAskBrain(suggestion);
-                            }}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
+              {/* Column 2: Workspace Project Brain (RAG Engine + Groq LLM) */}
+              <Tilt3D max={4} scale={1.008} className="bento-tilt">
+                <div className="ws-card">
+                  <div className="ws-card-header">
+                    <div className="ws-card-title-group">
+                      <Sparkles size={18} color="#c8ff3d" />
+                      <h3>Project Brain // RAG Engine</h3>
+                    </div>
+
+                    <span
+                      className={`brain-status-badge brain-status-badge--${
+                        brainStatus === "ready"
+                          ? "ready"
+                          : brainStatus === "indexing"
+                          ? "indexing"
+                          : "uninitialized"
+                      }`}
+                    >
+                      {brainStatus === "ready" && <CheckCircle2 size={12} />}
+                      {brainStatus === "indexing" && <RefreshCw size={12} className="spin" />}
+                      {brainStatus === "ready"
+                        ? "BRAIN READY & SYNCED"
+                        : brainStatus === "indexing"
+                        ? "INDEXING REPO..."
+                        : "AWAITING REPO"}
+                    </span>
+                  </div>
+
+                  {brainStatus === "ready" ? (
+                    <>
+                      {/* Brain Mini Stats */}
+                      <div className="brain-stats-mini-grid">
+                        <div className="brain-stat-item">
+                          <span className="val">{brainStats.totalFiles}</span>
+                          <span className="lbl">INDEXED FILES</span>
+                        </div>
+                        <div className="brain-stat-item">
+                          <span className="val" style={{ color: "#c8ff3d" }}>
+                            {brainStats.totalChunks}
+                          </span>
+                          <span className="lbl">RAG CHUNKS</span>
+                        </div>
+                        <div className="brain-stat-item">
+                          <span className="val">{brainStats.totalCommits || 0}</span>
+                          <span className="lbl">COMMITS ANALYZED</span>
+                        </div>
+                        <div className="brain-stat-item">
+                          <span className="val" style={{ color: "#c8ff3d" }}>
+                            Groq 120B
+                          </span>
+                          <span className="lbl">AI SYNTHESIS</span>
+                        </div>
                       </div>
 
-                      {/* Brain AI Response */}
-                      {brainAnswer && (
-                        <div className="brain-response-box">
-                          {brainAnswer.error ? (
-                            <div style={{ color: "#ef4444", fontSize: "13px" }}>
-                              {brainAnswer.error}
-                            </div>
-                          ) : (
-                            <>
-                              <div
-                                className="mono-label"
-                                style={{
-                                  color: "#c8ff3d",
-                                  marginBottom: "8px",
-                                  display: "flex",
-                                  justifyContent: "space-between"
-                                }}
-                              >
-                                <span>ANSWER (ENGINEERING SYNTHESIS)</span>
-                                <span>{brainAnswer.provider || "Groq openai/gpt-oss-120b"}</span>
-                              </div>
-                              <div className="brain-answer-text">{brainAnswer.answer}</div>
-
-                              {/* Sources */}
-                              {brainAnswer.sources && brainAnswer.sources.length > 0 && (
-                                <div className="brain-sources-list">
-                                  <span className="mono-label" style={{ color: "#888", fontSize: "10px" }}>
-                                    RETRIEVED KNOWLEDGE SOURCES:
-                                  </span>
-                                  {brainAnswer.sources.map((src, i) => (
-                                    <div key={i} className="brain-source-item">
-                                      <span>
-                                        📄 {src.filePath} {src.title && `— ${src.title}`}
-                                      </span>
-                                      <span className="brain-source-score">
-                                        {Math.round(src.score * 100)}% match
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          )}
+                      {/* Detected Tech Stack */}
+                      {brainStats.techStack && brainStats.techStack.length > 0 && (
+                        <div className="tech-stack-row">
+                          <span className="mono-label" style={{ fontSize: "10px", color: "#888" }}>
+                            TECH STACK:
+                          </span>
+                          {brainStats.techStack.map((tech) => (
+                            <span key={tech} className="tech-tag">
+                              {tech}
+                            </span>
+                          ))}
                         </div>
                       )}
+
+                      {/* Brain Query Explorer */}
+                      <div className="brain-query-section">
+                        <div className="brain-query-input-wrap">
+                          <input
+                            type="text"
+                            placeholder="Ask Project Brain (e.g. auth flow, architecture, routes, schemas)..."
+                            value={brainQuery}
+                            onChange={(e) => setBrainQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleAskBrain()}
+                          />
+                          <button
+                            type="button"
+                            className="button button--lime button--small"
+                            onClick={() => handleAskBrain()}
+                            disabled={isBrainSearching || !brainQuery.trim()}
+                          >
+                            {isBrainSearching ? (
+                              <RefreshCw size={14} className="spin" />
+                            ) : (
+                              <Send size={14} />
+                            )}
+                            <span>Ask Brain</span>
+                          </button>
+                        </div>
+
+                        {/* Quick Query Suggestions */}
+                        <div className="brain-quick-queries">
+                          <span className="mono-label" style={{ fontSize: "10px", color: "#666" }}>
+                            TRY:
+                          </span>
+                          {[
+                            "How does authentication work?",
+                            "Explain project architecture",
+                            "What API routes are exposed?",
+                            "Database and state models"
+                          ].map((suggestion) => (
+                            <button
+                              type="button"
+                              key={suggestion}
+                              className="quick-q-btn"
+                              onClick={() => {
+                                setBrainQuery(suggestion);
+                                handleAskBrain(suggestion);
+                              }}
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Brain AI Response */}
+                        {brainAnswer && (
+                          <div className="brain-response-box">
+                            {brainAnswer.error ? (
+                              <div style={{ color: "#ef4444", fontSize: "13px" }}>
+                                {brainAnswer.error}
+                              </div>
+                            ) : (
+                              <>
+                                <div
+                                  className="mono-label"
+                                  style={{
+                                    color: "#c8ff3d",
+                                    marginBottom: "8px",
+                                    display: "flex",
+                                    justifyContent: "space-between"
+                                  }}
+                                >
+                                  <span>ANSWER (ENGINEERING SYNTHESIS)</span>
+                                  <span>{brainAnswer.provider || "Groq openai/gpt-oss-120b"}</span>
+                                </div>
+                                <div className="brain-answer-text">{brainAnswer.answer}</div>
+
+                                {/* Sources */}
+                                {brainAnswer.sources && brainAnswer.sources.length > 0 && (
+                                  <div className="brain-sources-list">
+                                    <span className="mono-label" style={{ color: "#888", fontSize: "10px" }}>
+                                      RETRIEVED KNOWLEDGE SOURCES:
+                                    </span>
+                                    {brainAnswer.sources.map((src, i) => (
+                                      <div key={i} className="brain-source-item">
+                                        <span>
+                                          📄 {src.filePath} {src.title && `— ${src.title}`}
+                                        </span>
+                                        <span className="brain-source-score">
+                                          {Math.round(src.score * 100)}% match
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="repo-empty-card" style={{ padding: "30px 20px" }}>
+                      <div className="icon-wrap">
+                        <Cpu size={26} />
+                      </div>
+                      <strong style={{ color: "#fff", fontSize: "15px" }}>
+                        Project Brain Not Initialized
+                      </strong>
+                      <p>
+                        Connect a GitHub repository to trigger the persistent RAG vector indexing pipeline
+                        and activate AI architectural synthesis.
+                      </p>
                     </div>
-                  </>
-                ) : (
-                  <div className="repo-empty-card" style={{ padding: "30px 20px" }}>
-                    <div className="icon-wrap">
-                      <Cpu size={26} />
+                  )}
+                </div>
+              </Tilt3D>
+            </div>
+
+            {/* Quick Studio Launchpad Bento */}
+            <div className="ws-studio-launchpad-section">
+              <div className="launchpad-header">
+                <div className="launchpad-title-group">
+                  <Sparkles size={16} color="#c8ff3d" />
+                  <h3>INTELLIGENT STUDIOS</h3>
+                </div>
+                <span className="mono-label" style={{ color: "#64748b" }}>6 ENGINES ACTIVE // ONE-CLICK SWITCH</span>
+              </div>
+
+              <div className="studio-launchpad-grid">
+                {/* 1. Developer Studio */}
+                <Tilt3D max={5} scale={1.01} className="studio-tile-tilt">
+                  <button
+                    type="button"
+                    className="studio-tile-card"
+                    onClick={() => handleSelectFeature("developer")}
+                  >
+                    <div className="studio-tile-top">
+                      <div className="studio-tile-icon-box">
+                        <Code2 size={20} />
+                      </div>
+                      <ArrowRight size={14} className="studio-tile-arrow" />
                     </div>
-                    <strong style={{ color: "#fff", fontSize: "15px" }}>
-                      Project Brain Not Initialized
-                    </strong>
-                    <p>
-                      Connect a GitHub repository to trigger the persistent RAG vector indexing pipeline
-                      and activate AI architectural synthesis.
-                    </p>
-                  </div>
-                )}
+                    <div className="studio-tile-body">
+                      <span className="studio-tile-kicker mono-label">ENGINEERING</span>
+                      <h4 className="studio-tile-name">Developer Studio</h4>
+                      <p className="studio-tile-desc">
+                        Explore workspace files, inspect code architectures, and query module dependencies.
+                      </p>
+                    </div>
+                  </button>
+                </Tilt3D>
+
+                {/* 2. AI PR Reviewer */}
+                <Tilt3D max={5} scale={1.01} className="studio-tile-tilt">
+                  <button
+                    type="button"
+                    className="studio-tile-card"
+                    onClick={() => handleSelectFeature("pr-review")}
+                  >
+                    <div className="studio-tile-top">
+                      <div className="studio-tile-icon-box">
+                        <GitPullRequest size={20} />
+                      </div>
+                      <ArrowRight size={14} className="studio-tile-arrow" />
+                    </div>
+                    <div className="studio-tile-body">
+                      <span className="studio-tile-kicker mono-label">CODE QUALITY</span>
+                      <h4 className="studio-tile-name">AI PR Reviewer</h4>
+                      <p className="studio-tile-desc">
+                        Deep pull request intelligence: simple explanations, bug hunting, and breaking change detection.
+                      </p>
+                    </div>
+                  </button>
+                </Tilt3D>
+
+                {/* 3. Flowchart Studio */}
+                <Tilt3D max={5} scale={1.01} className="studio-tile-tilt">
+                  <button
+                    type="button"
+                    className="studio-tile-card"
+                    onClick={() => handleSelectFeature("flowchart")}
+                  >
+                    <div className="studio-tile-top">
+                      <div className="studio-tile-icon-box">
+                        <Palette size={20} />
+                      </div>
+                      <ArrowRight size={14} className="studio-tile-arrow" />
+                    </div>
+                    <div className="studio-tile-body">
+                      <span className="studio-tile-kicker mono-label">VISUAL LOGIC</span>
+                      <h4 className="studio-tile-name">Flowchart Studio</h4>
+                      <p className="studio-tile-desc">
+                        Generate colorful, dynamic Mermaid system flows, user journeys, and architecture diagrams.
+                      </p>
+                    </div>
+                  </button>
+                </Tilt3D>
+
+                {/* 4. Time Machine */}
+                <Tilt3D max={5} scale={1.01} className="studio-tile-tilt">
+                  <button
+                    type="button"
+                    className="studio-tile-card"
+                    onClick={() => handleSelectFeature("timemachine")}
+                  >
+                    <div className="studio-tile-top">
+                      <div className="studio-tile-icon-box">
+                        <History size={20} />
+                      </div>
+                      <ArrowRight size={14} className="studio-tile-arrow" />
+                    </div>
+                    <div className="studio-tile-body">
+                      <span className="studio-tile-kicker mono-label">TEMPORAL GIT</span>
+                      <h4 className="studio-tile-name">Time Machine</h4>
+                      <p className="studio-tile-desc">
+                        Travel across git history, inspect historic snapshots, and compare architecture evolution.
+                      </p>
+                    </div>
+                  </button>
+                </Tilt3D>
+
+                {/* 5. Tester Lab */}
+                <Tilt3D max={5} scale={1.01} className="studio-tile-tilt">
+                  <button
+                    type="button"
+                    className="studio-tile-card"
+                    onClick={() => handleSelectFeature("tester")}
+                  >
+                    <div className="studio-tile-top">
+                      <div className="studio-tile-icon-box">
+                        <TestTube size={20} />
+                      </div>
+                      <ArrowRight size={14} className="studio-tile-arrow" />
+                    </div>
+                    <div className="studio-tile-body">
+                      <span className="studio-tile-kicker mono-label">QUALITY ASSURANCE</span>
+                      <h4 className="studio-tile-name">Tester Lab</h4>
+                      <p className="studio-tile-desc">
+                        Generate automated unit tests, edge case matrices, and regression verification plans.
+                      </p>
+                    </div>
+                  </button>
+                </Tilt3D>
+
+                {/* 6. Marketer Deck */}
+                <Tilt3D max={5} scale={1.01} className="studio-tile-tilt">
+                  <button
+                    type="button"
+                    className="studio-tile-card"
+                    onClick={() => handleSelectFeature("marketer")}
+                  >
+                    <div className="studio-tile-top">
+                      <div className="studio-tile-icon-box">
+                        <Megaphone size={20} />
+                      </div>
+                      <ArrowRight size={14} className="studio-tile-arrow" />
+                    </div>
+                    <div className="studio-tile-body">
+                      <span className="studio-tile-kicker mono-label">PRODUCT GROWTH</span>
+                      <h4 className="studio-tile-name">Marketer Deck</h4>
+                      <p className="studio-tile-desc">
+                        Synthesize customer narratives, launch announcements, feature changelogs, and campaign copy.
+                      </p>
+                    </div>
+                  </button>
+                </Tilt3D>
               </div>
             </div>
 
-            {/* Quick Metrics & System Synchronized State */}
-            <section className="ceo-stats-grid">
-              <div className="ceo-stat-card">
-                <span className="stat-icon-wrap"><Users size={20} /></span>
-                <div>
-                  <span className="mono-label">WORKSPACE HEADCOUNT</span>
-                  <strong>{employees.length}</strong>
-                  <small>Active contributors &amp; leads</small>
+            {/* Minimalist System Architecture Bar */}
+            <div className="system-arch-bar">
+              <div className="system-arch-tile">
+                <Users size={18} className="arch-tile-icon" />
+                <div className="arch-tile-meta">
+                  <span className="arch-tile-label mono-label">CONTRIBUTORS</span>
+                  <span className="arch-tile-val">{employees.length} Active Leads</span>
                 </div>
               </div>
 
-              <div className="ceo-stat-card">
-                <span className="stat-icon-wrap stat-icon-wrap--lime"><Layers size={20} /></span>
-                <div>
-                  <span className="mono-label">TOTAL WORKSPACES</span>
-                  <strong>{workspaces.length}</strong>
-                  <small>Isolated software projects</small>
+              <div className="system-arch-tile">
+                <Layers size={18} className="arch-tile-icon" />
+                <div className="arch-tile-meta">
+                  <span className="arch-tile-label mono-label">WORKSPACE PORTFOLIO</span>
+                  <span className="arch-tile-val">{workspaces.length} Projects</span>
                 </div>
               </div>
 
-              <div className="ceo-stat-card">
-                <span className="stat-icon-wrap stat-icon-wrap--blue"><Activity size={20} /></span>
-                <div>
-                  <span className="mono-label">CLIENT-SERVER SYSTEM</span>
-                  <strong style={{ color: "#c8ff3d" }}>SYNCHRONIZED</strong>
-                  <small>MongoDB Atlas + Groq Active</small>
+              <div className="system-arch-tile">
+                <Activity size={18} className="arch-tile-icon" />
+                <div className="arch-tile-meta">
+                  <span className="arch-tile-label mono-label">NEURAL ENGINE</span>
+                  <span className="arch-tile-val" style={{ color: "#c8ff3d" }}>SYNCHRONIZED</span>
                 </div>
               </div>
 
-              <div className="ceo-stat-card">
-                <span className="stat-icon-wrap stat-icon-wrap--purple"><Building size={20} /></span>
-                <div>
-                  <span className="mono-label">WORKSPACE AUTHORITY</span>
-                  <strong>CEO Access</strong>
-                  <small>Full administrative control</small>
+              <div className="system-arch-tile">
+                <ShieldCheck size={18} className="arch-tile-icon" />
+                <div className="arch-tile-meta">
+                  <span className="arch-tile-label mono-label">SYSTEM PERMISSIONS</span>
+                  <span className="arch-tile-val">{roleConfig.badgeLabel}</span>
                 </div>
               </div>
-            </section>
+            </div>
           </section>
         )}
 
@@ -1485,90 +1646,91 @@ export default function CEODashboard() {
                 const brain = ws.brain || {};
 
                 return (
-                  <div
-                    key={ws.id}
-                    className={`ws-project-card ${isActive ? "is-active-card" : ""}`}
-                  >
-                    <div className="ws-project-card-top">
-                      <div className="ws-project-card-title-row">
-                        <h3 className="ws-project-card-title">{ws.name}</h3>
-                        {isActive && (
-                          <span className="mono-label kicker-pill" style={{ color: "#c8ff3d" }}>
-                            CURRENT ACTIVE
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="ws-project-card-desc">
-                        {ws.description || "No description provided."}
-                      </p>
-
-                      {repo ? (
-                        <div className="ws-project-repo-pill">
-                          <FolderGit2 size={13} color="#c8ff3d" />
-                          <span>{repo.fullName || repo.name}</span>
-                          {repo.visibility === "private" ? (
-                            <Lock size={10} color="#a78bfa" />
-                          ) : (
-                            <Globe size={10} color="#34d399" />
+                  <Tilt3D key={ws.id} max={5} scale={1.01} className="all-ws-tilt">
+                    <div
+                      className={`ws-project-card ${isActive ? "is-active-card" : ""}`}
+                    >
+                      <div className="ws-project-card-top">
+                        <div className="ws-project-card-title-row">
+                          <h3 className="ws-project-card-title">{ws.name}</h3>
+                          {isActive && (
+                            <span className="mono-label kicker-pill" style={{ color: "#c8ff3d" }}>
+                              CURRENT ACTIVE
+                            </span>
                           )}
                         </div>
-                      ) : (
-                        <div className="ws-project-repo-pill" style={{ color: "#f59e0b" }}>
-                          <AlertCircle size={13} />
-                          <span>No repository connected</span>
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="ws-project-card-footer">
-                      <div className="mono-label" style={{ fontSize: "11px", color: "#888" }}>
-                        BRAIN:{" "}
-                        <strong
-                          style={{
-                            color: brain.status === "ready" ? "#c8ff3d" : "#888"
-                          }}
-                        >
-                          {brain.status === "ready"
-                            ? `${brain.stats?.totalChunks || 0} chunks ready`
-                            : brain.status === "indexing"
-                            ? "Indexing..."
-                            : "Uninitialized"}
-                        </strong>
-                      </div>
+                        <p className="ws-project-card-desc">
+                          {ws.description || "No description provided."}
+                        </p>
 
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <button
-                          type="button"
-                          className="button button--small button--ghost"
-                          onClick={() => handleSelectWorkspace(ws.id)}
-                        >
-                          <span>Open Command</span>
-                          <ArrowRight size={13} />
-                        </button>
-
-                        <button
-                          type="button"
-                          className="button button--small button--ghost"
-                          onClick={() => openEditWorkspaceModal(ws)}
-                          title="Configure Workspace"
-                        >
-                          <Edit3 size={13} />
-                        </button>
-
-                        {workspaces.length > 1 && (
-                          <button
-                            type="button"
-                            className="remove-emp-btn"
-                            onClick={() => handleDeleteWorkspace(ws)}
-                            title="Delete Workspace"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                        {repo ? (
+                          <div className="ws-project-repo-pill">
+                            <FolderGit2 size={13} color="#c8ff3d" />
+                            <span>{repo.fullName || repo.name}</span>
+                            {repo.visibility === "private" ? (
+                              <Lock size={10} color="#94a3b8" />
+                            ) : (
+                              <Globe size={10} color="#c8ff3d" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="ws-project-repo-pill" style={{ color: "#94a3b8" }}>
+                            <AlertCircle size={13} />
+                            <span>No repository connected</span>
+                          </div>
                         )}
                       </div>
+
+                      <div className="ws-project-card-footer">
+                        <div className="mono-label" style={{ fontSize: "11px", color: "#888" }}>
+                          BRAIN:{" "}
+                          <strong
+                            style={{
+                              color: brain.status === "ready" ? "#c8ff3d" : "#888"
+                            }}
+                          >
+                            {brain.status === "ready"
+                              ? `${brain.stats?.totalChunks || 0} chunks ready`
+                              : brain.status === "indexing"
+                              ? "Indexing..."
+                              : "Uninitialized"}
+                          </strong>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            type="button"
+                            className="button button--small button--ghost"
+                            onClick={() => handleSelectWorkspace(ws.id)}
+                          >
+                            <span>Open Command</span>
+                            <ArrowRight size={13} />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="button button--small button--ghost"
+                            onClick={() => openEditWorkspaceModal(ws)}
+                            title="Configure Workspace"
+                          >
+                            <Edit3 size={13} />
+                          </button>
+
+                          {workspaces.length > 1 && (
+                            <button
+                              type="button"
+                              className="remove-emp-btn"
+                              onClick={() => handleDeleteWorkspace(ws)}
+                              title="Delete Workspace"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </Tilt3D>
                 );
               })}
 
