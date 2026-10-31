@@ -14,8 +14,7 @@ import {
   LogOut
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-
-const API_BASE = "http://localhost:4000/api";
+import { API_BASE } from "../config/api.js";
 
 export default function AcceptInviteModal() {
   const { user, token, setIsAuthModalOpen, setCurrentView } = useAuth();

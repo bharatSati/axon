@@ -15,8 +15,7 @@ import {
   AlertCircle,
   Unlink
 } from "lucide-react";
-
-const API_BASE = "http://localhost:4000/api";
+import { API_BASE } from "../config/api.js";
 
 export default function ConnectRepoModal({
   isOpen,

@@ -56,8 +56,7 @@ import TimeMachine from "./TimeMachine";
 import FlowchartStudio from "./FlowchartStudio";
 import PRIntelligenceStudio from "./PRIntelligenceStudio";
 import InviteMemberModal from "./InviteMemberModal";
-
-const API_BASE = "http://localhost:4000/api";
+import { API_BASE } from "../config/api.js";
 
 const ROLES_LIST = [
   { id: "ceo", name: "CEO", department: "Leadership", color: "#c8ff3d", level: "Executive" },

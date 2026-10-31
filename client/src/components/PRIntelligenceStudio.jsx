@@ -29,8 +29,7 @@ import {
   Eye
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
-
-const API_BASE = "http://localhost:4000/api";
+import { API_BASE } from "../config/api.js";
 
 export default function PRIntelligenceStudio({ workspace, token }) {
   // PR list & selection

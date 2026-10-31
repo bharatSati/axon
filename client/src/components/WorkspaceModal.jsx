@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Layers, X, Check, AlertCircle } from "lucide-react";
-
-const API_BASE = "http://localhost:4000/api";
+import { API_BASE } from "../config/api.js";
 
 export default function WorkspaceModal({
   isOpen,

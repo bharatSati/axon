@@ -41,8 +41,7 @@ import FormattedAIResponse from "./FormattedAIResponse";
 import TimeMachine from "./TimeMachine";
 import FlowchartStudio from "./FlowchartStudio";
 import PRIntelligenceStudio from "./PRIntelligenceStudio";
-
-const API_BASE = "http://localhost:4000/api";
+import { API_BASE } from "../config/api.js";
 
 const BRAIN_ACTIONS = [
   { id: "explain", label: "🧠 Architecture & Data Flow", icon: Sparkles, desc: "Deep architectural role, inputs, outputs, and design pattern analysis" },

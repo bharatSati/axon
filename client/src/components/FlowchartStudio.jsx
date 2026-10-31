@@ -24,8 +24,7 @@ import {
   Palette
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
-
-const API_BASE = "http://localhost:4000/api";
+import { API_BASE } from "../config/api.js";
 
 // Initialize mermaid for dark cyberpunk theme
 mermaid.initialize({

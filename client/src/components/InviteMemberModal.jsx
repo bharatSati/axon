@@ -16,8 +16,7 @@ import {
   RefreshCw,
   Search
 } from "lucide-react";
-
-const API_BASE = "http://localhost:4000/api";
+import { API_BASE } from "../config/api.js";
 
 const ROLES = [
   { id: "developer", label: "Developer", color: "#61dafb", defaultPosition: "Senior Software Engineer", dept: "Engineering" },
