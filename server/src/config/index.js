@@ -37,5 +37,9 @@ export const config = {
     embeddingModel: process.env.RAG_EMBEDDING_MODEL || "all-MiniLM-L6-v2",
     similarityThreshold: parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || "0.15"),
     atlasIndexName: process.env.ATLAS_VECTOR_INDEX_NAME || "vector_index"
+  },
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || "",
+    keySecret: process.env.RAZORPAY_KEY_SECRET || ""
   }
 };

@@ -8,6 +8,7 @@ import authRouter from "./routes/auth.js";
 import employeeRouter from "./routes/employees.js";
 import githubRouter from "./routes/github.js";
 import invitationRouter from "./routes/invitations.js";
+import paymentRouter from "./routes/payment.js";
 
 const app = express();
 const PORT = config.port;
@@ -28,6 +29,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/employees", employeeRouter);
 app.use("/api/github", githubRouter);
 app.use("/api/invitations", invitationRouter);
+app.use("/api/payment", paymentRouter);
 
 // Root informational endpoint
 app.get("/api", (req, res) => {

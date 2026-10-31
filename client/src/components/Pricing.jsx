@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, Check, Sparkles } from "lucide-react";
+import { ArrowUpRight, Check, Sparkles, CreditCard, ShieldCheck } from "lucide-react";
 import SectionHeading from "./SectionHeading";
 import Reveal from "./Reveal";
 import Tilt3D from "./Tilt3D";
 import Magnetic from "./Magnetic";
-import { scrollToSection } from "../hooks/useSmoothScroll";
+import PaymentModal from "./PaymentModal";
 
 const plans = [
   {
@@ -60,6 +60,13 @@ const plans = [
 
 export default function Pricing() {
   const [annual, setAnnual] = useState(true);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("Team");
+
+  const handlePlanClick = (planName) => {
+    setSelectedPlan(planName);
+    setIsPaymentModalOpen(true);
+  };
 
   return (
     <section className="section pricing-section" id="pricing">
@@ -162,7 +169,7 @@ export default function Pricing() {
                     <button
                       type="button"
                       className={`button button--wide ${plan.popular ? "button--lime" : "button--outline"}`}
-                      onClick={() => scrollToSection("#cta")}
+                      onClick={() => handlePlanClick(plan.name)}
                     >
                       {plan.cta}
                       <ArrowUpRight size={16} />
@@ -189,16 +196,46 @@ export default function Pricing() {
         </div>
 
         <Reveal className="pricing-bottom" delay={0.1}>
-          <span className="mono-label">ALL PLANS INCLUDE</span>
-          <div className="pricing-perks">
-            <span>14-day free trial</span>
-            <span>No credit card</span>
-            <span>Cancel anytime</span>
-            <span>SOC 2 Type II</span>
-            <span>99.99% uptime</span>
+          <div className="pricing-bottom-content">
+            <div className="pricing-perks-row">
+              <span className="mono-label">ALL PLANS INCLUDE</span>
+              <div className="pricing-perks">
+                <span>14-day free trial</span>
+                <span>No credit card</span>
+                <span>Cancel anytime</span>
+                <span>SOC 2 Type II</span>
+                <span>99.99% uptime</span>
+              </div>
+            </div>
+
+            {/* Razorpay Test Gateway Banner */}
+            <div className="pricing-gateway-banner">
+              <div className="gateway-indicator">
+                <span className="gateway-dot" />
+                <ShieldCheck size={14} className="shield-icon" />
+                <span>POWERED BY <strong>RAZORPAY</strong> TEST API</span>
+              </div>
+              <button
+                type="button"
+                className="gateway-test-cta"
+                onClick={() => handlePlanClick("Team")}
+              >
+                <CreditCard size={13} />
+                Test Razorpay Checkout Flow (Team Plan)
+                <ArrowUpRight size={13} />
+              </button>
+            </div>
           </div>
         </Reveal>
       </div>
+
+      {/* Razorpay Checkout & Sandbox Simulation Modal */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        initialPlan={selectedPlan}
+        initialAnnual={annual}
+      />
     </section>
   );
 }

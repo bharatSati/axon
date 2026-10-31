@@ -3204,15 +3204,26 @@
 }
 
 .pricing-bottom {
-  display: flex;
-  align-items: center;
-  gap: 23px;
+  display: block;
   margin-top: 34px;
   padding-top: 20px;
   border-top: 1px solid var(--line);
 }
 
-.pricing-bottom > .mono-label {
+.pricing-bottom-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pricing-perks-row {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+  flex-wrap: wrap;
+}
+
+.pricing-perks-row > .mono-label {
   color: var(--dim);
   font-size: 7px;
 }
@@ -3234,6 +3245,648 @@
   color: var(--lime);
   content: "✦";
   font-size: 6px;
+}
+
+/* Razorpay Gateway Live Banner */
+.pricing-gateway-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: rgba(200, 255, 61, 0.035);
+  border: 1px solid rgba(200, 255, 61, 0.2);
+  transition: all 0.25s ease;
+}
+
+.pricing-gateway-banner:hover {
+  background: rgba(200, 255, 61, 0.06);
+  border-color: rgba(200, 255, 61, 0.35);
+}
+
+.gateway-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #a0aec0;
+  letter-spacing: 0.05em;
+}
+
+.gateway-indicator strong {
+  color: #c8ff3d;
+  font-weight: 700;
+}
+
+.gateway-indicator .shield-icon {
+  color: #c8ff3d;
+}
+
+.gateway-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c8ff3d;
+  box-shadow: 0 0 10px #c8ff3d;
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.85); }
+}
+
+.gateway-test-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 255, 61, 0.3);
+  background: rgba(200, 255, 61, 0.1);
+  color: #c8ff3d;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gateway-test-cta:hover {
+  background: #c8ff3d;
+  color: #050506;
+  border-color: #c8ff3d;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   PAYMENT MODAL (RAZORPAY TEST API INTEGRATION)
+   ============================================================ */
+.payment-modal-dialog {
+  max-width: 530px !important;
+  padding: 30px 28px 24px !important;
+  border-color: rgba(200, 255, 61, 0.35) !important;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.85), 0 0 60px rgba(200, 255, 61, 0.12) !important;
+}
+
+.payment-step-view {
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-modal-header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.payment-icon-badge {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(200, 255, 61, 0.1);
+  border: 1px solid rgba(200, 255, 61, 0.3);
+  color: #c8ff3d;
+}
+
+.payment-security-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(200, 255, 61, 0.08);
+  border: 1px solid rgba(200, 255, 61, 0.25);
+  color: #c8ff3d;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.payment-modal-header h3 {
+  color: #fff;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+
+.payment-modal-header p {
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.5;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* Plan Switcher Pills */
+.payment-plan-pill-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.payment-plan-pill {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #888;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.payment-plan-pill:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ccc;
+}
+
+.payment-plan-pill.is-active {
+  background: rgba(200, 255, 61, 0.09);
+  border-color: #c8ff3d;
+  color: #c8ff3d;
+}
+
+.pill-star {
+  font-size: 7px;
+  color: #050506;
+  background: #c8ff3d;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+/* Summary Box */
+.payment-summary-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.summary-row:last-child {
+  margin-bottom: 0;
+}
+
+.summary-label {
+  color: #888;
+}
+
+.summary-val {
+  color: #fff;
+  font-weight: 500;
+}
+
+.summary-val.highlight {
+  color: #c8ff3d;
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+
+.summary-val.price-val {
+  color: #c8ff3d;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.billing-cycle-toggle {
+  display: flex;
+  gap: 3px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  padding: 2px;
+}
+
+.billing-cycle-toggle button {
+  padding: 3px 8px;
+  border: none;
+  background: transparent;
+  color: #777;
+  font-family: var(--mono);
+  font-size: 9px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.billing-cycle-toggle button.is-active {
+  background: rgba(200, 255, 61, 0.18);
+  color: #c8ff3d;
+  font-weight: 600;
+}
+
+.summary-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 10px 0;
+}
+
+.features-summary {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.summary-perks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.summary-perks-list span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.summary-perks-list span svg {
+  color: #c8ff3d;
+}
+
+/* Inputs */
+.payment-inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.payment-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.payment-field label {
+  color: #888;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.payment-field input {
+  height: 38px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.payment-field input:focus {
+  border-color: #c8ff3d;
+}
+
+/* Mode note */
+.payment-mode-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(200, 255, 61, 0.04);
+  border: 1px solid rgba(200, 255, 61, 0.15);
+  color: #94a3b8;
+  font-size: 9.5px;
+  margin-bottom: 16px;
+}
+
+.badge-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c8ff3d;
+  box-shadow: 0 0 8px #c8ff3d;
+  flex-shrink: 0;
+}
+
+.payment-submit-btn {
+  width: 100%;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.spin-icon {
+  animation: spin-pulse 1s linear infinite;
+}
+
+@keyframes spin-pulse {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Simulator View */
+.simulator-step .code-tag {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #c8ff3d;
+  font-family: var(--mono);
+}
+
+.simulator-badge {
+  background: rgba(200, 255, 61, 0.12) !important;
+  color: #c8ff3d !important;
+}
+
+.test-credentials-card {
+  position: relative;
+  background: linear-gradient(135deg, #141a10 0%, #0c100a 100%);
+  border: 1px solid rgba(200, 255, 61, 0.35);
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(200, 255, 61, 0.03);
+  margin-bottom: 16px;
+}
+
+.test-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.test-visa-badge {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(200, 255, 61, 0.15);
+  color: #c8ff3d;
+  border: 1px solid rgba(200, 255, 61, 0.3);
+}
+
+.test-card-number {
+  font-family: var(--mono);
+  font-size: 19px;
+  letter-spacing: 0.12em;
+  color: #fff;
+  margin-bottom: 14px;
+}
+
+.test-card-meta {
+  display: flex;
+  gap: 20px;
+}
+
+.test-card-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.test-card-meta small {
+  color: #666;
+  font-family: var(--mono);
+  font-size: 7.5px;
+}
+
+.test-card-meta span {
+  color: #c8ff3d;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.simulation-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sim-btn-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.sim-btn-failure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  font-size: 11.5px;
+  cursor: pointer;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.sim-btn-failure:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: #ef4444 !important;
+}
+
+.simulator-tip-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.simulator-tip-box .mono-label {
+  color: #c8ff3d;
+  font-size: 7.5px;
+}
+
+.simulator-tip-box p {
+  color: #777;
+  font-size: 9.5px;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.simulator-tip-box code {
+  color: #c8ff3d;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* Success View */
+.success-step {
+  text-align: center;
+}
+
+.payment-success-badge {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(200, 255, 61, 0.12);
+  border: 1px solid rgba(200, 255, 61, 0.4);
+  color: #c8ff3d;
+  box-shadow: 0 0 35px rgba(200, 255, 61, 0.25);
+}
+
+.success-title-tag {
+  color: #c8ff3d;
+  font-size: 8px;
+  letter-spacing: 0.09em;
+  margin-bottom: 8px;
+}
+
+.success-subtitle {
+  color: #94a3b8;
+  font-size: 11px;
+  max-width: 380px;
+  margin: 0 auto 18px;
+}
+
+.payment-receipt-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(200, 255, 61, 0.22);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 11px;
+}
+
+.receipt-row:last-child {
+  border-bottom: none;
+}
+
+.receipt-row span:first-child {
+  color: #777;
+}
+
+.receipt-row .mono-val {
+  font-family: var(--mono);
+  color: #ccc;
+  font-size: 10px;
+}
+
+.receipt-row .highlight-val {
+  color: #c8ff3d;
+  font-weight: 600;
+}
+
+.status-badge-captured {
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(200, 255, 61, 0.15);
+  border: 1px solid rgba(200, 255, 61, 0.3);
+  color: #c8ff3d;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.success-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.success-actions-row .button {
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Failure View */
+.failure-step {
+  text-align: center;
+}
+
+.payment-failed-badge {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+}
+
+.failure-title-tag {
+  color: #ef4444;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.failure-reason {
+  color: #94a3b8;
+  font-size: 11px;
+  max-width: 360px;
+  margin: 0 auto 18px;
+}
+
+.failure-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.failure-actions .button {
+  height: 40px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 /* Shared pointer spotlight for card grids */
