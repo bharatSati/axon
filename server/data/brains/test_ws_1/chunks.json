@@ -1,0 +1,66 @@
+[
+  {
+    "id": "chunk_arch_summary",
+    "filePath": "PROJECT_ARCHITECTURE_OVERVIEW",
+    "type": "architecture",
+    "title": "Architecture Overview: bharatSati/axon",
+    "content": "### Project Architecture & Stack Overview\nRepository: bharatSati/axon\nDefault Branch: main\nLanguages: JavaScript\nDetected Technologies: \nKey Entry Points: server/src/index.js, src/index.js, index.js\nDescription: Modular workspace",
+    "metadata": {
+      "technologies": [],
+      "entryPoints": [
+        "server/src/index.js",
+        "src/index.js",
+        "index.js"
+      ],
+      "languages": {}
+    }
+  },
+  {
+    "id": "chunk_code_1",
+    "filePath": "server/src/index.js",
+    "type": "code",
+    "title": "server/src/index.js (Lines 1-4)",
+    "content": "[File: server/src/index.js | Lines 1-4]\nimport express from \"express\";\nconst app = express();\napp.use(\"/api/auth\", authRouter);\napp.listen(4000);",
+    "metadata": {
+      "startLine": 1,
+      "endLine": 4,
+      "language": "JavaScript"
+    }
+  },
+  {
+    "id": "chunk_doc_2",
+    "filePath": "docs/ARCHITECTURE.md",
+    "type": "documentation",
+    "title": "ARCHITECTURE.md > Architecture",
+    "content": "[File: docs/ARCHITECTURE.md | Documentation]\n# Architecture\nAxon is built with decoupled Express backend and Vite React frontend with RAG project brain.",
+    "metadata": {
+      "sectionTitle": "Architecture",
+      "lineCount": 2
+    }
+  },
+  {
+    "id": "chunk_cmt_3",
+    "filePath": "GIT_COMMIT_HISTORY",
+    "type": "commit",
+    "title": "Recent Commit Activity & Evolution",
+    "content": "### Git Commit History & Recent Changes\n• [c102b] (2026-10-31) bharatSati: Add RAG project brain indexing",
+    "metadata": {
+      "commitCount": 1,
+      "authors": [
+        "bharatSati"
+      ]
+    }
+  },
+  {
+    "id": "chunk_pr_4",
+    "filePath": "PULL_REQUESTS/#1",
+    "type": "pull_request",
+    "title": "PR #1: Implement Express RAG Vector Engine",
+    "content": "### Pull Request #1: Implement Express RAG Vector Engine\nState: merged | Author: bharatSati\nDescription:\nHybrid BM25 and Cosine similarity",
+    "metadata": {
+      "number": 1,
+      "state": "merged",
+      "author": "bharatSati"
+    }
+  }
+]

@@ -1,0 +1,468 @@
+import { useState, useEffect, useRef } from "react";
+import mermaid from "mermaid";
+import {
+  Sparkles,
+  GitBranch,
+  ArrowRight,
+  RefreshCw,
+  Copy,
+  Check,
+  Download,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Code2,
+  Layers,
+  Cpu,
+  Shield,
+  Zap,
+  BookOpen,
+  FolderGit2,
+  History,
+  FileCode,
+  Palette
+} from "lucide-react";
+import FormattedAIResponse from "./FormattedAIResponse";
+
+const API_BASE = "http://localhost:4000/api";
+
+// Initialize mermaid for dark cyberpunk theme
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "dark",
+  themeVariables: {
+    darkMode: true,
+    background: "#080b08",
+    primaryColor: "#1e293b",
+    primaryTextColor: "#f8fafc",
+    primaryBorderColor: "#38bdf8",
+    lineColor: "#64748b",
+    secondaryColor: "#334155",
+    tertiaryColor: "#0f172a",
+    fontFamily: "Space Grotesk, JetBrains Mono, monospace",
+    fontSize: "13px"
+  },
+  securityLevel: "loose",
+  flowchart: {
+    useMaxWidth: false,
+    htmlLabels: true,
+    curve: "basis"
+  }
+});
+
+export default function FlowchartStudio({ workspace, token }) {
+  const [prompt, setPrompt] = useState("");
+  const [orientation, setOrientation] = useState("TD"); // "TD" | "LR"
+  const [loading, setLoading] = useState(false);
+  const [flowchartData, setFlowchartData] = useState(null);
+  const [viewMode, setViewMode] = useState("diagram"); // "diagram" | "code"
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [presets, setPresets] = useState([]);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [svgRenderError, setSvgRenderError] = useState(null);
+  const [showSources, setShowSources] = useState(false);
+
+  const diagramContainerRef = useRef(null);
+
+  // 1. Fetch Preset Diagrams on Mount
+  useEffect(() => {
+    if (!workspace?.id) return;
+    loadPresets();
+    // Default initial flowchart
+    handleGenerateFlowchart(
+      "Show complete authentication flow from GitHub login to JWT token generation, role extraction, and authenticateToken middleware verification."
+    );
+  }, [workspace?.id]);
+
+  const loadPresets = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/workspaces/${workspace.id}/flowchart/presets`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.presets) {
+        setPresets(data.presets);
+      }
+    } catch (e) {
+      console.warn("Could not load flowchart presets:", e.message);
+    }
+  };
+
+  // 2. Generate Flowchart from Prompt
+  const handleGenerateFlowchart = async (customPrompt) => {
+    const query = customPrompt || prompt;
+    if (!query || !query.trim() || !workspace?.id) return;
+
+    try {
+      setLoading(true);
+      setSvgRenderError(null);
+      setPrompt(query);
+
+      const res = await fetch(`${API_BASE}/workspaces/${workspace.id}/flowchart/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          prompt: query.trim(),
+          orientation
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.mermaidCode) {
+        setFlowchartData(data);
+        renderMermaidSvg(data.mermaidCode);
+      } else {
+        setSvgRenderError(data.error || "Failed to generate flowchart diagram.");
+      }
+    } catch (err) {
+      console.error("Flowchart generation error:", err);
+      setSvgRenderError("Network error connecting to Project Brain.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Render Mermaid SVG safely
+  const renderMermaidSvg = async (code) => {
+    if (!code) return;
+    try {
+      const id = `mermaid-svg-${Date.now()}`;
+      const { svg } = await mermaid.render(id, code);
+      if (diagramContainerRef.current) {
+        diagramContainerRef.current.innerHTML = svg;
+      }
+      setSvgRenderError(null);
+    } catch (renderErr) {
+      console.error("Mermaid render error:", renderErr);
+      setSvgRenderError(`Mermaid Syntax Render Error: ${renderErr.message}`);
+    }
+  };
+
+  // Re-render when zooming or orientation changes
+  useEffect(() => {
+    if (flowchartData?.mermaidCode) {
+      renderMermaidSvg(flowchartData.mermaidCode);
+    }
+  }, [orientation]);
+
+  // 4. Copy Raw Mermaid Code
+  const handleCopyCode = () => {
+    if (flowchartData?.mermaidCode) {
+      navigator.clipboard.writeText(flowchartData.mermaidCode);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    }
+  };
+
+  // 5. Export as SVG
+  const handleExportSvg = () => {
+    if (!diagramContainerRef.current) return;
+    const svgEl = diagramContainerRef.current.querySelector("svg");
+    if (!svgEl) return;
+
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `axon-flowchart-${Date.now()}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Zoom handlers
+  const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.2, 2.4));
+  const handleZoomOut = () => setZoomLevel((z) => Math.max(z - 0.2, 0.4));
+  const handleResetZoom = () => setZoomLevel(1);
+
+  return (
+    <div className="flowchart-studio-container">
+      {/* Top Banner */}
+      <div className="flowchart-banner">
+        <div className="flowchart-banner-left">
+          <div className="mono-label flowchart-kicker-pill">
+            <Palette size={13} color="#c8ff3d" />
+            <span>AI ARCHITECTURAL VISUALIZER &amp; FLOWCHART STUDIO</span>
+          </div>
+          <h2>Interactive Architecture &amp; System Flowchart Engine</h2>
+          <p>
+            Generate colorful, high-fidelity Mermaid.js flowcharts from plain prompts. Grounded in
+            repository source code, API routes, and Project Brain RAG knowledge.
+          </p>
+        </div>
+
+        <div className="flowchart-banner-actions">
+          <div className="orientation-toggle mono-label">
+            <span>LAYOUT:</span>
+            <button
+              type="button"
+              className={`orient-btn ${orientation === "TD" ? "is-active" : ""}`}
+              onClick={() => {
+                setOrientation("TD");
+                if (flowchartData) handleGenerateFlowchart();
+              }}
+            >
+              Top ➔ Bottom
+            </button>
+            <button
+              type="button"
+              className={`orient-btn ${orientation === "LR" ? "is-active" : ""}`}
+              onClick={() => {
+                setOrientation("LR");
+                if (flowchartData) handleGenerateFlowchart();
+              }}
+            >
+              Left ➔ Right
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Preset Library Chips */}
+      {presets.length > 0 && (
+        <div className="flowchart-presets-bar">
+          <span className="mono-label" style={{ fontSize: "11px", color: "#888" }}>
+            QUICK ARCHITECTURE PRESETS:
+          </span>
+          <div className="flowchart-presets-grid">
+            {presets.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="flowchart-preset-pill mono-label"
+                style={{ "--preset-color": p.color }}
+                onClick={() => handleGenerateFlowchart(p.prompt)}
+                disabled={loading}
+              >
+                <span className="preset-dot" style={{ background: p.color }} />
+                <span>{p.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main Prompt Bar */}
+      <div className="flowchart-prompt-box">
+        <div className="prompt-input-row">
+          <Sparkles size={17} color="#c8ff3d" className="prompt-icon" />
+          <input
+            type="text"
+            className="flowchart-prompt-input"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !loading) handleGenerateFlowchart();
+            }}
+            placeholder="Ask any architectural flow (e.g. 'Show URL redirection lifecycle', 'Explain how RAG retrieval works', 'Show full client-server microservices flow')..."
+          />
+          {prompt && (
+            <button
+              type="button"
+              className="clear-prompt-btn mono-label"
+              onClick={() => setPrompt("")}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="button button--lime flowchart-submit-btn"
+          onClick={() => handleGenerateFlowchart()}
+          disabled={loading || !prompt.trim()}
+        >
+          {loading ? (
+            <RefreshCw size={15} className="spin" />
+          ) : (
+            <ArrowRight size={15} />
+          )}
+          <span>{loading ? "Synthesizing Flowchart..." : "Generate Flowchart"}</span>
+        </button>
+      </div>
+
+      {/* Flowchart Canvas & Studio Viewport */}
+      <div className="flowchart-viewport-card">
+        {/* Viewport Control Strip */}
+        <div className="flowchart-controls-strip">
+          <div className="controls-left">
+            <button
+              type="button"
+              className={`view-switch-btn ${viewMode === "diagram" ? "is-active" : ""}`}
+              onClick={() => setViewMode("diagram")}
+            >
+              <GitBranch size={13} color="#c8ff3d" />
+              <span>Interactive Diagram</span>
+            </button>
+            <button
+              type="button"
+              className={`view-switch-btn ${viewMode === "code" ? "is-active" : ""}`}
+              onClick={() => setViewMode("code")}
+            >
+              <Code2 size={13} color="#38bdf8" />
+              <span>Mermaid Code</span>
+            </button>
+          </div>
+
+          <div className="controls-right">
+            {viewMode === "diagram" && (
+              <div className="zoom-controls mono-label">
+                <button
+                  type="button"
+                  className="zoom-btn"
+                  onClick={handleZoomOut}
+                  title="Zoom Out"
+                >
+                  <ZoomOut size={13} />
+                </button>
+                <span className="zoom-label">{Math.round(zoomLevel * 100)}%</span>
+                <button
+                  type="button"
+                  className="zoom-btn"
+                  onClick={handleZoomIn}
+                  title="Zoom In"
+                >
+                  <ZoomIn size={13} />
+                </button>
+                <button
+                  type="button"
+                  className="zoom-btn"
+                  onClick={handleResetZoom}
+                  title="Reset Zoom"
+                >
+                  <RotateCcw size={13} />
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="flowchart-action-btn mono-label"
+              onClick={handleCopyCode}
+            >
+              {copiedCode ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
+              <span>{copiedCode ? "Copied" : "Copy Mermaid"}</span>
+            </button>
+
+            <button
+              type="button"
+              className="flowchart-action-btn mono-label"
+              onClick={handleExportSvg}
+            >
+              <Download size={12} />
+              <span>Download SVG</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Viewport Content */}
+        <div className="flowchart-canvas-area">
+          {loading ? (
+            <div className="flowchart-loading-state">
+              <div className="loading-halo">
+                <RefreshCw size={36} className="spin" color="#c8ff3d" />
+              </div>
+              <h3>Synthesizing Architecture &amp; Logic into Mermaid Flowchart...</h3>
+              <p>
+                Project Brain is analyzing repository chunks, mapping node dependencies, and
+                applying vibrant cyberpunk color coding with Groq 120B.
+              </p>
+            </div>
+          ) : svgRenderError ? (
+            <div className="flowchart-error-box">
+              <h4>Diagram Rendering Notice</h4>
+              <p>{svgRenderError}</p>
+              {flowchartData?.mermaidCode && (
+                <pre className="error-code-preview">
+                  <code>{flowchartData.mermaidCode}</code>
+                </pre>
+              )}
+            </div>
+          ) : viewMode === "diagram" ? (
+            <div className="diagram-scroll-viewport">
+              <div
+                ref={diagramContainerRef}
+                className="mermaid-rendered-svg-wrap"
+                style={{
+                  transform: `scale(${zoomLevel})`,
+                  transformOrigin: "top center",
+                  transition: "transform 0.15s ease"
+                }}
+              />
+            </div>
+          ) : (
+            <div className="mermaid-code-view">
+              <div className="code-view-head mono-label">
+                <span>VIBRANT MERMAID.JS SYNTAX (COPY-PASTE READY)</span>
+                <button type="button" className="copy-code-inline" onClick={handleCopyCode}>
+                  {copiedCode ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
+                  <span>Copy</span>
+                </button>
+              </div>
+              <pre className="mermaid-pre">
+                <code>{flowchartData?.mermaidCode || "No diagram generated yet."}</code>
+              </pre>
+            </div>
+          )}
+        </div>
+
+        {/* Architectural Walkthrough & Step-by-Step Breakdown */}
+        {flowchartData?.explanation && (
+          <div className="flowchart-explanation-drawer">
+            <div className="explanation-head mono-label">
+              <Sparkles size={12} color="#c8ff3d" />
+              <span>ARCHITECTURAL WALKTHROUGH &amp; PROCESS LOGIC</span>
+            </div>
+            <div className="explanation-body">
+              <FormattedAIResponse content={flowchartData.explanation} />
+            </div>
+          </div>
+        )}
+
+        {/* Brain Context Sources */}
+        {flowchartData?.relevantChunks && flowchartData.relevantChunks.length > 0 && (
+          <div className="flowchart-sources-box">
+            <button
+              type="button"
+              className="sources-toggle mono-label"
+              onClick={() => setShowSources(!showSources)}
+            >
+              <BookOpen size={12} color="#c8ff3d" />
+              <span>
+                {showSources ? "Hide" : "Inspect"} Brain Sources (
+                {flowchartData.relevantChunks.length})
+              </span>
+            </button>
+
+            {showSources && (
+              <div className="sources-list-grid" style={{ marginTop: 10 }}>
+                {flowchartData.relevantChunks.map((chunk, idx) => (
+                  <div key={idx} className="source-chunk-card">
+                    <div className="source-chunk-path mono-label">
+                      📄 {chunk.filePath}
+                      {chunk.score && (
+                        <span className="source-score">
+                          match: {(chunk.score * 100).toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="source-chunk-snippet mono-label">
+                      {chunk.content?.slice(0, 200)}...
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

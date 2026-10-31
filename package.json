@@ -1,0 +1,27 @@
+{
+  "name": "axon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Axon — Unified & Intelligent Workspace",
+  "type": "module",
+  "scripts": {
+    "dev": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "preview": "npm --prefix client run preview",
+    "client:dev": "npm --prefix client run dev",
+    "client:build": "npm --prefix client run build",
+    "server": "npm --prefix server run start",
+    "server:dev": "npm --prefix server run dev",
+    "start": "npm --prefix server run start"
+  },
+  "keywords": [
+    "axon",
+    "workspace",
+    "modular-architecture",
+    "client-server",
+    "github-oauth",
+    "employee-management"
+  ],
+  "author": "Bharat Sati",
+  "license": "MIT"
+}

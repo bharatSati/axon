@@ -1,0 +1,19 @@
+{
+  "repoName": "axon-platform",
+  "repoFullName": "bharatSati/axon",
+  "defaultBranch": "main",
+  "description": "Modular workspace",
+  "techStack": [],
+  "entryPoints": [
+    "server/src/index.js",
+    "src/index.js",
+    "index.js"
+  ],
+  "languages": {},
+  "totalFiles": 2,
+  "totalChunks": 5,
+  "totalCommits": 1,
+  "workspaceId": "test_ws_1",
+  "lastIndexedAt": "2026-10-31T05:50:44.901Z",
+  "status": "ready"
+}

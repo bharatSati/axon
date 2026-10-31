@@ -1,0 +1,273 @@
+/* ============================================================
+   IMMERSIVE 3D LAYER
+   ============================================================ */
+
+#root {
+  position: relative;
+}
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+.footer {
+  z-index: 1;
+}
+
+/* ---------- Persistent atmosphere ---------- */
+.atmosphere {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.atmosphere canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.atmosphere::after {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 72% 60% at 50% 38%, transparent 30%, rgba(4, 6, 5, 0.42) 100%),
+    linear-gradient(180deg, rgba(4, 6, 5, 0.25), transparent 22%, transparent 78%, rgba(4, 6, 5, 0.35));
+  content: "";
+  pointer-events: none;
+}
+
+/* Let the atmosphere breathe through every section */
+.hero,
+.logo-section,
+.command-section,
+.metrics-section,
+.pricing-section,
+.cta-section,
+.footer {
+  background: transparent;
+}
+
+.features-section {
+  background: radial-gradient(circle at 20% 20%, rgba(200, 255, 61, 0.035), transparent 32%);
+}
+
+.testimonials-section {
+  background: radial-gradient(circle at 85% 15%, rgba(154, 168, 255, 0.04), transparent 32%);
+}
+
+.command-bg {
+  background:
+    radial-gradient(ellipse 55% 75% at 16% 50%, rgba(200, 255, 61, 0.055), transparent 70%),
+    radial-gradient(ellipse 50% 65% at 92% 55%, rgba(122, 140, 255, 0.045), transparent 65%);
+}
+
+/* ---------- 3D tilt cards ---------- */
+.tilt-slot {
+  display: flex;
+  height: 100%;
+}
+
+.tilt-slot > .tilt3d {
+  width: 100%;
+}
+
+.tilt3d {
+  --rx: 0deg;
+  --ry: 0deg;
+  --tilt-scale: 1;
+  position: relative;
+  transform: perspective(1200px) rotateX(var(--rx)) rotateY(var(--ry)) scale(var(--tilt-scale));
+  transform-style: preserve-3d;
+  transition:
+    transform 0.55s var(--ease-out),
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+  will-change: transform;
+}
+
+.tilt3d.is-tilting {
+  transition: transform 0.09s linear, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.tilt3d:hover {
+  border-color: rgba(200, 255, 61, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 34px 90px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(200, 255, 61, 0.04);
+}
+
+.tilt-glare {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    380px circle at var(--gx, 50%) var(--gy, 50%),
+    rgba(200, 255, 61, 0.14),
+    rgba(127, 255, 217, 0.05) 38%,
+    transparent 62%
+  );
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transition: opacity 0.35s ease;
+}
+
+.tilt3d:hover .tilt-glare {
+  opacity: 1;
+}
+
+.metric-slot,
+.pricing-slot {
+  height: 100%;
+}
+
+.testimonial-slot {
+  grid-column: span 5;
+}
+
+.testimonial-slot--featured {
+  grid-row: span 2;
+  grid-column: span 7;
+}
+
+/* ---------- Section 3D scenes ---------- */
+.metrics-scene {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.62;
+  mask-image: radial-gradient(ellipse 78% 66% at 50% 62%, #000 26%, transparent 82%);
+  -webkit-mask-image: radial-gradient(ellipse 78% 66% at 50% 62%, #000 26%, transparent 82%);
+}
+
+.cta-scene {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.9;
+  mask-image: radial-gradient(ellipse 70% 82% at 50% 46%, #000 22%, transparent 82%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 82% at 50% 46%, #000 22%, transparent 82%);
+}
+
+.integration-scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.metrics-scene canvas,
+.cta-scene canvas,
+.integration-scene canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.integration-count {
+  z-index: 3;
+}
+
+/* ---------- Command center depth ---------- */
+.command-sticky {
+  perspective: 1600px;
+}
+
+.command-floor {
+  position: absolute;
+  z-index: 0;
+  bottom: -20%;
+  left: 50%;
+  width: 175%;
+  height: 72%;
+  transform: translateX(-50%) perspective(520px) rotateX(74deg);
+  transform-origin: center bottom;
+  background-image:
+    linear-gradient(rgba(200, 255, 61, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 255, 61, 0.14) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 46% 58% at 50% 32%, #000, transparent 74%);
+  -webkit-mask-image: radial-gradient(ellipse 46% 58% at 50% 32%, #000, transparent 74%);
+  opacity: 0.32;
+  pointer-events: none;
+  animation: command-floor-scroll 9s linear infinite;
+}
+
+@keyframes command-floor-scroll {
+  to {
+    background-position: 0 64px, 64px 0;
+  }
+}
+
+.command-visual-window {
+  transform-style: preserve-3d;
+}
+
+/* ---------- Footer horizon ---------- */
+.footer-horizon {
+  position: absolute;
+  z-index: 0;
+  bottom: -12%;
+  left: 50%;
+  width: 165%;
+  height: 52%;
+  transform: translateX(-50%) perspective(620px) rotateX(72deg);
+  transform-origin: center bottom;
+  background-image:
+    linear-gradient(rgba(200, 255, 61, 0.11) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 255, 61, 0.11) 1px, transparent 1px);
+  background-size: 78px 78px;
+  mask-image: radial-gradient(ellipse 46% 62% at 50% 26%, #000, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse 46% 62% at 50% 26%, #000, transparent 76%);
+  opacity: 0.24;
+  pointer-events: none;
+}
+
+.footer > .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Hero depth polish ---------- */
+.hero-visual-inner {
+  perspective: 1500px;
+}
+
+.orb-stage {
+  transform-style: preserve-3d;
+}
+
+.hero-chip {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@media (max-width: 760px) {
+  .metrics-scene,
+  .cta-scene {
+    display: none;
+  }
+
+  .command-floor {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metrics-scene,
+  .cta-scene,
+  .integration-scene,
+  .command-floor,
+  .footer-horizon {
+    display: none;
+  }
+
+  .tilt3d {
+    transform: none !important;
+  }
+}

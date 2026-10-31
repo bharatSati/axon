@@ -1,0 +1,850 @@
+[
+  {
+    "id": "chunk_arch_summary",
+    "filePath": "PROJECT_ARCHITECTURE_OVERVIEW",
+    "type": "architecture",
+    "title": "Architecture Overview: bharatSati/saas-landing",
+    "content": "### Project Architecture & Stack Overview\nRepository: bharatSati/saas-landing\nDefault Branch: main\nLanguages: JavaScript, CSS, HTML\nDetected Technologies: JavaScript, CSS, HTML\nKey Entry Points: client/src/App.jsx, server/src/index.js, src/index.js, src/App.jsx, index.js\nDescription: Modular software workspace and distributed client-server platform",
+    "metadata": {
+      "technologies": [
+        "JavaScript",
+        "CSS",
+        "HTML"
+      ],
+      "entryPoints": [
+        "client/src/App.jsx",
+        "server/src/index.js",
+        "src/index.js",
+        "src/App.jsx",
+        "index.js"
+      ],
+      "languages": {
+        "JavaScript": 65400,
+        "CSS": 24200,
+        "HTML": 4300
+      }
+    }
+  },
+  {
+    "id": "chunk_doc_1",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Axon — Unified & Intelligent Workspace",
+    "content": "[File: README.md | Documentation]\n# Axon — Unified & Intelligent Workspace\n\nAxon is a software platform designed to provide a unified and intelligent workspace through a modular, scalable, and maintainable architecture. The core idea behind Axon is to simplify complex workflows by bringing essential capabilities together in one place, reducing fragmentation and making interactions more efficient.\n\nModern software applications often rely on multiple disconnected tools, services, and workflows. This creates unnecessary complexity, increases operational overhead, and makes information difficult to manage. Axon aims to address this challenge by establishing a structured application environment where different functionalities can work together seamlessly.\n\n---",
+    "metadata": {
+      "sectionTitle": "Axon — Unified & Intelligent Workspace",
+      "lineCount": 8
+    }
+  },
+  {
+    "id": "chunk_doc_2",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Architecture and Technology",
+    "content": "[File: README.md | Documentation]\n## Architecture and Technology\n\nAxon follows a clean **client-server architecture**, divided into two major components with dedicated documentation:\n\n```\naxon/\n├── client/                     # Frontend Application (React, Vite, GSAP, Three.js)\n│   ├── src/\n│   │   ├── components/         # Landing components & CEODashboard\n│   │   ├── context/            # AuthContext (Strict GitHub Authentication)\n│   │   ├── hooks/              # Custom interaction & scroll hooks\n│   │   └── styles/             # Modular styling & design tokens\n│   └── package.json\n│\n├── server/                     # Backend API & Application Logic (Express, JWT)\n│   ├── src/\n│   │   ├── controllers/        # AuthController & EmployeeController\n│   │   ├── middleware/         # GitHub JWT Token Authentication & CEO Authorization\n│   │   ├── routes/             # /api/auth, /api/employees, /api/workspace, /api/health\n│   │   └── config/             # Environment configuration (.env)\n│   ├── .env                    # Active environment variables\n│   ├── .env.example            # Environment template\n│   └── package.json\n│\n├── docs/                       # Technical Documentation\n│   ├── PROJECT_OVERVIEW.md     # Project vision & architectural philosophy\n│   ├── ARCHITECTURE.md         # Full architecture blueprint & component contracts\n│   ├── API_REFERENCE.md        # Complete API documentation & schemas\n│   └── DEVELOPMENT_GUIDELINES.md # Engineering standards & best practices\n│\n├── package.json                # Root orchestration scripts\n└── README.md                   # Repository documentation\n```\n\n- **Frontend (`client/`):** Handles the user interface, navigation, and user interactions. Responsible for presenting information clearly, providing a smooth user experience, and rendering the executive CEO Dashboard.\n- **Backend (`server/`):** Manages application logic, API endpoints, data processing, GitHub OAuth handling, employee role management, and communication with external services.\n- **Documentation (`docs/`):** Dedicated directory for technical documentation, architecture specifications, API references, and development guidelines.\n\n---",
+    "metadata": {
+      "sectionTitle": "Architecture and Technology",
+      "lineCount": 40
+    }
+  },
+  {
+    "id": "chunk_doc_3",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Strict GitHub Authentication & CEO Onboarding",
+    "content": "[File: README.md | Documentation]\n## Strict GitHub Authentication & CEO Onboarding\n\nAxon enforces **strict GitHub OAuth authentication** for the CEO and Workspace Owners:\n\n1. **CEO Sign-Up with GitHub:**\n   - The CEO authenticates exclusively via GitHub.\n   - Upon logging in, Axon provisions their executive profile as **CEO / Workspace Owner**.\n2. **Executive Command Dashboard:**\n   - The CEO gains direct access to the **CEO Workspace Dashboard**.\n   - View real-time workspace metrics (headcount, role distribution, system synchronization).\n3. **Employee Role Assignment:**\n   - The CEO can add new employees and assign them to specific roles and departments:\n     - **Engineering:** Engineering Lead, Senior Frontend Engineer, Senior Backend Engineer, Fullstack Developer, QA & Reliability Engineer.\n     - **Infrastructure:** DevOps & Cloud Architect, Security Specialist.\n     - **Product & Design:** Product Manager, UI/UX Designer.\n   - The CEO can update roles on-the-fly and manage workspace membership.\n\n---",
+    "metadata": {
+      "sectionTitle": "Strict GitHub Authentication & CEO Onboarding",
+      "lineCount": 19
+    }
+  },
+  {
+    "id": "chunk_doc_4",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Environment Setup (`.env`)",
+    "content": "[File: README.md | Documentation]\n## Environment Setup (`.env`)\n\nConfigure GitHub OAuth credentials in `server/.env`:\n\n```bash",
+    "metadata": {
+      "sectionTitle": "Environment Setup (`.env`)",
+      "lineCount": 5
+    }
+  },
+  {
+    "id": "chunk_doc_5",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Server Configuration",
+    "content": "[File: README.md | Documentation]\n# Server Configuration\nPORT=4000\nCLIENT_URL=http://localhost:5173\nJWT_SECRET=your_super_secret_jwt_key_2026",
+    "metadata": {
+      "sectionTitle": "Server Configuration",
+      "lineCount": 5
+    }
+  },
+  {
+    "id": "chunk_doc_6",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > GitHub OAuth Credentials",
+    "content": "[File: README.md | Documentation]\n# GitHub OAuth Credentials",
+    "metadata": {
+      "sectionTitle": "GitHub OAuth Credentials",
+      "lineCount": 1
+    }
+  },
+  {
+    "id": "chunk_doc_7",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Register a GitHub OAuth App at: https://github.com/settings/developers",
+    "content": "[File: README.md | Documentation]\n# Register a GitHub OAuth App at: https://github.com/settings/developers",
+    "metadata": {
+      "sectionTitle": "Register a GitHub OAuth App at: https://github.com/settings/developers",
+      "lineCount": 1
+    }
+  },
+  {
+    "id": "chunk_doc_8",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > - Homepage URL: http://localhost:5173",
+    "content": "[File: README.md | Documentation]\n# - Homepage URL: http://localhost:5173",
+    "metadata": {
+      "sectionTitle": "- Homepage URL: http://localhost:5173",
+      "lineCount": 1
+    }
+  },
+  {
+    "id": "chunk_doc_9",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > - Authorization callback URL: http://localhost:4000/api/auth/github/callback",
+    "content": "[File: README.md | Documentation]\n# - Authorization callback URL: http://localhost:4000/api/auth/github/callback\nGITHUB_CLIENT_ID=your_github_client_id_here\nGITHUB_CLIENT_SECRET=your_github_client_secret_here\nGITHUB_CALLBACK_URL=http://localhost:4000/api/auth/github/callback\n```\n\n> **Note for Local Testing:** The platform includes an instant local CEO preview mode allowing you to test the complete CEO Dashboard and employee management workflows immediately even before configuring live GitHub OAuth keys.\n\n---",
+    "metadata": {
+      "sectionTitle": "- Authorization callback URL: http://localhost:4000/api/auth/github/callback",
+      "lineCount": 10
+    }
+  },
+  {
+    "id": "chunk_doc_10",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Quick Start",
+    "content": "[File: README.md | Documentation]\n## Quick Start",
+    "metadata": {
+      "sectionTitle": "Quick Start",
+      "lineCount": 2
+    }
+  },
+  {
+    "id": "chunk_doc_11",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > 1. Install Dependencies",
+    "content": "[File: README.md | Documentation]\n### 1. Install Dependencies\n```bash",
+    "metadata": {
+      "sectionTitle": "1. Install Dependencies",
+      "lineCount": 2
+    }
+  },
+  {
+    "id": "chunk_doc_12",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Install client dependencies",
+    "content": "[File: README.md | Documentation]\n# Install client dependencies\ncd client && npm install",
+    "metadata": {
+      "sectionTitle": "Install client dependencies",
+      "lineCount": 3
+    }
+  },
+  {
+    "id": "chunk_doc_13",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Install server dependencies",
+    "content": "[File: README.md | Documentation]\n# Install server dependencies\ncd ../server && npm install\n```",
+    "metadata": {
+      "sectionTitle": "Install server dependencies",
+      "lineCount": 4
+    }
+  },
+  {
+    "id": "chunk_doc_14",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > 2. Run the Development Servers",
+    "content": "[File: README.md | Documentation]\n### 2. Run the Development Servers\nFrom the root directory:\n\n```bash",
+    "metadata": {
+      "sectionTitle": "2. Run the Development Servers",
+      "lineCount": 4
+    }
+  },
+  {
+    "id": "chunk_doc_15",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Start Client (Vite: http://localhost:5173)",
+    "content": "[File: README.md | Documentation]\n# Start Client (Vite: http://localhost:5173)\nnpm run dev",
+    "metadata": {
+      "sectionTitle": "Start Client (Vite: http://localhost:5173)",
+      "lineCount": 3
+    }
+  },
+  {
+    "id": "chunk_doc_16",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > In a second terminal, start Server (Express API: http://localhost:4000)",
+    "content": "[File: README.md | Documentation]\n# In a second terminal, start Server (Express API: http://localhost:4000)\nnpm run server:dev\n```",
+    "metadata": {
+      "sectionTitle": "In a second terminal, start Server (Express API: http://localhost:4000)",
+      "lineCount": 4
+    }
+  },
+  {
+    "id": "chunk_doc_17",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > 3. Build for Production",
+    "content": "[File: README.md | Documentation]\n### 3. Build for Production\n```bash\nnpm run build\n```\n\n---",
+    "metadata": {
+      "sectionTitle": "3. Build for Production",
+      "lineCount": 7
+    }
+  },
+  {
+    "id": "chunk_doc_18",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Key Design Principles",
+    "content": "[File: README.md | Documentation]\n## Key Design Principles\n\n- **Modularity:** Different application components maintain separate responsibilities, making the system easier to extend.\n- **Scalability:** Its architecture provides room for introducing additional features and integrations as requirements evolve.\n- **Maintainability:** Organized frontend and backend components simplify debugging, updates, and long-term development.\n- **Integration:** API-based communication creates a foundation for connecting external services and additional modules.\n- **Developer Experience:** Clear project organization and documentation make collaboration and onboarding easier.\n\n---",
+    "metadata": {
+      "sectionTitle": "Key Design Principles",
+      "lineCount": 10
+    }
+  },
+  {
+    "id": "chunk_doc_19",
+    "filePath": "README.md",
+    "type": "documentation",
+    "title": "README.md > Vision",
+    "content": "[File: README.md | Documentation]\n## Vision\n\nThe long-term vision behind Axon is to develop a flexible and dependable software platform that can evolve with changing user requirements. Instead of building an application that becomes increasingly difficult to maintain as it grows, Axon emphasizes a modular foundation that supports continuous improvement.",
+    "metadata": {
+      "sectionTitle": "Vision",
+      "lineCount": 4
+    }
+  },
+  {
+    "id": "chunk_doc_20",
+    "filePath": "docs/PROJECT_OVERVIEW.md",
+    "type": "documentation",
+    "title": "PROJECT_OVERVIEW.md > Axon — Project Overview",
+    "content": "[File: docs/PROJECT_OVERVIEW.md | Documentation]\n# Axon — Project Overview\n\nAxon is a software platform designed to provide a unified and intelligent workspace through a modular, scalable, and maintainable architecture. The core idea behind Axon is to simplify complex workflows by bringing essential capabilities together in one place, reducing fragmentation and making interactions more efficient.\n\nModern software applications often rely on multiple disconnected tools, services, and workflows. This creates unnecessary complexity, increases operational overhead, and makes information difficult to manage. Axon aims to address this challenge by establishing a structured application environment where different functionalities can work together seamlessly.",
+    "metadata": {
+      "sectionTitle": "Axon — Project Overview",
+      "lineCount": 6
+    }
+  },
+  {
+    "id": "chunk_doc_21",
+    "filePath": "docs/PROJECT_OVERVIEW.md",
+    "type": "documentation",
+    "title": "PROJECT_OVERVIEW.md > Architecture and Technology",
+    "content": "[File: docs/PROJECT_OVERVIEW.md | Documentation]\n## Architecture and Technology\n\nAxon follows a client-server architecture, with its application divided into two major components: the frontend and backend.\n\nThe frontend, maintained inside the `client` directory, handles the user interface, navigation, and user interactions. It is responsible for presenting information clearly and providing a smooth experience. \n\nThe backend, maintained inside the `server` directory, manages application logic, API endpoints, data processing, and communication with external services. This separation allows frontend and backend development to progress independently while maintaining clear integration boundaries.\n\nThe project also maintains a dedicated `docs` directory for technical documentation, architecture references, and development guidelines.",
+    "metadata": {
+      "sectionTitle": "Architecture and Technology",
+      "lineCount": 10
+    }
+  },
+  {
+    "id": "chunk_doc_22",
+    "filePath": "docs/PROJECT_OVERVIEW.md",
+    "type": "documentation",
+    "title": "PROJECT_OVERVIEW.md > Key Design Principles",
+    "content": "[File: docs/PROJECT_OVERVIEW.md | Documentation]\n## Key Design Principles\n\nAxon is structured around several important engineering principles:\n\n- **Modularity:** Different application components maintain separate responsibilities, making the system easier to extend.\n- **Scalability:** Its architecture provides room for introducing additional features and integrations as requirements evolve.\n- **Maintainability:** Organized frontend and backend components simplify debugging, updates, and long-term development.\n- **Integration:** API-based communication creates a foundation for connecting external services and additional modules.\n- **Developer Experience:** Clear project organization and documentation make collaboration and onboarding easier.",
+    "metadata": {
+      "sectionTitle": "Key Design Principles",
+      "lineCount": 10
+    }
+  },
+  {
+    "id": "chunk_doc_23",
+    "filePath": "docs/PROJECT_OVERVIEW.md",
+    "type": "documentation",
+    "title": "PROJECT_OVERVIEW.md > How It Works",
+    "content": "[File: docs/PROJECT_OVERVIEW.md | Documentation]\n## How It Works\n\nAt a high level, users interact with Axon through its frontend. When an operation requires backend processing, the client communicates with the server through APIs. The backend processes the request, performs the required operations, interacts with relevant data sources or services, and returns a response to the frontend.\n\nThis approach keeps application responsibilities organized and provides a consistent communication layer between different components.",
+    "metadata": {
+      "sectionTitle": "How It Works",
+      "lineCount": 6
+    }
+  },
+  {
+    "id": "chunk_doc_24",
+    "filePath": "docs/PROJECT_OVERVIEW.md",
+    "type": "documentation",
+    "title": "PROJECT_OVERVIEW.md > Vision",
+    "content": "[File: docs/PROJECT_OVERVIEW.md | Documentation]\n## Vision\n\nThe long-term vision behind Axon is to develop a flexible and dependable software platform that can evolve with changing user requirements. Instead of building an application that becomes increasingly difficult to maintain as it grows, Axon emphasizes a modular foundation that supports continuous improvement.\n\nBy combining structured architecture, independent development modules, and extensibility, Axon establishes a foundation for building a more connected and efficient software experience.\n\nUltimately, Axon represents an engineering-focused approach to software development: building a system that is not only functional today but also adaptable, maintainable, and ready for future expansion.",
+    "metadata": {
+      "sectionTitle": "Vision",
+      "lineCount": 8
+    }
+  },
+  {
+    "id": "chunk_doc_25",
+    "filePath": "docs/ARCHITECTURE.md",
+    "type": "documentation",
+    "title": "ARCHITECTURE.md > Axon System Architecture",
+    "content": "[File: docs/ARCHITECTURE.md | Documentation]\n# Axon System Architecture",
+    "metadata": {
+      "sectionTitle": "Axon System Architecture",
+      "lineCount": 2
+    }
+  },
+  {
+    "id": "chunk_doc_26",
+    "filePath": "docs/ARCHITECTURE.md",
+    "type": "documentation",
+    "title": "ARCHITECTURE.md > 1. System Overview",
+    "content": "[File: docs/ARCHITECTURE.md | Documentation]\n## 1. System Overview\n\nAxon is engineered as a decoupled client-server platform designed to simplify complex workflows and eliminate tool fragmentation. The architecture enforces strict separation of concerns, clear API contracts, and modular service isolation.\n\n```\n+--------------------------------------------------------------+\n|                         AXON CLIENT                          |\n|  - Presentation Layer & User Interactions                    |\n|  - Navigation & Responsive Workspaces                        |\n|  - Real-Time State Management & Optimistic UI Updates        |\n+------------------------------+-------------------------------+\n                               |\n                               | REST / WebSocket APIs\n                               v\n+--------------------------------------------------------------+\n|                         AXON SERVER                          |\n|  - API Gateway & Request Validation                          |\n|  - Application Logic & Modular Domain Controllers            |\n|  - Service Orchestration & Event Dispatching                 |\n+------------------------------+-------------------------------+\n                               |\n             +-----------------+-----------------+\n             |                                   |\n             v                                   v\n+------------------------+           +------------------------+\n|      DATA STORES       |           |   EXTERNAL SERVICES    |\n| - Primary Database     |           | - Third-Party APIs     |\n| - Caching & Session    |           | - Microservices        |\n| - Audit & Telemetry    |           | - Integrations Mesh    |\n+------------------------+           +------------------------+\n```\n\n---",
+    "metadata": {
+      "sectionTitle": "1. System Overview",
+      "lineCount": 34
+    }
+  },
+  {
+    "id": "chunk_doc_27",
+    "filePath": "docs/ARCHITECTURE.md",
+    "type": "documentation",
+    "title": "ARCHITECTURE.md > 2. Directory Layout & Boundaries",
+    "content": "[File: docs/ARCHITECTURE.md | Documentation]\n## 2. Directory Layout & Boundaries\n\nThe codebase is organized into top-level directories according to system responsibilities:\n\n```\naxon/\n├── client/                     # Frontend Application\n│   ├── public/                 # Static assets & 3D/canvas models\n│   ├── src/\n│   │   ├── components/         # Reusable UI components & 3D scenes\n│   │   ├── hooks/              # Custom React hooks (smooth scroll, viewport, etc.)\n│   │   ├── styles/             # Global, layout, and theme styles\n│   │   ├── App.jsx             # Root application orchestrator\n│   │   └── main.jsx            # Frontend entry point\n│   ├── index.html              # HTML template\n│   ├── package.json            # Client dependencies & build scripts\n│   └── vite.config.js          # Vite configuration\n│\n├── server/                     # Backend API & Logic Layer\n│   ├── src/\n│   │   ├── controllers/        # Request handling & business logic\n│   │   ├── routes/             # API route definitions\n│   │   ├── services/           # External service integration & domain logic\n│   │   └── index.js            # Express application entry & configuration\n│   ├── package.json            # Server dependencies & scripts\n│   └── README.md               # Server documentation\n│\n├── docs/                       # Technical Documentation\n│   ├── PROJECT_OVERVIEW.md     # Product overview & design vision\n│   ├── ARCHITECTURE.md         # Architecture blueprint & specifications\n│   ├── API_REFERENCE.md        # API contracts & schemas\n│   └── DEVELOPMENT_GUIDELINES.md # Engineering standards & best practices\n│\n├── package.json                # Root orchestration & workspace scripts\n└── README.md                   # Root project documentation\n```\n\n---",
+    "metadata": {
+      "sectionTitle": "2. Directory Layout & Boundaries",
+      "lineCount": 39
+    }
+  },
+  {
+    "id": "chunk_doc_28",
+    "filePath": "docs/ARCHITECTURE.md",
+    "type": "documentation",
+    "title": "ARCHITECTURE.md > 3. Component Responsibilities",
+    "content": "[File: docs/ARCHITECTURE.md | Documentation]\n## 3. Component Responsibilities",
+    "metadata": {
+      "sectionTitle": "3. Component Responsibilities",
+      "lineCount": 2
+    }
+  },
+  {
+    "id": "chunk_doc_29",
+    "filePath": "docs/ARCHITECTURE.md",
+    "type": "documentation",
+    "title": "ARCHITECTURE.md > 3.1 Client (`client/`)",
+    "content": "[File: docs/ARCHITECTURE.md | Documentation]\n### 3.1 Client (`client/`)\n- **Role:** Handles the user interface, navigation, and user interactions.\n- **Key Responsibilities:**\n  - Rendering responsive, high-performance UI views.\n  - Maintaining client-side application state.\n  - Communicating with the backend through structured API requests.\n  - Ensuring smooth, human-grade feedback (GSAP, Framer Motion, Three.js, Rive).",
+    "metadata": {
+      "sectionTitle": "3.1 Client (`client/`)",
+      "lineCount": 8
+    }
+  },
+  {
+    "id": "chunk_doc_30",
+    "filePath": "docs/ARCHITECTURE.md",
+    "type": "documentation",
+    "title": "ARCHITECTURE.md > 3.2 Server (`server/`)",
+    "content": "[File: docs/ARCHITECTURE.md | Documentation]\n### 3.2 Server (`server/`)\n- **Role:** Manages application logic, API endpoints, data processing, and communication with external services.\n- **Key Responsibilities:**\n  - Route validation, authentication, and authorization.\n  - Executing business operations and domain rules.\n  - Integrating external third-party services and data sources.\n  - Delivering predictable JSON responses with low latency.",
+    "metadata": {
+      "sectionTitle": "3.2 Server (`server/`)",
+      "lineCount": 8
+    }
+  },
+  {
+    "id": "chunk_doc_31",
+    "filePath": "docs/ARCHITECTURE.md",
+    "type": "documentation",
+    "title": "ARCHITECTURE.md > 3.3 Docs (`docs/`)",
+    "content": "[File: docs/ARCHITECTURE.md | Documentation]\n### 3.3 Docs (`docs/`)\n- **Role:** Dedicated home for technical specifications, architecture references, and development guidelines.\n- **Key Responsibilities:**\n  - Documenting API contracts and lifecycle flows.\n  - Accelerating developer onboarding and maintaining architectural standards over time.\n\n---",
+    "metadata": {
+      "sectionTitle": "3.3 Docs (`docs/`)",
+      "lineCount": 8
+    }
+  },
+  {
+    "id": "chunk_doc_32",
+    "filePath": "docs/ARCHITECTURE.md",
+    "type": "documentation",
+    "title": "ARCHITECTURE.md > 4. Key Design Principles",
+    "content": "[File: docs/ARCHITECTURE.md | Documentation]\n## 4. Key Design Principles\n\n1. **Modularity:** Different application components maintain separate responsibilities, making the system easier to extend.\n2. **Scalability:** The decoupled architecture provides room for introducing additional features, workers, and integrations as requirements evolve.\n3. **Maintainability:** Organized frontend and backend components simplify debugging, updates, and long-term development.\n4. **Integration:** API-based communication creates a foundation for connecting external services and additional modules.\n5. **Developer Experience:** Clear project organization and documentation make collaboration and onboarding easier.",
+    "metadata": {
+      "sectionTitle": "4. Key Design Principles",
+      "lineCount": 8
+    }
+  },
+  {
+    "id": "chunk_doc_33",
+    "filePath": "docs/API_REFERENCE.md",
+    "type": "documentation",
+    "title": "API_REFERENCE.md > Axon API Reference",
+    "content": "[File: docs/API_REFERENCE.md | Documentation]\n# Axon API Reference",
+    "metadata": {
+      "sectionTitle": "Axon API Reference",
+      "lineCount": 2
+    }
+  },
+  {
+    "id": "chunk_doc_34",
+    "filePath": "docs/API_REFERENCE.md",
+    "type": "documentation",
+    "title": "API_REFERENCE.md > Base URL",
+    "content": "[File: docs/API_REFERENCE.md | Documentation]\n## Base URL\nDefault local development base URL:\n```\nhttp://localhost:4000/api\n```\n\nAll responses return standard JSON with appropriate HTTP status codes.\n\n---",
+    "metadata": {
+      "sectionTitle": "Base URL",
+      "lineCount": 10
+    }
+  },
+  {
+    "id": "chunk_doc_35",
+    "filePath": "docs/API_REFERENCE.md",
+    "type": "documentation",
+    "title": "API_REFERENCE.md > 1. System Health",
+    "content": "[File: docs/API_REFERENCE.md | Documentation]\n## 1. System Health",
+    "metadata": {
+      "sectionTitle": "1. System Health",
+      "lineCount": 2
+    }
+  },
+  {
+    "id": "chunk_doc_36",
+    "filePath": "docs/API_REFERENCE.md",
+    "type": "documentation",
+    "title": "API_REFERENCE.md > `GET /api/health`",
+    "content": "[File: docs/API_REFERENCE.md | Documentation]\n### `GET /api/health`\nReturns the operational health and uptime status of the Axon server.\n\n**Response `200 OK`:**\n```json\n{\n  \"status\": \"healthy\",\n  \"service\": \"axon-server\",\n  \"version\": \"1.0.0\",\n  \"uptime\": 128.45,\n  \"timestamp\": \"2026-10-31T09:30:00.000Z\"\n}\n```\n\n---",
+    "metadata": {
+      "sectionTitle": "`GET /api/health`",
+      "lineCount": 16
+    }
+  },
+  {
+    "id": "chunk_doc_37",
+    "filePath": "docs/API_REFERENCE.md",
+    "type": "documentation",
+    "title": "API_REFERENCE.md > 2. Workspace Management",
+    "content": "[File: docs/API_REFERENCE.md | Documentation]\n## 2. Workspace Management",
+    "metadata": {
+      "sectionTitle": "2. Workspace Management",
+      "lineCount": 2
+    }
+  },
+  {
+    "id": "chunk_doc_38",
+    "filePath": "docs/API_REFERENCE.md",
+    "type": "documentation",
+    "title": "API_REFERENCE.md > `GET /api/workspace/status`",
+    "content": "[File: docs/API_REFERENCE.md | Documentation]\n### `GET /api/workspace/status`\nRetrieves the overall health, active modules, and connection status of the unified workspace.\n\n**Response `200 OK`:**\n```json\n{\n  \"workspace\": \"Axon Core\",\n  \"status\": \"synchronized\",\n  \"architecture\": \"client-server\",\n  \"metrics\": {\n    \"latencyMs\": 14,\n    \"activeModules\": 6,\n    \"uptime\": \"99.99%\",\n    \"fragmentationRate\": \"0%\"\n  },\n  \"modules\": [\n    { \"id\": \"client-ui\", \"name\": \"Client Presentation Layer\", \"status\": \"active\" },\n    { \"id\": \"api-gateway\", \"name\": \"API Gateway & Router\", \"status\": \"active\" },\n    { \"id\": \"server-core\", \"name\": \"Server Domain Logic\", \"status\": \"active\" },\n    { \"id\": \"data-store\", \"name\": \"Primary Data Store\", \"status\": \"connected\" },\n    { \"id\": \"external-mesh\", \"name\": \"External Connectors\", \"status\": \"ready\" },\n    { \"id\": \"docs-engine\", \"name\": \"Technical Documentation\", \"status\": \"available\" }\n  ]\n}\n```",
+    "metadata": {
+      "sectionTitle": "`GET /api/workspace/status`",
+      "lineCount": 26
+    }
+  },
+  {
+    "id": "chunk_doc_39",
+    "filePath": "docs/API_REFERENCE.md",
+    "type": "documentation",
+    "title": "API_REFERENCE.md > `POST /api/workspace/sync`",
+    "content": "[File: docs/API_REFERENCE.md | Documentation]\n### `POST /api/workspace/sync`\nTriggers cross-module synchronization between client, server logic, and external services.\n\n**Request Payload:**\n```json\n{\n  \"source\": \"client\",\n  \"scope\": \"workspace_state\",\n  \"payload\": {\n    \"refreshTelemetry\": true\n  }\n}\n```\n\n**Response `200 OK`:**\n```json\n{\n  \"success\": true,\n  \"syncId\": \"sync_8410b\",\n  \"durationMs\": 14,\n  \"message\": \"Workspace state synchronized successfully across client and server.\",\n  \"timestamp\": \"2026-10-31T09:30:01.000Z\"\n}\n```\n\n---",
+    "metadata": {
+      "sectionTitle": "`POST /api/workspace/sync`",
+      "lineCount": 27
+    }
+  },
+  {
+    "id": "chunk_doc_40",
+    "filePath": "docs/API_REFERENCE.md",
+    "type": "documentation",
+    "title": "API_REFERENCE.md > 3. Extensibility & Integration",
+    "content": "[File: docs/API_REFERENCE.md | Documentation]\n## 3. Extensibility & Integration",
+    "metadata": {
+      "sectionTitle": "3. Extensibility & Integration",
+      "lineCount": 2
+    }
+  },
+  {
+    "id": "chunk_doc_41",
+    "filePath": "docs/API_REFERENCE.md",
+    "type": "documentation",
+    "title": "API_REFERENCE.md > `GET /api/workspace/integrations`",
+    "content": "[File: docs/API_REFERENCE.md | Documentation]\n### `GET /api/workspace/integrations`\nLists configured and available third-party services connected to Axon.\n\n**Response `200 OK`:**\n```json\n{\n  \"total\": 3,\n  \"integrations\": [\n    { \"id\": \"crm\", \"name\": \"CRM Connector\", \"type\": \"data\", \"status\": \"connected\" },\n    { \"id\": \"analytics\", \"name\": \"Telemetry Stream\", \"type\": \"observability\", \"status\": \"active\" },\n    { \"id\": \"webhooks\", \"name\": \"Event Dispatcher\", \"type\": \"integration\", \"status\": \"listening\" }\n  ]\n}\n```",
+    "metadata": {
+      "sectionTitle": "`GET /api/workspace/integrations`",
+      "lineCount": 15
+    }
+  },
+  {
+    "id": "chunk_cfg_42",
+    "filePath": "package.json",
+    "type": "configuration",
+    "title": "Config: package.json",
+    "content": "[File: package.json | Manifest / Configuration]\n{\n  \"name\": \"axon\",\n  \"version\": \"1.0.0\",\n  \"private\": true,\n  \"description\": \"Axon — Unified & Intelligent Workspace\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"npm --prefix client run dev\",\n    \"build\": \"npm --prefix client run build\",\n    \"preview\": \"npm --prefix client run preview\",\n    \"client:dev\": \"npm --prefix client run dev\",\n    \"client:build\": \"npm --prefix client run build\",\n    \"server\": \"npm --prefix server run start\",\n    \"server:dev\": \"npm --prefix server run dev\",\n    \"start\": \"npm --prefix server run start\"\n  },\n  \"keywords\": [\n    \"axon\",\n    \"workspace\",\n    \"modular-architecture\",\n    \"client-server\",\n    \"github-oauth\",\n    \"employee-management\"\n  ],\n  \"author\": \"Bharat Sati\",\n  \"license\": \"MIT\"\n}",
+    "metadata": {
+      "fileType": "configuration"
+    }
+  },
+  {
+    "id": "chunk_code_43",
+    "filePath": "server/src/index.js",
+    "type": "code",
+    "title": "server/src/index.js (Lines 1-56)",
+    "content": "[File: server/src/index.js | Lines 1-56]\nimport express from \"express\";\nimport cors from \"cors\";\nimport { config } from \"./config/index.js\";\nimport { connectDB } from \"./db/connection.js\";\nimport healthRouter from \"./routes/health.js\";\nimport workspaceRouter from \"./routes/workspace.js\";\nimport authRouter from \"./routes/auth.js\";\nimport employeeRouter from \"./routes/employees.js\";\nimport githubRouter from \"./routes/github.js\";\n\nconst app = express();\nconst PORT = config.port;\n\n// Connect to MongoDB Atlas (non-blocking)\nconnectDB().catch((err) => {\n  console.warn(\"MongoDB startup notice:\", err.message);\n});\n\napp.use(cors());\napp.use(express.json());\n\n// API Routes\napp.use(\"/api/health\", healthRouter);\napp.use(\"/api/workspace\", workspaceRouter);\napp.use(\"/api/workspaces\", workspaceRouter);\napp.use(\"/api/auth\", authRouter);\napp.use(\"/api/employees\", employeeRouter);\napp.use(\"/api/github\", githubRouter);\n\n// Root informational endpoint\napp.get(\"/api\", (req, res) => {\n  res.json({\n    name: \"Axon Server API\",\n    version: \"1.0.0\",\n    architecture: \"client-server\",\n    authProvider: \"GitHub OAuth Strictly\",\n    endpoints: [\n      \"/api/health\",\n      \"/api/workspace/status\",\n      \"/api/workspace/sync\",\n      \"/api/workspace/integrations\",\n      \"/api/auth/github\",\n      \"/api/auth/github/callback\",\n      \"/api/auth/me\",\n      \"/api/auth/dev-login\",\n      \"/api/employees\",\n      \"/api/employees/roles\",\n      \"/api/employees/stats\"\n    ]\n  });\n});\n\napp.listen(PORT, () => {\n  console.log(`Axon Server running on http://localhost:${PORT}`);\n});\n",
+    "metadata": {
+      "startLine": 1,
+      "endLine": 56,
+      "language": "JavaScript"
+    }
+  },
+  {
+    "id": "chunk_code_44",
+    "filePath": "server/src/index.js",
+    "type": "code",
+    "title": "server/src/index.js (Lines 46-56)",
+    "content": "[File: server/src/index.js | Lines 46-56]\n      \"/api/employees\",\n      \"/api/employees/roles\",\n      \"/api/employees/stats\"\n    ]\n  });\n});\n\napp.listen(PORT, () => {\n  console.log(`Axon Server running on http://localhost:${PORT}`);\n});\n",
+    "metadata": {
+      "startLine": 46,
+      "endLine": 56,
+      "language": "JavaScript"
+    }
+  },
+  {
+    "id": "chunk_code_45",
+    "filePath": "server/src/routes/workspace.js",
+    "type": "code",
+    "title": "server/src/routes/workspace.js (Lines 1-45)",
+    "content": "[File: server/src/routes/workspace.js | Lines 1-45]\nimport { Router } from \"express\";\nimport {\n  getWorkspaces,\n  getWorkspace,\n  createWorkspace,\n  updateWorkspace,\n  deleteWorkspace,\n  connectRepository,\n  disconnectRepository,\n  getBrainStatusHandler,\n  queryBrainHandler,\n  askBrainHandler,\n  getBrainKnowledgeChunks,\n  getWorkspaceStatus,\n  syncWorkspaceState,\n  getIntegrations\n} from \"../controllers/workspaceController.js\";\nimport { authenticateToken } from \"../middleware/auth.js\";\n\nconst router = Router();\n\n// Legacy status and integrations\nrouter.get(\"/status\", getWorkspaceStatus);\nrouter.post(\"/sync\", syncWorkspaceState);\nrouter.get(\"/integrations\", getIntegrations);\n\n// Workspaces CRUD\nrouter.get(\"/\", authenticateToken, getWorkspaces);\nrouter.post(\"/\", authenticateToken, createWorkspace);\nrouter.get(\"/:id\", authenticateToken, getWorkspace);\nrouter.put(\"/:id\", authenticateToken, updateWorkspace);\nrouter.delete(\"/:id\", authenticateToken, deleteWorkspace);\n\n// Repository association\nrouter.post(\"/:id/repository\", authenticateToken, connectRepository);\nrouter.delete(\"/:id/repository\", authenticateToken, disconnectRepository);\n\n// Project Brain (RAG Knowledge Base)\nrouter.get(\"/:id/brain/status\", authenticateToken, getBrainStatusHandler);\nrouter.post(\"/:id/brain/query\", authenticateToken, queryBrainHandler);\nrouter.post(\"/:id/brain/ask\", authenticateToken, askBrainHandler);\nrouter.get(\"/:id/brain/chunks\", authenticateToken, getBrainKnowledgeChunks);\n\nexport default router;\n",
+    "metadata": {
+      "startLine": 1,
+      "endLine": 45,
+      "language": "JavaScript"
+    }
+  },
+  {
+    "id": "chunk_code_46",
+    "filePath": "client/src/App.jsx",
+    "type": "code",
+    "title": "client/src/App.jsx (Lines 1-60)",
+    "content": "[File: client/src/App.jsx | Lines 1-60]\nimport { useEffect, useState } from \"react\";\nimport { useSmoothScroll } from \"./hooks/useSmoothScroll\";\nimport Preloader from \"./components/Preloader\";\nimport Cursor from \"./components/Cursor\";\nimport ScrollProgress from \"./components/ScrollProgress\";\nimport Navbar from \"./components/Navbar\";\nimport Hero from \"./components/Hero\";\nimport Marquee from \"./components/Marquee\";\nimport Bento from \"./components/Bento\";\nimport CommandCenter from \"./components/CommandCenter\";\nimport Metrics from \"./components/Metrics\";\nimport Testimonials from \"./components/Testimonials\";\nimport Pricing from \"./components/Pricing\";\nimport CTA from \"./components/CTA\";\nimport Footer from \"./components/Footer\";\nimport ScrollEffects from \"./components/ScrollEffects\";\nimport Atmosphere from \"./components/three/Atmosphere\";\nimport GitHubAuthModal from \"./components/GitHubAuthModal\";\nimport CEODashboard from \"./components/CEODashboard\";\nimport { useAuth } from \"./context/AuthContext\";\n\nexport default function App() {\n  const { currentView } = useAuth();\n  const [ready, setReady] = useState(false);\n  const [showLoader, setShowLoader] = useState(true);\n\n  // Smooth scroll with Lenis active across landing and dashboard\n  useSmoothScroll(ready);\n\n  useEffect(() => {\n    window.scrollTo(0, 0);\n    window.__lenis?.scrollTo(0, { immediate: true });\n\n    if (currentView === \"dashboard\") {\n      setReady(true);\n      setShowLoader(false);\n      document.documentElement.classList.remove(\"is-loading\");\n      document.documentElement.classList.add(\"dashboard-active\");\n      document.body.classList.remove(\"menu-open\");\n      window.__lenis?.start();\n      window.__lenis?.resize();\n    } else {\n      document.documentElement.classList.remove(\"dashboard-active\");\n    }\n\n    return () => {\n      document.documentElement.classList.remove(\"is-loading\");\n      document.body.classList.remove(\"menu-open\");\n    };\n  }, [currentView]);\n\n  const finishLoading = () => {\n    setShowLoader(false);\n    window.scrollTo(0, 0);\n  };\n\n  const revealSite = () => {\n    setReady(true);\n    document.documentElement.classList.remove(\"is-loading\");\n    window.scrollTo(0, 0);",
+    "metadata": {
+      "startLine": 1,
+      "endLine": 60,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_47",
+    "filePath": "client/src/App.jsx",
+    "type": "code",
+    "title": "client/src/App.jsx (Lines 46-98)",
+    "content": "[File: client/src/App.jsx | Lines 46-98]\n    return () => {\n      document.documentElement.classList.remove(\"is-loading\");\n      document.body.classList.remove(\"menu-open\");\n    };\n  }, [currentView]);\n\n  const finishLoading = () => {\n    setShowLoader(false);\n    window.scrollTo(0, 0);\n  };\n\n  const revealSite = () => {\n    setReady(true);\n    document.documentElement.classList.remove(\"is-loading\");\n    window.scrollTo(0, 0);\n  };\n\n  return (\n    <>\n      <GitHubAuthModal />\n\n      {/* Synchronized Global Visuals: Custom Animated Cursor, Three.js Atmosphere & Noise Texture */}\n      <Atmosphere />\n      <Cursor />\n      <div className=\"site-noise\" aria-hidden=\"true\" />\n\n      {currentView === \"dashboard\" ? (\n        <CEODashboard />\n      ) : (\n        <>\n          {showLoader && <Preloader onReveal={revealSite} onComplete={finishLoading} />}\n          <ScrollProgress />\n          <Navbar ready={ready} />\n          <ScrollEffects ready={ready} />\n\n          <main>\n            <Hero ready={ready} />\n            <Marquee />\n            <Bento />\n            <CommandCenter />\n            <Metrics />\n            <Testimonials />\n            <Pricing />\n            <CTA />\n          </main>\n\n          <Footer />\n        </>\n      )}\n    </>\n  );\n}\n",
+    "metadata": {
+      "startLine": 46,
+      "endLine": 98,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_48",
+    "filePath": "client/src/App.jsx",
+    "type": "code",
+    "title": "client/src/App.jsx (Lines 91-98)",
+    "content": "[File: client/src/App.jsx | Lines 91-98]\n\n          <Footer />\n        </>\n      )}\n    </>\n  );\n}\n",
+    "metadata": {
+      "startLine": 91,
+      "endLine": 98,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_49",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 1-60)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 1-60]\nimport { useEffect, useRef, useState } from \"react\";\nimport { AnimatePresence, motion } from \"motion/react\";\nimport gsap from \"gsap\";\nimport { ScrollTrigger } from \"gsap/ScrollTrigger\";\nimport Tilt3D from \"./Tilt3D\";\nimport {\n  Activity,\n  ArrowRight,\n  ArrowUpRight,\n  Bell,\n  Bot,\n  Check,\n  CircleCheck,\n  Command,\n  Cpu,\n  Database,\n  LayoutDashboard,\n  Mail,\n  MoreHorizontal,\n  Play,\n  Plus,\n  Search,\n  Send,\n  Settings,\n  Sparkles,\n  Users,\n  Workflow,\n  Zap,\n} from \"lucide-react\";\n\ngsap.registerPlugin(ScrollTrigger);\n\nconst steps = [\n  {\n    number: \"01\",\n    title: \"Interact through the Client.\",\n    copy: \"Users trigger workflows and navigate tools inside the client frontend, presenting information clearly with zero tool fragmentation.\",\n  },\n  {\n    number: \"02\",\n    title: \"API-Driven Server Processing.\",\n    copy: \"The server layer receives structured requests, coordinates application logic, interacts with databases, and communicates with external services.\",\n  },\n  {\n    number: \"03\",\n    title: \"Real-Time Response & State Sync.\",\n    copy: \"The backend returns structured data to the frontend, updating workspace state predictably with clean boundaries and full auditability.\",\n  },\n];\n\nfunction PromptPanel() {\n  return (\n    <motion.div\n      className=\"dash-panel dash-panel--prompt\"\n      initial={{ opacity: 0, y: 18, filter: \"blur(6px)\" }}\n      animate={{ opacity: 1, y: 0, filter: \"blur(0px)\" }}\n      exit={{ opacity: 0, y: -12, filter: \"blur(6px)\" }}\n      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}\n    >\n      <div className=\"prompt-header\">",
+    "metadata": {
+      "startLine": 1,
+      "endLine": 60,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_50",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 46-105)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 46-105]\n    title: \"Real-Time Response & State Sync.\",\n    copy: \"The backend returns structured data to the frontend, updating workspace state predictably with clean boundaries and full auditability.\",\n  },\n];\n\nfunction PromptPanel() {\n  return (\n    <motion.div\n      className=\"dash-panel dash-panel--prompt\"\n      initial={{ opacity: 0, y: 18, filter: \"blur(6px)\" }}\n      animate={{ opacity: 1, y: 0, filter: \"blur(0px)\" }}\n      exit={{ opacity: 0, y: -12, filter: \"blur(6px)\" }}\n      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}\n    >\n      <div className=\"prompt-header\">\n        <span className=\"prompt-orb\">\n          <Sparkles size={16} />\n        </span>\n        <div>\n          <span className=\"mono-label\">UNIFIED WORKSPACE CONSOLE</span>\n          <h5>Trigger a cross-module workflow</h5>\n        </div>\n        <span className=\"shortcut mono-label\">⌘ K</span>\n      </div>\n\n      <div className=\"prompt-input\">\n        <span className=\"prompt-caret-line\">\n          Aggregate <mark>workspace telemetry</mark>, process analytics in server\n          logic, and synchronize client state across all active modules.\n          <i className=\"typing-caret\" />\n        </span>\n        <div className=\"prompt-tools\">\n          <div className=\"prompt-tool-chips\">\n            <span><LayoutDashboard size={12} /> client/UI</span>\n            <span><Cpu size={12} /> server/API</span>\n            <span><Database size={12} /> Data Store</span>\n          </div>\n          <button type=\"button\" className=\"prompt-send\">\n            <ArrowUpRight size={16} />\n          </button>\n        </div>\n      </div>\n\n      <div className=\"prompt-response\">\n        <span className=\"response-avatar\">λ</span>\n        <div>\n          <div className=\"response-meta\">\n            <strong>Axon Core</strong>\n            <span>just now</span>\n          </div>\n          <p>\n            Client dispatched request to <code>/api/workspace/sync</code>. Server\n            processed batch and returned state update in <strong>14ms</strong>.\n          </p>\n          <div className=\"response-plan\">\n            <span><Check size={10} /> Client validated</span>\n            <span><Check size={10} /> API route resolved</span>\n            <span><Check size={10} /> Data synchronized</span>\n          </div>\n        </div>",
+    "metadata": {
+      "startLine": 46,
+      "endLine": 105,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_51",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 91-150)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 91-150]\n        <div>\n          <div className=\"response-meta\">\n            <strong>Axon Core</strong>\n            <span>just now</span>\n          </div>\n          <p>\n            Client dispatched request to <code>/api/workspace/sync</code>. Server\n            processed batch and returned state update in <strong>14ms</strong>.\n          </p>\n          <div className=\"response-plan\">\n            <span><Check size={10} /> Client validated</span>\n            <span><Check size={10} /> API route resolved</span>\n            <span><Check size={10} /> Data synchronized</span>\n          </div>\n        </div>\n      </div>\n\n      <div className=\"prompt-suggestions\">\n        <button type=\"button\"><Zap size={12} /> Sync external APIs</button>\n        <button type=\"button\"><Workflow size={12} /> Modular workflow run</button>\n        <button type=\"button\"><Database size={12} /> Query server health</button>\n      </div>\n\n      <div className=\"prompt-footer\">\n        <div className=\"prompt-status\">\n          <span className=\"ai-dots\"><i /><i /><i /></span>\n          <span>Unified communication layer active</span>\n        </div>\n        <button type=\"button\" className=\"dash-primary\">\n          Dispatch workflow <ArrowRight size={14} />\n        </button>\n      </div>\n    </motion.div>\n  );\n}\n\nfunction CanvasPanel() {\n  const nodes = [\n    { id: \"client\", label: \"Client Frontend\", type: \"Client\", icon: LayoutDashboard, x: 5, y: 43, status: \"Done\" },\n    { id: \"gateway\", label: \"API Gateway\", type: \"Router\", icon: Zap, x: 29, y: 18, status: \"Running\" },\n    { id: \"server\", label: \"App Logic\", type: \"Server\", icon: Cpu, x: 29, y: 65, status: \"Running\" },\n    { id: \"database\", label: \"Data Sources\", type: \"Data\", icon: Database, x: 55, y: 41, status: \"Running\" },\n    { id: \"external\", label: \"External APIs\", type: \"Integration\", icon: Mail, x: 79, y: 20, status: \"Queued\" },\n    { id: \"docs\", label: \"Docs & Specs\", type: \"Docs\", icon: Activity, x: 79, y: 67, status: \"Queued\" },\n  ];\n\n  return (\n    <motion.div\n      className=\"dash-panel dash-panel--canvas\"\n      initial={{ opacity: 0, scale: 0.985 }}\n      animate={{ opacity: 1, scale: 1 }}\n      exit={{ opacity: 0, scale: 0.985 }}\n      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}\n    >\n      <div className=\"canvas-toolbar\">\n        <div className=\"canvas-title\">\n          <span className=\"mono-label\">ARCHITECTURE PIPELINE</span>\n          <strong>Client-Server Flow v1</strong>\n        </div>\n        <div className=\"canvas-actions\">",
+    "metadata": {
+      "startLine": 91,
+      "endLine": 150,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_52",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 136-195)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 136-195]\n\n  return (\n    <motion.div\n      className=\"dash-panel dash-panel--canvas\"\n      initial={{ opacity: 0, scale: 0.985 }}\n      animate={{ opacity: 1, scale: 1 }}\n      exit={{ opacity: 0, scale: 0.985 }}\n      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}\n    >\n      <div className=\"canvas-toolbar\">\n        <div className=\"canvas-title\">\n          <span className=\"mono-label\">ARCHITECTURE PIPELINE</span>\n          <strong>Client-Server Flow v1</strong>\n        </div>\n        <div className=\"canvas-actions\">\n          <span className=\"run-pill\"><span className=\"status-pulse\" /> RUNNING</span>\n          <button type=\"button\"><Play size={13} fill=\"currentColor\" /> Run</button>\n          <button type=\"button\" className=\"icon-button\"><MoreHorizontal size={16} /></button>\n        </div>\n      </div>\n\n      <div className=\"workflow-canvas\">\n        <span className=\"workflow-grid\" />\n        <svg viewBox=\"0 0 700 370\" fill=\"none\" preserveAspectRatio=\"none\" className=\"workflow-lines\">\n          <defs>\n            <linearGradient id=\"dashLine\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\">\n              <stop offset=\"0%\" stopColor=\"#c8ff3d\" stopOpacity=\"0.12\" />\n              <stop offset=\"100%\" stopColor=\"#c8ff3d\" stopOpacity=\"0.65\" />\n            </linearGradient>\n          </defs>\n          <path d=\"M135 195 C205 195 175 102 244 102\" stroke=\"url(#dashLine)\" strokeWidth=\"1.5\" strokeDasharray=\"5 6\" />\n          <path d=\"M135 195 C205 195 175 274 244 274\" stroke=\"url(#dashLine)\" strokeWidth=\"1.5\" strokeDasharray=\"5 6\" />\n          <path d=\"M327 102 C395 102 379 185 438 185\" stroke=\"url(#dashLine)\" strokeWidth=\"1.5\" strokeDasharray=\"5 6\" />\n          <path d=\"M327 274 C395 274 379 185 438 185\" stroke=\"url(#dashLine)\" strokeWidth=\"1.5\" strokeDasharray=\"5 6\" />\n          <path d=\"M520 185 C584 185 552 108 625 108\" stroke=\"url(#dashLine)\" strokeWidth=\"1.5\" strokeDasharray=\"5 6\" />\n          <path d=\"M520 185 C584 185 552 262 625 262\" stroke=\"url(#dashLine)\" strokeWidth=\"1.5\" strokeDasharray=\"5 6\" />\n        </svg>\n\n        {nodes.map(({ id, label, type, icon: Icon, x, y, status }, index) => (\n          <motion.div\n            className={`wf-node ${id === \"database\" ? \"is-active\" : \"\"}`}\n            key={id}\n            style={{ left: `${x}%`, top: `${y}%` }}\n            initial={{ opacity: 0, scale: 0.85 }}\n            animate={{ opacity: 1, scale: 1 }}\n            transition={{ delay: 0.08 + index * 0.06, duration: 0.4 }}\n          >\n            <div className=\"wf-node-head\">\n              <span className={`wf-icon wf-icon--${type.toLowerCase()}`}>\n                <Icon size={13} />\n              </span>\n              <span className=\"wf-status-dot\" data-status={status} />\n            </div>\n            <strong>{label}</strong>\n            <span className=\"mono-label\">{type}</span>\n          </motion.div>\n        ))}\n\n        <div className=\"canvas-run-card\">\n          <div className=\"canvas-run-head\">",
+    "metadata": {
+      "startLine": 136,
+      "endLine": 195,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_53",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 181-240)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 181-240]\n            transition={{ delay: 0.08 + index * 0.06, duration: 0.4 }}\n          >\n            <div className=\"wf-node-head\">\n              <span className={`wf-icon wf-icon--${type.toLowerCase()}`}>\n                <Icon size={13} />\n              </span>\n              <span className=\"wf-status-dot\" data-status={status} />\n            </div>\n            <strong>{label}</strong>\n            <span className=\"mono-label\">{type}</span>\n          </motion.div>\n        ))}\n\n        <div className=\"canvas-run-card\">\n          <div className=\"canvas-run-head\">\n            <span className=\"mono-label\">EXECUTION #8410</span>\n            <span>Client &amp; Server · 14ms latency</span>\n          </div>\n          <div className=\"canvas-run-bar\">\n            <motion.span\n              initial={{ width: 0 }}\n              animate={{ width: \"94%\" }}\n              transition={{ duration: 1.2, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}\n            />\n          </div>\n          <div className=\"canvas-run-meta\">\n            <span><span className=\"status-pulse\" /> Decoupled modules active</span>\n            <span>94% complete</span>\n          </div>\n        </div>\n      </div>\n    </motion.div>\n  );\n}\n\nfunction ResultsPanel() {\n  const days = [52, 68, 62, 85, 78, 92, 98];\n\n  return (\n    <motion.div\n      className=\"dash-panel dash-panel--results\"\n      initial={{ opacity: 0, y: 18 }}\n      animate={{ opacity: 1, y: 0 }}\n      exit={{ opacity: 0, y: -12 }}\n      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}\n    >\n      <div className=\"deploy-banner\">\n        <span className=\"deploy-check\"><CircleCheck size={22} /></span>\n        <div>\n          <span className=\"mono-label\">SYSTEM HEALTH</span>\n          <h5>Workspace synchronized.</h5>\n          <p>Clean client-server boundaries. Zero fragmentation across modules.</p>\n        </div>\n        <button type=\"button\" className=\"dash-primary\">\n          Open monitor <ArrowUpRight size={14} />\n        </button>\n      </div>\n\n      <div className=\"result-metrics\">\n        <div className=\"result-metric\">",
+    "metadata": {
+      "startLine": 181,
+      "endLine": 240,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_54",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 226-285)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 226-285]\n    >\n      <div className=\"deploy-banner\">\n        <span className=\"deploy-check\"><CircleCheck size={22} /></span>\n        <div>\n          <span className=\"mono-label\">SYSTEM HEALTH</span>\n          <h5>Workspace synchronized.</h5>\n          <p>Clean client-server boundaries. Zero fragmentation across modules.</p>\n        </div>\n        <button type=\"button\" className=\"dash-primary\">\n          Open monitor <ArrowUpRight size={14} />\n        </button>\n      </div>\n\n      <div className=\"result-metrics\">\n        <div className=\"result-metric\">\n          <span className=\"mono-label\">API LATENCY</span>\n          <strong>14<span>ms</span></strong>\n          <small className=\"is-positive\">p99 optimized</small>\n        </div>\n        <div className=\"result-metric\">\n          <span className=\"mono-label\">MODULAR UPTIME</span>\n          <strong>99.99<span>%</span></strong>\n          <small className=\"is-positive\">zero failures</small>\n        </div>\n        <div className=\"result-metric\">\n          <span className=\"mono-label\">TOOL FRAGMENTATION</span>\n          <strong>0<span>%</span></strong>\n          <small className=\"is-positive\">unified in Axon</small>\n        </div>\n      </div>\n\n      <div className=\"results-lower\">\n        <div className=\"results-chart-card\">\n          <div className=\"results-chart-head\">\n            <div>\n              <span className=\"mono-label\">API THROUGHPUT</span>\n              <strong>18,520 req/sec</strong>\n            </div>\n            <span className=\"chart-legend\"><i /> LAST 7 DAYS</span>\n          </div>\n          <div className=\"results-bars\">\n            {days.map((height, index) => (\n              <span key={index}>\n                <motion.i\n                  initial={{ scaleY: 0, opacity: 0 }}\n                  animate={{ scaleY: height / 100, opacity: 1 }}\n                  transition={{ duration: 0.7, delay: 0.15 + index * 0.045, ease: [0.16, 1, 0.3, 1] }}\n                />\n              </span>\n            ))}\n          </div>\n          <div className=\"results-days mono-label\">\n            <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>\n          </div>\n        </div>\n\n        <div className=\"results-log\">\n          <div className=\"results-log-head\">\n            <span className=\"mono-label\">SYSTEM LOGS</span>\n            <span className=\"live-pill\"><span className=\"status-pulse\" /> LIVE</span>",
+    "metadata": {
+      "startLine": 226,
+      "endLine": 285,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_55",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 271-330)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 271-330]\n                  animate={{ scaleY: height / 100, opacity: 1 }}\n                  transition={{ duration: 0.7, delay: 0.15 + index * 0.045, ease: [0.16, 1, 0.3, 1] }}\n                />\n              </span>\n            ))}\n          </div>\n          <div className=\"results-days mono-label\">\n            <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>\n          </div>\n        </div>\n\n        <div className=\"results-log\">\n          <div className=\"results-log-head\">\n            <span className=\"mono-label\">SYSTEM LOGS</span>\n            <span className=\"live-pill\"><span className=\"status-pulse\" /> LIVE</span>\n          </div>\n          {[\n            { icon: Check, title: \"Client request dispatches to /api\", time: \"2s ago\", tone: \"lime\" },\n            { icon: Database, title: \"Server queries data sources\", time: \"12s ago\", tone: \"blue\" },\n            { icon: Cpu, title: \"Business logic processed successfully\", time: \"38s ago\", tone: \"white\" },\n            { icon: ShieldIcon, title: \"Client state updated cleanly\", time: \"1m ago\", tone: \"lime\" },\n          ].map(({ icon: Icon, title, time, tone }) => (\n            <div className=\"log-row\" key={title}>\n              <span className={`log-icon log-icon--${tone}`}><Icon size={12} /></span>\n              <span>{title}</span>\n              <time>{time}</time>\n            </div>\n          ))}\n        </div>\n      </div>\n    </motion.div>\n  );\n}\n\nfunction ShieldIcon({ size = 12 }) {\n  return <Check size={size} />;\n}\n\nfunction Dashboard({ step }) {\n  return (\n    <div className=\"dashboard-shell\">\n      <div className=\"dash-browser\">\n        <div className=\"dash-dots\">\n          <span /><span /><span />\n        </div>\n        <div className=\"dash-url\">\n          <span className=\"url-lock\">◇</span>\n          axon.app/command\n        </div>\n        <span className=\"dash-browser-meta mono-label\">SECURE</span>\n      </div>\n\n      <div className=\"dash-app\">\n        <aside className=\"dash-sidebar\">\n          <span className=\"dash-logo\">\n            <svg viewBox=\"0 0 28 28\" fill=\"none\" aria-hidden=\"true\">\n              <path d=\"M6.5 21.5 14 5l7.5 16.5h-4.1L14 13.3l-3.4 8.2H6.5Z\" fill=\"currentColor\" />\n              <circle cx=\"21.4\" cy=\"6.3\" r=\"2.1\" fill=\"currentColor\" />\n            </svg>\n          </span>",
+    "metadata": {
+      "startLine": 271,
+      "endLine": 330,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_56",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 316-375)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 316-375]\n        <div className=\"dash-url\">\n          <span className=\"url-lock\">◇</span>\n          axon.app/command\n        </div>\n        <span className=\"dash-browser-meta mono-label\">SECURE</span>\n      </div>\n\n      <div className=\"dash-app\">\n        <aside className=\"dash-sidebar\">\n          <span className=\"dash-logo\">\n            <svg viewBox=\"0 0 28 28\" fill=\"none\" aria-hidden=\"true\">\n              <path d=\"M6.5 21.5 14 5l7.5 16.5h-4.1L14 13.3l-3.4 8.2H6.5Z\" fill=\"currentColor\" />\n              <circle cx=\"21.4\" cy=\"6.3\" r=\"2.1\" fill=\"currentColor\" />\n            </svg>\n          </span>\n          <div className=\"dash-side-icons\">\n            <span className=\"is-active\"><LayoutDashboard size={15} /></span>\n            <span><Workflow size={15} /></span>\n            <span><Bot size={15} /></span>\n            <span><Database size={15} /></span>\n            <span><Users size={15} /></span>\n          </div>\n          <span className=\"dash-side-bottom\"><Settings size={15} /></span>\n        </aside>\n\n        <div className=\"dash-main\">\n          <div className=\"dash-header\">\n            <div className=\"dash-workspace\">\n              <span className=\"workspace-avatar\">A</span>\n              <div>\n                <span className=\"mono-label\">ATLAS LABS</span>\n                <strong>Command center</strong>\n              </div>\n            </div>\n            <div className=\"dash-header-actions\">\n              <span className=\"dash-search\"><Search size={13} /> <span>Search</span> <kbd>⌘K</kbd></span>\n              <span className=\"dash-notification\"><Bell size={14} /><i /></span>\n              <span className=\"dash-user\">AM</span>\n            </div>\n          </div>\n\n          <div className=\"dash-content\">\n            <div className=\"dash-page-head\">\n              <div>\n                <span className=\"mono-label\">WORKSPACE / AUTOMATIONS</span>\n                <h4>\n                  {step === 0 && \"Create something brilliant.\"}\n                  {step === 1 && \"Your agents are in motion.\"}\n                  {step === 2 && \"Everything is working.\"}\n                </h4>\n              </div>\n              <div className=\"dash-page-actions\">\n                <span className=\"live-pill\"><span className=\"status-pulse\" /> LIVE</span>\n                <button type=\"button\" className=\"dash-secondary\"><Plus size={13} /> New</button>\n              </div>\n            </div>\n\n            <AnimatePresence mode=\"wait\">\n              {step === 0 && <PromptPanel key=\"prompt\" />}\n              {step === 1 && <CanvasPanel key=\"canvas\" />}",
+    "metadata": {
+      "startLine": 316,
+      "endLine": 375,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_57",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 361-420)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 361-420]\n                <h4>\n                  {step === 0 && \"Create something brilliant.\"}\n                  {step === 1 && \"Your agents are in motion.\"}\n                  {step === 2 && \"Everything is working.\"}\n                </h4>\n              </div>\n              <div className=\"dash-page-actions\">\n                <span className=\"live-pill\"><span className=\"status-pulse\" /> LIVE</span>\n                <button type=\"button\" className=\"dash-secondary\"><Plus size={13} /> New</button>\n              </div>\n            </div>\n\n            <AnimatePresence mode=\"wait\">\n              {step === 0 && <PromptPanel key=\"prompt\" />}\n              {step === 1 && <CanvasPanel key=\"canvas\" />}\n              {step === 2 && <ResultsPanel key=\"results\" />}\n            </AnimatePresence>\n          </div>\n        </div>\n      </div>\n    </div>\n  );\n}\n\nexport default function CommandCenter() {\n  const sectionRef = useRef(null);\n  const trackRef = useRef(null);\n  const stepProgressRef = useRef(null);\n  const railProgressRef = useRef(null);\n  const triggerRef = useRef(null);\n  const [step, setStep] = useState(0);\n\n  useEffect(() => {\n    const section = sectionRef.current;\n    const track = trackRef.current;\n    if (!section || !track) return;\n\n    const media = gsap.matchMedia();\n\n    media.add(\"(min-width: 901px)\", () => {\n      const context = gsap.context(() => {\n        gsap.set(stepProgressRef.current, { scaleY: 0 });\n        gsap.set(railProgressRef.current, { scaleX: 0 });\n\n        const tween = gsap.to(track, {\n          xPercent: -66.6667,\n          ease: \"none\",\n          scrollTrigger: {\n            trigger: section,\n            start: \"top top\",\n            end: \"bottom bottom\",\n            scrub: 0.9,\n            invalidateOnRefresh: true,\n            onUpdate: (self) => {\n              const value = self.progress;\n              const next = value < 0.25 ? 0 : value < 0.75 ? 1 : 2;\n              setStep((current) => (current === next ? current : next));\n              gsap.set(stepProgressRef.current, { scaleY: value });\n              gsap.set(railProgressRef.current, { scaleX: value });\n            },",
+    "metadata": {
+      "startLine": 361,
+      "endLine": 420,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_58",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 406-465)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 406-465]\n          xPercent: -66.6667,\n          ease: \"none\",\n          scrollTrigger: {\n            trigger: section,\n            start: \"top top\",\n            end: \"bottom bottom\",\n            scrub: 0.9,\n            invalidateOnRefresh: true,\n            onUpdate: (self) => {\n              const value = self.progress;\n              const next = value < 0.25 ? 0 : value < 0.75 ? 1 : 2;\n              setStep((current) => (current === next ? current : next));\n              gsap.set(stepProgressRef.current, { scaleY: value });\n              gsap.set(railProgressRef.current, { scaleX: value });\n            },\n          },\n        });\n\n        triggerRef.current = tween.scrollTrigger;\n      }, section);\n\n      return () => {\n        triggerRef.current = null;\n        context.revert();\n      };\n    });\n\n    media.add(\"(max-width: 900px)\", () => {\n      gsap.set(track, { xPercent: 0 });\n      gsap.set(stepProgressRef.current, { scaleY: 1 });\n      gsap.set(railProgressRef.current, { scaleX: 1 });\n    });\n\n    return () => media.revert();\n  }, []);\n\n  const goToStep = (index) => {\n    const section = sectionRef.current;\n    const trigger = triggerRef.current;\n\n    if (window.matchMedia(\"(max-width: 900px)\").matches) {\n      setStep(index);\n      gsap.set(stepProgressRef.current, { scaleY: (index + 1) / 3 });\n      const visual = section?.querySelector(\".command-visual\");\n      const top = visual\n        ? window.scrollY + visual.getBoundingClientRect().top - 84\n        : section?.offsetTop ?? 0;\n\n      if (window.__lenis) {\n        window.__lenis.scrollTo(top, { duration: 1.2 });\n      } else {\n        window.scrollTo({ top, behavior: \"smooth\" });\n      }\n      return;\n    }\n\n    if (!trigger && !section) return;\n    const top = trigger\n      ? trigger.start + (trigger.end - trigger.start) * (index / 2)\n      : section.offsetTop + (section.offsetHeight - window.innerHeight) * (index / 2);",
+    "metadata": {
+      "startLine": 406,
+      "endLine": 465,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_59",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 451-510)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 451-510]\n        ? window.scrollY + visual.getBoundingClientRect().top - 84\n        : section?.offsetTop ?? 0;\n\n      if (window.__lenis) {\n        window.__lenis.scrollTo(top, { duration: 1.2 });\n      } else {\n        window.scrollTo({ top, behavior: \"smooth\" });\n      }\n      return;\n    }\n\n    if (!trigger && !section) return;\n    const top = trigger\n      ? trigger.start + (trigger.end - trigger.start) * (index / 2)\n      : section.offsetTop + (section.offsetHeight - window.innerHeight) * (index / 2);\n\n    if (window.__lenis) {\n      window.__lenis.scrollTo(top, { duration: 1.4 });\n    } else {\n      window.scrollTo({ top, behavior: \"smooth\" });\n    }\n  };\n\n  return (\n    <section className=\"command-section\" id=\"platform\" ref={sectionRef}>\n      <div className=\"command-sticky\">\n        <div className=\"command-bg\" />\n        <div className=\"command-floor\" aria-hidden=\"true\" />\n        <div className=\"command-noise\" />\n        <div className=\"container command-layout\">\n          <div className=\"command-side\">\n            <div className=\"section-kicker\">\n              <span className=\"section-kicker-dot\" />\n              <span className=\"mono-label\">HOW IT WORKS</span>\n              <span className=\"section-index mono-label\">02 / 04</span>\n            </div>\n\n            <h2 className=\"command-title\">\n              Client interaction to\n              <br />\n              <em>backend execution.</em>\n            </h2>\n\n            <p className=\"command-lede\">\n              Axon organizes responsibilities across independent frontend and backend\n              components. Structured API communication keeps workflows predictable,\n              modular, and easy to maintain.\n            </p>\n\n            <div className=\"command-steps\">\n              {steps.map((item, index) => (\n                <button\n                  type=\"button\"\n                  className={`command-step ${step === index ? \"is-active\" : \"\"}`}\n                  key={item.number}\n                  onClick={() => goToStep(index)}\n                >\n                  <span className=\"command-step-num mono-label\">{item.number}</span>\n                  <span className=\"command-step-copy\">\n                    <strong>{item.title}</strong>",
+    "metadata": {
+      "startLine": 451,
+      "endLine": 510,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_60",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 496-555)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 496-555]\n              components. Structured API communication keeps workflows predictable,\n              modular, and easy to maintain.\n            </p>\n\n            <div className=\"command-steps\">\n              {steps.map((item, index) => (\n                <button\n                  type=\"button\"\n                  className={`command-step ${step === index ? \"is-active\" : \"\"}`}\n                  key={item.number}\n                  onClick={() => goToStep(index)}\n                >\n                  <span className=\"command-step-num mono-label\">{item.number}</span>\n                  <span className=\"command-step-copy\">\n                    <strong>{item.title}</strong>\n                    <span>{item.copy}</span>\n                  </span>\n                  <span className=\"command-step-indicator\">\n                    <ArrowUpRight size={14} />\n                  </span>\n                </button>\n              ))}\n              <span className=\"command-progress\">\n                <span ref={stepProgressRef} />\n              </span>\n            </div>\n\n            <div className=\"command-meta\">\n              <span className=\"mono-label\"><Command size={13} /> MODULAR ARCHITECTURE</span>\n              <span className=\"mono-label\">CLIENT · SERVER · API</span>\n            </div>\n          </div>\n\n          <div className=\"command-visual\">\n            <div className=\"command-visual-glow\" />\n            <Tilt3D className=\"command-visual-window\" max={5} scale={1.006}>\n              <div className=\"command-track\" ref={trackRef}>\n                {steps.map((item, index) => (\n                  <div\n                    className={`command-dashboard-slide ${step === index ? \"is-active\" : \"\"}`}\n                    key={item.number}\n                    aria-hidden={step !== index}\n                  >\n                    <Dashboard step={index} />\n                  </div>\n                ))}\n              </div>\n            </Tilt3D>\n            <div className=\"command-visual-progress\">\n              <span ref={railProgressRef} />\n            </div>\n            <div className=\"visual-caption\">\n              <span><span className=\"status-pulse\" /> SYSTEM SYNCHRONIZED</span>\n              <span className=\"mono-label\">\n                {steps[step].number} / 03 · {[\"CLIENT UI\", \"API SERVER\", \"STATE SYNC\"][step]}\n              </span>\n            </div>\n          </div>\n        </div>\n      </div>",
+    "metadata": {
+      "startLine": 496,
+      "endLine": 555,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_61",
+    "filePath": "client/src/components/CommandCenter.jsx",
+    "type": "code",
+    "title": "client/src/components/CommandCenter.jsx (Lines 541-559)",
+    "content": "[File: client/src/components/CommandCenter.jsx | Lines 541-559]\n                ))}\n              </div>\n            </Tilt3D>\n            <div className=\"command-visual-progress\">\n              <span ref={railProgressRef} />\n            </div>\n            <div className=\"visual-caption\">\n              <span><span className=\"status-pulse\" /> SYSTEM SYNCHRONIZED</span>\n              <span className=\"mono-label\">\n                {steps[step].number} / 03 · {[\"CLIENT UI\", \"API SERVER\", \"STATE SYNC\"][step]}\n              </span>\n            </div>\n          </div>\n        </div>\n      </div>\n    </section>\n  );\n}\n",
+    "metadata": {
+      "startLine": 541,
+      "endLine": 559,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_62",
+    "filePath": "client/src/components/Bento.jsx",
+    "type": "code",
+    "title": "client/src/components/Bento.jsx (Lines 1-60)",
+    "content": "[File: client/src/components/Bento.jsx | Lines 1-60]\nimport { useState } from \"react\";\nimport { motion } from \"motion/react\";\nimport { useRive } from \"@rive-app/react-canvas\";\nimport {\n  Activity,\n  ArrowUpRight,\n  Bot,\n  Check,\n  Code2,\n  Fingerprint,\n  ShieldCheck,\n  Sparkles,\n  Workflow,\n  Zap,\n} from \"lucide-react\";\nimport SectionHeading from \"./SectionHeading\";\nimport Reveal from \"./Reveal\";\nimport Tilt3D from \"./Tilt3D\";\nimport IntegrationScene from \"./three/IntegrationScene\";\n\nfunction SpotlightCard({ children, className = \"\", delay = 0 }) {\n  return (\n    <motion.div\n      className={`tilt-slot ${className}`}\n      initial={{ opacity: 0, y: 36 }}\n      whileInView={{ opacity: 1, y: 0 }}\n      viewport={{ once: true, amount: 0.18 }}\n      transition={{ duration: 0.85, delay, ease: [0.16, 1, 0.3, 1] }}\n    >\n      <Tilt3D className=\"bento-card\">{children}</Tilt3D>\n    </motion.div>\n  );\n}\n\nfunction WorkflowCard() {\n  return (\n    <SpotlightCard className=\"bento-card--workflow\" delay={0.02}>\n      <div className=\"bento-top\">\n        <span className=\"bento-tag mono-label\">\n          <Workflow size={13} />\n          MODULARITY\n        </span>\n        <span className=\"bento-arrow\" data-cursor>\n          <ArrowUpRight size={17} />\n        </span>\n      </div>\n\n      <div className=\"bento-copy\">\n        <h3>Modular components. Clean boundaries.</h3>\n        <p>\n          Each component maintains independent responsibilities. Extend capabilities,\n          add new services, and scale without destabilizing your existing stack.\n        </p>\n      </div>\n\n      <div className=\"flow-visual\">\n        <div className=\"flow-grid\" />\n        <svg className=\"flow-lines\" viewBox=\"0 0 520 290\" fill=\"none\" preserveAspectRatio=\"none\">\n          <defs>\n            <linearGradient id=\"flowLine\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\">",
+    "metadata": {
+      "startLine": 1,
+      "endLine": 60,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_63",
+    "filePath": "client/src/components/Bento.jsx",
+    "type": "code",
+    "title": "client/src/components/Bento.jsx (Lines 46-105)",
+    "content": "[File: client/src/components/Bento.jsx | Lines 46-105]\n      </div>\n\n      <div className=\"bento-copy\">\n        <h3>Modular components. Clean boundaries.</h3>\n        <p>\n          Each component maintains independent responsibilities. Extend capabilities,\n          add new services, and scale without destabilizing your existing stack.\n        </p>\n      </div>\n\n      <div className=\"flow-visual\">\n        <div className=\"flow-grid\" />\n        <svg className=\"flow-lines\" viewBox=\"0 0 520 290\" fill=\"none\" preserveAspectRatio=\"none\">\n          <defs>\n            <linearGradient id=\"flowLine\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\">\n              <stop offset=\"0%\" stopColor=\"#c8ff3d\" stopOpacity=\"0.08\" />\n              <stop offset=\"50%\" stopColor=\"#c8ff3d\" stopOpacity=\"0.8\" />\n              <stop offset=\"100%\" stopColor=\"#c8ff3d\" stopOpacity=\"0.16\" />\n            </linearGradient>\n          </defs>\n          <path d=\"M 110 145 C 165 145 160 145 206 145\" stroke=\"url(#flowLine)\" strokeWidth=\"1.2\" strokeDasharray=\"5 7\" className=\"flow-path\" />\n          <path d=\"M 278 145 C 330 145 323 62 378 62\" stroke=\"url(#flowLine)\" strokeWidth=\"1.2\" strokeDasharray=\"5 7\" className=\"flow-path flow-path--two\" />\n          <path d=\"M 278 145 C 330 145 323 145 378 145\" stroke=\"url(#flowLine)\" strokeWidth=\"1.2\" strokeDasharray=\"5 7\" className=\"flow-path flow-path--three\" />\n          <path d=\"M 278 145 C 330 145 323 228 378 228\" stroke=\"url(#flowLine)\" strokeWidth=\"1.2\" strokeDasharray=\"5 7\" className=\"flow-path flow-path--four\" />\n        </svg>\n\n        <div className=\"flow-node flow-node--trigger\">\n          <span className=\"flow-node-icon\">\n            <Zap size={14} />\n          </span>\n          <div>\n            <span className=\"flow-node-label mono-label\">FRONTEND</span>\n            <strong>Client UI</strong>\n          </div>\n        </div>\n\n        <div className=\"flow-node flow-node--agent\">\n          <span className=\"flow-agent-rings\" />\n          <span className=\"flow-node-icon flow-node-icon--agent\">\n            <Bot size={17} />\n          </span>\n          <div>\n            <span className=\"flow-node-label mono-label\">BACKEND</span>\n            <strong>Server Core</strong>\n          </div>\n          <span className=\"flow-thinking\">\n            <i />\n            processing\n          </span>\n        </div>\n\n        <div className=\"flow-node flow-node--out flow-node--out1\">\n          <span className=\"flow-check\">\n            <Check size={10} strokeWidth={3} />\n          </span>\n          Data Logic\n        </div>\n        <div className=\"flow-node flow-node--out flow-node--out2\">\n          <span className=\"flow-check\">\n            <Check size={10} strokeWidth={3} />",
+    "metadata": {
+      "startLine": 46,
+      "endLine": 105,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_64",
+    "filePath": "client/src/components/Bento.jsx",
+    "type": "code",
+    "title": "client/src/components/Bento.jsx (Lines 91-150)",
+    "content": "[File: client/src/components/Bento.jsx | Lines 91-150]\n          <span className=\"flow-thinking\">\n            <i />\n            processing\n          </span>\n        </div>\n\n        <div className=\"flow-node flow-node--out flow-node--out1\">\n          <span className=\"flow-check\">\n            <Check size={10} strokeWidth={3} />\n          </span>\n          Data Logic\n        </div>\n        <div className=\"flow-node flow-node--out flow-node--out2\">\n          <span className=\"flow-check\">\n            <Check size={10} strokeWidth={3} />\n          </span>\n          API Endpoints\n        </div>\n        <div className=\"flow-node flow-node--out flow-node--out3\">\n          <span className=\"flow-check\">\n            <Check size={10} strokeWidth={3} />\n          </span>\n          Ext Services\n        </div>\n\n        <div className=\"flow-result\">\n          <span className=\"flow-result-dot\" />\n          <span>Execution complete</span>\n          <strong>14ms</strong>\n        </div>\n      </div>\n    </SpotlightCard>\n  );\n}\n\nfunction RiveCard() {\n  const [ready, setReady] = useState(false);\n  const { RiveComponent } = useRive(\n    {\n      src: \"/avatars.riv\",\n      autoplay: true,\n      shouldDisableRiveListeners: true,\n      onRiveReady: () => setReady(true),\n    },\n    { useDevicePixelRatio: true },\n  );\n\n  return (\n    <SpotlightCard className=\"bento-card--rive\" delay={0.1}>\n      <div className=\"bento-top\">\n        <span className=\"bento-tag mono-label\">\n          <Sparkles size={13} />\n          CLIENT EXPERIENCE\n        </span>\n        <span className=\"bento-arrow\" data-cursor>\n          <ArrowUpRight size={17} />\n        </span>\n      </div>\n\n      <div className=\"bento-copy\">",
+    "metadata": {
+      "startLine": 91,
+      "endLine": 150,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_65",
+    "filePath": "client/src/components/Bento.jsx",
+    "type": "code",
+    "title": "client/src/components/Bento.jsx (Lines 136-195)",
+    "content": "[File: client/src/components/Bento.jsx | Lines 136-195]\n  );\n\n  return (\n    <SpotlightCard className=\"bento-card--rive\" delay={0.1}>\n      <div className=\"bento-top\">\n        <span className=\"bento-tag mono-label\">\n          <Sparkles size={13} />\n          CLIENT EXPERIENCE\n        </span>\n        <span className=\"bento-arrow\" data-cursor>\n          <ArrowUpRight size={17} />\n        </span>\n      </div>\n\n      <div className=\"bento-copy\">\n        <h3>Intuitive, responsive interface.</h3>\n        <p>The client layer presents data clearly and delivers a smooth user experience.</p>\n      </div>\n\n      <div className={`rive-visual ${ready ? \"is-ready\" : \"\"}`}>\n        <div className=\"rive-glow\" />\n        <div className=\"rive-grid\" />\n        <RiveComponent className=\"rive-canvas\" />\n        <div className=\"rive-fallback\">\n          <span />\n          <span />\n          <span />\n        </div>\n        <div className=\"rive-hud rive-hud--top mono-label\">\n          <span>PRESENTATION LAYER</span>\n          <span className=\"rive-hud-value\">CLIENT / UI</span>\n        </div>\n        <div className=\"rive-hud rive-hud--bottom\">\n          <span className=\"status-pulse\" />\n          <span className=\"mono-label\">SMOOTH INTERACTIONS · 60FPS</span>\n        </div>\n      </div>\n    </SpotlightCard>\n  );\n}\n\nfunction TelemetryCard() {\n  return (\n    <SpotlightCard className=\"bento-card--telemetry\" delay={0.04}>\n      <div className=\"bento-top\">\n        <span className=\"bento-tag mono-label\">\n          <Activity size={13} />\n          OBSERVABILITY\n        </span>\n        <span className=\"live-pill\">\n          <span className=\"status-pulse\" />\n          LIVE\n        </span>\n      </div>\n      <div className=\"bento-copy\">\n        <h3>Every API transaction, visible.</h3>\n        <p>Track request lifecycles, latency, and data health in real time.</p>\n      </div>\n\n      <div className=\"telemetry-visual\">",
+    "metadata": {
+      "startLine": 136,
+      "endLine": 195,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_66",
+    "filePath": "client/src/components/Bento.jsx",
+    "type": "code",
+    "title": "client/src/components/Bento.jsx (Lines 181-240)",
+    "content": "[File: client/src/components/Bento.jsx | Lines 181-240]\n        <span className=\"bento-tag mono-label\">\n          <Activity size={13} />\n          OBSERVABILITY\n        </span>\n        <span className=\"live-pill\">\n          <span className=\"status-pulse\" />\n          LIVE\n        </span>\n      </div>\n      <div className=\"bento-copy\">\n        <h3>Every API transaction, visible.</h3>\n        <p>Track request lifecycles, latency, and data health in real time.</p>\n      </div>\n\n      <div className=\"telemetry-visual\">\n        <div className=\"telemetry-number\">\n          <strong>18.5K</strong>\n          <span>requests / sec</span>\n          <span className=\"telemetry-delta\">+24.1%</span>\n        </div>\n        <svg viewBox=\"0 0 360 150\" fill=\"none\" preserveAspectRatio=\"none\" className=\"telemetry-chart\">\n          <defs>\n            <linearGradient id=\"chartFill\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n              <stop offset=\"0%\" stopColor=\"#c8ff3d\" stopOpacity=\"0.24\" />\n              <stop offset=\"100%\" stopColor=\"#c8ff3d\" stopOpacity=\"0\" />\n            </linearGradient>\n            <linearGradient id=\"chartLine\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\">\n              <stop offset=\"0%\" stopColor=\"#c8ff3d\" stopOpacity=\"0.1\" />\n              <stop offset=\"55%\" stopColor=\"#c8ff3d\" />\n              <stop offset=\"100%\" stopColor=\"#eaffb3\" />\n            </linearGradient>\n          </defs>\n          <path d=\"M0 130H360M0 90H360M0 50H360\" stroke=\"#ffffff\" strokeOpacity=\"0.055\" strokeDasharray=\"2 5\" />\n          <motion.path\n            d=\"M0 126 C24 122 28 104 52 108 S78 120 98 94 S124 82 142 87 S168 108 188 72 S226 48 246 60 S278 62 300 38 S330 30 360 14 L360 150 L0 150Z\"\n            fill=\"url(#chartFill)\"\n            initial={{ opacity: 0 }}\n            whileInView={{ opacity: 1 }}\n            viewport={{ once: true }}\n            transition={{ duration: 1.2, delay: 0.4 }}\n          />\n          <motion.path\n            d=\"M0 126 C24 122 28 104 52 108 S78 120 98 94 S124 82 142 87 S168 108 188 72 S226 48 246 60 S278 62 300 38 S330 30 360 14\"\n            stroke=\"url(#chartLine)\"\n            strokeWidth=\"2\"\n            initial={{ pathLength: 0 }}\n            whileInView={{ pathLength: 1 }}\n            viewport={{ once: true }}\n            transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}\n          />\n          <circle cx=\"360\" cy=\"14\" r=\"4\" fill=\"#c8ff3d\" />\n          <circle cx=\"360\" cy=\"14\" r=\"9\" fill=\"#c8ff3d\" fillOpacity=\"0.12\" />\n        </svg>\n        <div className=\"telemetry-legend mono-label\">\n          <span>P50 LATENCY</span>\n          <strong>14ms</strong>\n        </div>\n      </div>\n    </SpotlightCard>\n  );",
+    "metadata": {
+      "startLine": 181,
+      "endLine": 240,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_67",
+    "filePath": "client/src/components/Bento.jsx",
+    "type": "code",
+    "title": "client/src/components/Bento.jsx (Lines 226-285)",
+    "content": "[File: client/src/components/Bento.jsx | Lines 226-285]\n            initial={{ pathLength: 0 }}\n            whileInView={{ pathLength: 1 }}\n            viewport={{ once: true }}\n            transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}\n          />\n          <circle cx=\"360\" cy=\"14\" r=\"4\" fill=\"#c8ff3d\" />\n          <circle cx=\"360\" cy=\"14\" r=\"9\" fill=\"#c8ff3d\" fillOpacity=\"0.12\" />\n        </svg>\n        <div className=\"telemetry-legend mono-label\">\n          <span>P50 LATENCY</span>\n          <strong>14ms</strong>\n        </div>\n      </div>\n    </SpotlightCard>\n  );\n}\n\nfunction IntegrationsCard() {\n  return (\n    <SpotlightCard className=\"bento-card--integrations\" delay={0.08}>\n      <div className=\"bento-top\">\n        <span className=\"bento-tag mono-label\">\n          <Code2 size={13} />\n          INTEGRATION\n        </span>\n        <span className=\"bento-arrow\" data-cursor>\n          <ArrowUpRight size={17} />\n        </span>\n      </div>\n      <div className=\"bento-copy\">\n        <h3>Connects with your entire stack.</h3>\n        <p>API-based communication links external services and tools seamlessly.</p>\n      </div>\n\n      <div className=\"integration-visual\">\n        <IntegrationScene />\n        <span className=\"integration-count mono-label\">+200 CONNECTORS</span>\n      </div>\n    </SpotlightCard>\n  );\n}\n\nfunction SecurityCard() {\n  return (\n    <SpotlightCard className=\"bento-card--security\" delay={0.12}>\n      <div className=\"bento-top\">\n        <span className=\"bento-tag mono-label\">\n          <ShieldCheck size={13} />\n          MAINTAINABILITY\n        </span>\n        <span className=\"security-badge mono-label\">ENTERPRISE</span>\n      </div>\n      <div className=\"bento-copy\">\n        <h3>Engineered for longevity.</h3>\n        <p>Organized client and server components simplify debugging, updates, and testing.</p>\n      </div>\n\n      <div className=\"security-visual\">\n        <span className=\"security-ring security-ring--one\" />\n        <span className=\"security-ring security-ring--two\" />",
+    "metadata": {
+      "startLine": 226,
+      "endLine": 285,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_68",
+    "filePath": "client/src/components/Bento.jsx",
+    "type": "code",
+    "title": "client/src/components/Bento.jsx (Lines 271-330)",
+    "content": "[File: client/src/components/Bento.jsx | Lines 271-330]\n      <div className=\"bento-top\">\n        <span className=\"bento-tag mono-label\">\n          <ShieldCheck size={13} />\n          MAINTAINABILITY\n        </span>\n        <span className=\"security-badge mono-label\">ENTERPRISE</span>\n      </div>\n      <div className=\"bento-copy\">\n        <h3>Engineered for longevity.</h3>\n        <p>Organized client and server components simplify debugging, updates, and testing.</p>\n      </div>\n\n      <div className=\"security-visual\">\n        <span className=\"security-ring security-ring--one\" />\n        <span className=\"security-ring security-ring--two\" />\n        <span className=\"security-ring security-ring--three\" />\n        <div className=\"security-core\">\n          <Fingerprint size={29} strokeWidth={1.2} />\n        </div>\n        <div className=\"security-list\">\n          <span>\n            <Check size={11} strokeWidth={3} /> Decoupled layers\n          </span>\n          <span>\n            <Check size={11} strokeWidth={3} /> Clear API contracts\n          </span>\n          <span>\n            <Check size={11} strokeWidth={3} /> Dedicated docs\n          </span>\n        </div>\n      </div>\n    </SpotlightCard>\n  );\n}\n\nexport default function Bento() {\n  return (\n    <section className=\"section features-section\" id=\"features\">\n      <div className=\"container\">\n        <SectionHeading\n          eyebrow=\"ENGINEERING PRINCIPLES\"\n          index=\"01\"\n          title={\n            <>\n              Unified architecture.\n              <br />\n              <em>Zero fragmentation.</em>\n            </>\n          }\n          description=\"Modern applications suffer from disconnected tools and fragmented data. Axon establishes a structured environment where client, server, and external modules work together seamlessly.\"\n        />\n\n        <div className=\"bento-grid\">\n          <WorkflowCard />\n          <RiveCard />\n          <TelemetryCard />\n          <IntegrationsCard />\n          <SecurityCard />\n        </div>\n",
+    "metadata": {
+      "startLine": 271,
+      "endLine": 330,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_code_69",
+    "filePath": "client/src/components/Bento.jsx",
+    "type": "code",
+    "title": "client/src/components/Bento.jsx (Lines 316-342)",
+    "content": "[File: client/src/components/Bento.jsx | Lines 316-342]\n              <br />\n              <em>Zero fragmentation.</em>\n            </>\n          }\n          description=\"Modern applications suffer from disconnected tools and fragmented data. Axon establishes a structured environment where client, server, and external modules work together seamlessly.\"\n        />\n\n        <div className=\"bento-grid\">\n          <WorkflowCard />\n          <RiveCard />\n          <TelemetryCard />\n          <IntegrationsCard />\n          <SecurityCard />\n        </div>\n\n        <Reveal className=\"features-footer\">\n          <span className=\"features-footer-line\" />\n          <span className=\"mono-label\">STRUCTURED ARCHITECTURE · INDEPENDENT MODULES · CONTINUOUS EXPANSION</span>\n          <a href=\"#platform\" className=\"text-link\" data-cursor>\n            Explore the architecture <ArrowUpRight size={15} />\n          </a>\n        </Reveal>\n      </div>\n    </section>\n  );\n}\n",
+    "metadata": {
+      "startLine": 316,
+      "endLine": 342,
+      "language": "React JSX"
+    }
+  },
+  {
+    "id": "chunk_cmt_70",
+    "filePath": "GIT_COMMIT_HISTORY",
+    "type": "commit",
+    "title": "Recent Commit Activity & Evolution",
+    "content": "### Git Commit History & Recent Changes\n• [7b41e8a] (2026-10-31) bharatSati: feat: setup Axon client-server architecture with GitHub OAuth\n• [3a92f1b] (2026-10-31) bharatSati: feat: integrate modular Project Brain RAG knowledge base\n• [8c12d4e] (2026-10-30) bharatSati: refactor: decouple frontend and backend API service boundaries\n• [5f83b2a] (2026-10-29) bharatSati: perf: optimize vector cosine similarity search engine",
+    "metadata": {
+      "commitCount": 4,
+      "authors": [
+        "bharatSati"
+      ]
+    }
+  },
+  {
+    "id": "chunk_pr_71",
+    "filePath": "PULL_REQUESTS/#1",
+    "type": "pull_request",
+    "title": "PR #1: Implement Multi-Workspace State & GitHub OAuth Repository Ingestion",
+    "content": "### Pull Request #1: Implement Multi-Workspace State & GitHub OAuth Repository Ingestion\nState: closed | Author: bharatSati\n",
+    "metadata": {
+      "number": 1,
+      "state": "closed",
+      "author": "bharatSati"
+    }
+  },
+  {
+    "id": "chunk_pr_72",
+    "filePath": "PULL_REQUESTS/#2",
+    "type": "pull_request",
+    "title": "PR #2: Add Project Brain hybrid BM25 and Vector Cosine Indexing",
+    "content": "### Pull Request #2: Add Project Brain hybrid BM25 and Vector Cosine Indexing\nState: open | Author: bharatSati\n",
+    "metadata": {
+      "number": 2,
+      "state": "open",
+      "author": "bharatSati"
+    }
+  }
+]
