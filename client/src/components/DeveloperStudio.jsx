@@ -36,7 +36,14 @@ import {
   History,
   Palette,
   GitPullRequest,
-  AlertCircle
+  AlertCircle,
+  X,
+  CornerDownLeft,
+  ChevronUp,
+  MessageSquare,
+  Trash2,
+  FileSearch,
+  SlidersHorizontal
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import TimeMachine from "./TimeMachine";
@@ -73,12 +80,12 @@ const getLanguageColor = (lang) => {
     case "rust":
       return "#dea584";
     default:
-      return "#61dafb";
+      return "#c8ff3d";
   }
 };
 
 export default function DeveloperStudio({ workspace, token, onSwitchPerspective, onOpenConnectRepo }) {
-  const [studioMode, setStudioMode] = useState("editor"); // "editor" | "timemachine"
+  const [studioMode, setStudioMode] = useState("editor"); // "editor" | "timemachine" | "flowchart" | "pr-review"
   const [files, setFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [loadingFileContent, setLoadingFileContent] = useState(false);
@@ -89,9 +96,16 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   const [fileCategory, setFileCategory] = useState("all"); // "all" | "code" | "docs" | "config"
 
   // Editor Viewport & Appearance Customization
-  const [fontSize, setFontSize] = useState(14); // 12px to 20px
+  const [fontSize, setFontSize] = useState(13.5); // 12px to 22px
   const [wordWrap, setWordWrap] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false); // Focus / Fullscreen Mode
+  const [activeLine, setActiveLine] = useState(null);
+
+  // In-File Quick Find (Cmd+F / Ctrl+F)
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [findMatches, setFindMatches] = useState([]);
+  const [activeMatchIdx, setActiveMatchIdx] = useState(0);
 
   // Brain Code Context & Selection State
   const [selectedAction, setSelectedAction] = useState("explain");
@@ -102,7 +116,32 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedAnalysis, setCopiedAnalysis] = useState(false);
 
+  // Interactive AI Conversation Thread
+  const [chatThread, setChatThread] = useState([]);
+
+  // Floating Selection Action HUD
+  const [showSelectionHud, setShowSelectionHud] = useState(false);
+  const [hudCoords, setHudCoords] = useState({ top: 0, left: 0 });
+
   const codePreRef = useRef(null);
+  const codeViewerRef = useRef(null);
+  const findInputRef = useRef(null);
+
+  // Global Keyboard Shortcuts (e.g. Cmd+F / Ctrl+F for Find, Esc to close)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setFindOpen(true);
+        setTimeout(() => findInputRef.current?.focus(), 50);
+      } else if (e.key === "Escape") {
+        if (findOpen) setFindOpen(false);
+        if (showSelectionHud) setShowSelectionHud(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [findOpen, showSelectionHud]);
 
   // Fetch individual file content live from GitHub
   const fetchFileContent = async (filePath) => {
@@ -181,6 +220,47 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     }
   }, [selectedFilePath, activeFile?.content]);
 
+  // In-File Find Match Calculator
+  useEffect(() => {
+    if (!findQuery.trim() || !activeFile?.content) {
+      setFindMatches([]);
+      setActiveMatchIdx(0);
+      return;
+    }
+    const lines = activeFile.content.split("\n");
+    const q = findQuery.toLowerCase();
+    const matchedLineIndexes = [];
+
+    lines.forEach((line, idx) => {
+      if (line.toLowerCase().includes(q)) {
+        matchedLineIndexes.push(idx + 1);
+      }
+    });
+
+    setFindMatches(matchedLineIndexes);
+    setActiveMatchIdx(0);
+  }, [findQuery, activeFile?.content]);
+
+  // Jump to specific match in editor
+  const handleJumpToMatch = (direction) => {
+    if (findMatches.length === 0) return;
+    let nextIdx = activeMatchIdx;
+    if (direction === "next") {
+      nextIdx = (activeMatchIdx + 1) % findMatches.length;
+    } else {
+      nextIdx = (activeMatchIdx - 1 + findMatches.length) % findMatches.length;
+    }
+    setActiveMatchIdx(nextIdx);
+    setActiveLine(findMatches[nextIdx]);
+
+    // Smooth scroll to line
+    if (codeViewerRef.current) {
+      const lineTarget = findMatches[nextIdx];
+      const targetScroll = Math.max(0, (lineTarget - 5) * (fontSize * 1.7));
+      codeViewerRef.current.scrollTo({ top: targetScroll, behavior: "smooth" });
+    }
+  };
+
   // Run Brain inspection when triggered (with custom prompt or preset action)
   const handleInspectCode = async (overrideAction, overrideSnippet, overridePrompt) => {
     if (!activeFile && !overrideSnippet) return;
@@ -188,8 +268,12 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     const promptToUse = overridePrompt !== undefined ? overridePrompt : customPrompt;
     const codeToAnalyze = overrideSnippet !== undefined ? overrideSnippet : (selectedSnippet || activeFile?.content);
 
+    const promptLabel = promptToUse ? promptToUse : (BRAIN_ACTIONS.find((a) => a.id === actionToRun)?.label || actionToRun);
+
     try {
       setIsInspecting(true);
+      setShowSelectionHud(false);
+
       const res = await fetch(`${API_BASE}/workspaces/${workspace.id}/brain/inspect-code`, {
         method: "POST",
         headers: {
@@ -207,6 +291,19 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
       if (res.ok) {
         const data = await res.json();
         setBrainAnalysis(data);
+
+        // Add to conversation thread
+        setChatThread((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            prompt: promptLabel,
+            analysis: data.analysis,
+            action: actionToRun,
+            relevantChunks: data.relevantChunks || [],
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          }
+        ]);
       } else {
         const err = await res.json();
         setBrainAnalysis({
@@ -223,7 +320,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
 
   // Inspect on initial file load
   useEffect(() => {
-    if (activeFile && activeFile.content && !brainAnalysis) {
+    if (activeFile && activeFile.content && !brainAnalysis && chatThread.length === 0) {
       handleInspectCode("explain", activeFile.content.slice(0, 2000));
     }
   }, [activeFile?.content]);
@@ -232,6 +329,8 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   const handleOpenFile = (path) => {
     setSelectedFilePath(path);
     setSelectedSnippet("");
+    setShowSelectionHud(false);
+    setActiveLine(null);
     if (!activeTabFiles.includes(path)) {
       setActiveTabFiles((prev) => [...prev, path]);
     }
@@ -289,12 +388,23 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     return true;
   });
 
-  // Handle user selecting text in the code viewer
-  const handleCodeMouseUp = () => {
+  // Handle user selecting text in the code viewer & spawn Floating AI HUD
+  const handleCodeMouseUp = (e) => {
     const selection = window.getSelection();
     const text = selection ? selection.toString().trim() : "";
     if (text && text.length > 5) {
       setSelectedSnippet(text);
+      // Position floating HUD near cursor
+      const rect = codeViewerRef.current?.getBoundingClientRect();
+      if (rect) {
+        setShowSelectionHud(true);
+        setHudCoords({
+          top: Math.max(10, e.clientY - rect.top - 46),
+          left: Math.min(rect.width - 320, Math.max(20, e.clientX - rect.left - 120))
+        });
+      }
+    } else {
+      setShowSelectionHud(false);
     }
   };
 
@@ -306,9 +416,10 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     }
   };
 
-  const handleCopyAnalysis = () => {
-    if (brainAnalysis?.analysis) {
-      navigator.clipboard.writeText(brainAnalysis.analysis);
+  const handleCopyAnalysis = (textToCopy) => {
+    const text = textToCopy || brainAnalysis?.analysis;
+    if (text) {
+      navigator.clipboard.writeText(text);
       setCopiedAnalysis(true);
       setTimeout(() => setCopiedAnalysis(false), 2000);
     }
@@ -351,7 +462,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
       <div className="studio-topbar">
         <div className="studio-topbar-left">
           <div className="studio-badge">
-            <Code2 size={16} color="#61dafb" />
+            <Code2 size={16} color="#c8ff3d" />
             <span style={{ color: "#fff", fontWeight: 700, letterSpacing: "0.02em" }}>DEVELOPER STUDIO</span>
             <span className="studio-role-pill">IDE WORKBENCH</span>
           </div>
@@ -413,6 +524,20 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
             <span style={{ color: "#c8ff3d" }}>RAG BRAIN READY</span>
           </div>
 
+          {/* Quick In-File Search Toggle */}
+          <button
+            type="button"
+            className={`button button--small ${findOpen ? "button--lime" : "button--ghost"}`}
+            onClick={() => {
+              setFindOpen((o) => !o);
+              if (!findOpen) setTimeout(() => findInputRef.current?.focus(), 50);
+            }}
+            title="Find in active file (Ctrl+F)"
+          >
+            <Search size={13} />
+            <span>Find</span>
+          </button>
+
           {/* Quick Focus Mode toggle in topbar */}
           <button
             type="button"
@@ -456,483 +581,674 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
         />
       ) : (
         <div className={`studio-workarea ${isMaximized ? "is-maximized" : ""}`}>
-        {/* ============================================================
-            PANE 1: FILE EXPLORER / TREE (Hidden in Focus Mode)
-            ============================================================ */}
-        <div className="studio-pane studio-filetree-pane">
-          <div className="pane-header">
-            <div className="pane-title">
-              <FolderGit2 size={14} color="#61dafb" />
-              <span>EXPLORER</span>
-            </div>
-            <span className="mono-label file-count-badge">{filteredFiles.length}</span>
-          </div>
-
-          {/* Search files */}
-          <div className="filetree-search-wrap">
-            <Search size={13} />
-            <input
-              type="text"
-              placeholder="Search repo files..."
-              value={fileSearch}
-              onChange={(e) => setFileSearch(e.target.value)}
-            />
-          </div>
-
-          {/* Category Filter Pills */}
-          <div className="filetree-category-tabs">
-            {[
-              { id: "all", label: `All (${files.length})` },
-              { id: "code", label: `Code (${codeCount})` },
-              { id: "docs", label: `Docs (${docsCount})` },
-              { id: "config", label: `Config (${configCount})` }
-            ].map((cat) => (
-              <button
-                type="button"
-                key={cat.id}
-                className={`cat-pill ${fileCategory === cat.id ? "is-active" : ""}`}
-                onClick={() => setFileCategory(cat.id)}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Files List */}
-          <div className="filetree-list">
-            {loadingFiles ? (
-              <div className="filetree-loading">
-                <RefreshCw size={18} className="spin" />
-                <span>Fetching live GitHub tree...</span>
+          {/* ============================================================
+              PANE 1: FILE EXPLORER / TREE (Hidden in Focus Mode)
+              ============================================================ */}
+          <div className="studio-pane studio-filetree-pane">
+            <div className="pane-header">
+              <div className="pane-title">
+                <FolderGit2 size={14} color="#c8ff3d" />
+                <span>EXPLORER</span>
               </div>
-            ) : filteredFiles.length === 0 ? (
-              <div className="filetree-empty">No matching files found.</div>
-            ) : (
-              filteredFiles.map((file) => {
-                const isSelected = file.path === selectedFilePath;
-                const isDoc = file.language === "markdown";
-                const isJs = file.language === "javascript" || file.language === "typescript";
+              <span className="mono-label file-count-badge">{filteredFiles.length} files</span>
+            </div>
 
-                return (
-                  <button
-                    type="button"
-                    key={file.path}
-                    className={`filetree-item ${isSelected ? "is-selected" : ""}`}
-                    onClick={() => handleOpenFile(file.path)}
-                    title={file.path}
-                  >
-                    <span className="file-icon">
-                      {isDoc ? (
-                        <FileText size={14} color="#979b91" />
-                      ) : isJs ? (
-                        <FileCode size={14} color="#61dafb" />
-                      ) : (
-                        <Code2 size={14} color="#f59e0b" />
-                      )}
-                    </span>
-                    <span className="file-name">{file.name}</span>
-                    <span className="file-path-sub mono-label">{file.path}</span>
-                    {file.size > 0 && (
-                      <span className="file-size mono-label">
-                        {file.size > 1024 ? `${(file.size / 1024).toFixed(1)}k` : `${file.size}b`}
-                      </span>
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* ============================================================
-            PANE 2: EXPANDED CODE EDITOR & INTERACTIVE BRAIN PROMPT BAR
-            ============================================================ */}
-        <div className="studio-pane studio-editor-pane">
-          {/* Tab Bar */}
-          <div className="editor-tab-bar">
-            {activeTabFiles.map((path) => {
-              const fileObj = files.find((f) => f.path === path);
-              const isActive = path === selectedFilePath;
-
-              return (
-                <div
-                  key={path}
-                  className={`editor-tab ${isActive ? "is-active" : ""}`}
-                  onClick={() => handleOpenFile(path)}
+            {/* Search files with clear action */}
+            <div className="filetree-search-wrap">
+              <Search size={13} color="#94a3b8" />
+              <input
+                type="text"
+                placeholder="Search repository files..."
+                value={fileSearch}
+                onChange={(e) => setFileSearch(e.target.value)}
+              />
+              {fileSearch && (
+                <button
+                  type="button"
+                  className="filetree-clear-search-btn"
+                  onClick={() => setFileSearch("")}
+                  title="Clear file search"
                 >
-                  <FileCode size={13} color={isActive ? "#61dafb" : "#888"} />
-                  <span className="tab-title">{fileObj ? fileObj.name : path}</span>
-                  {activeTabFiles.length > 1 && (
-                    <button
-                      type="button"
-                      className="tab-close-btn"
-                      onClick={(e) => handleCloseTab(path, e)}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Breadcrumb & Action Strip */}
-          <div className="editor-subbar">
-            <div className="editor-breadcrumbs mono-label">
-              <span>{workspace?.name || "Workspace"}</span>
-              <ChevronRight size={11} />
-              <span style={{ color: "#61dafb", fontWeight: 600 }}>{activeFile ? activeFile.path : "Select File"}</span>
-              {activeFile && (
-                <span className="editor-meta-pill">
-                  {activeFile.linesCount || (activeFile.content ? activeFile.content.split("\n").length : 0)} LINES • {activeFile.language}
-                </span>
+                  <X size={12} />
+                </button>
               )}
             </div>
 
-            <div className="editor-actions-strip">
-              <button
-                type="button"
-                className="subbar-btn"
-                onClick={handleCopyCode}
-                title="Copy code or selected snippet"
-              >
-                {copiedCode ? <Check size={13} color="#c8ff3d" /> : <Copy size={13} />}
-                <span>{copiedCode ? "Copied" : selectedSnippet ? "Copy Snippet" : "Copy"}</span>
-              </button>
+            {/* Category Filter Pills */}
+            <div className="filetree-category-tabs">
+              {[
+                { id: "all", label: `All (${files.length})` },
+                { id: "code", label: `Code (${codeCount})` },
+                { id: "docs", label: `Docs (${docsCount})` },
+                { id: "config", label: `Config (${configCount})` }
+              ].map((cat) => (
+                <button
+                  type="button"
+                  key={cat.id}
+                  className={`cat-pill ${fileCategory === cat.id ? "is-active" : ""}`}
+                  onClick={() => setFileCategory(cat.id)}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Files List with full vertical scroll */}
+            <div className="filetree-list">
+              {loadingFiles ? (
+                <div className="filetree-loading">
+                  <RefreshCw size={18} className="spin text-lime" />
+                  <span>Fetching live GitHub tree...</span>
+                </div>
+              ) : filteredFiles.length === 0 ? (
+                <div className="filetree-empty">No matching files found.</div>
+              ) : (
+                filteredFiles.map((file) => {
+                  const isSelected = file.path === selectedFilePath;
+                  const isDoc = file.language === "markdown";
+                  const isJs = file.language === "javascript" || file.language === "typescript";
+
+                  return (
+                    <button
+                      type="button"
+                      key={file.path}
+                      className={`filetree-item ${isSelected ? "is-selected" : ""}`}
+                      onClick={() => handleOpenFile(file.path)}
+                      title={file.path}
+                    >
+                      <div className="filetree-item-top">
+                        <span className="file-icon">
+                          {isDoc ? (
+                            <FileText size={13} color="#979b91" />
+                          ) : isJs ? (
+                            <FileCode size={13} color="#c8ff3d" />
+                          ) : (
+                            <Code2 size={13} color="#38bdf8" />
+                          )}
+                        </span>
+                        <span className="file-name">{file.name}</span>
+                        {file.size > 0 && (
+                          <span className="file-size mono-label">
+                            {file.size > 1024 ? `${(file.size / 1024).toFixed(1)}k` : `${file.size}b`}
+                          </span>
+                        )}
+                      </div>
+                      <span className="file-path-sub mono-label">{file.path}</span>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
 
           {/* ============================================================
-              INTERACTIVE BRAIN PROMPT & SELECTION COMMAND BAR
+              PANE 2: EXPANDED CODE EDITOR & INTERACTIVE BRAIN PROMPT BAR
               ============================================================ */}
-          <div className="brain-selection-bar">
-            {/* Action Mode Preset Selector */}
-            <div className="brain-action-select-group">
-              <Sparkles size={14} color="#c8ff3d" />
-              <span className="mono-label brain-action-label">MODE:</span>
-              <select
-                value={selectedAction}
-                onChange={(e) => {
-                  setSelectedAction(e.target.value);
-                  handleInspectCode(e.target.value);
-                }}
-                className="brain-action-dropdown"
-              >
-                {BRAIN_ACTIONS.map((action) => (
-                  <option key={action.id} value={action.id}>
-                    {action.label}
-                  </option>
-                ))}
-              </select>
+          <div className="studio-pane studio-editor-pane">
+            {/* Tab Bar */}
+            <div className="editor-tab-bar">
+              {activeTabFiles.map((path) => {
+                const fileObj = files.find((f) => f.path === path);
+                const isActive = path === selectedFilePath;
+
+                return (
+                  <div
+                    key={path}
+                    className={`editor-tab ${isActive ? "is-active" : ""}`}
+                    onClick={() => handleOpenFile(path)}
+                  >
+                    <FileCode size={13} color={isActive ? "#c8ff3d" : "#888"} />
+                    <span className="tab-title">{fileObj ? fileObj.name : path}</span>
+                    {activeTabFiles.length > 1 && (
+                      <button
+                        type="button"
+                        className="tab-close-btn"
+                        onClick={(e) => handleCloseTab(path, e)}
+                        title="Close file tab"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Direct Custom Prompt Input for Project Brain */}
-            <div className="brain-custom-prompt-wrap">
-              <input
-                type="text"
-                className="brain-prompt-input"
-                placeholder={
-                  selectedSnippet
-                    ? `Ask Brain about highlighted snippet (${selectedSnippet.length} chars, e.g. "Optimize this", "Find bugs")...`
-                    : `Ask Brain custom prompt for ${activeFile ? activeFile.name : "code"}... (or press Enter)`
-                }
-                value={customPrompt}
-                onChange={(e) => setCustomPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !isInspecting) {
-                    handleInspectCode();
-                  }
-                }}
-              />
+            {/* Breadcrumb & Action Strip */}
+            <div className="editor-subbar">
+              <div className="editor-breadcrumbs mono-label">
+                <span>{workspace?.name || "Workspace"}</span>
+                <ChevronRight size={11} />
+                <span className="editor-current-path">{activeFile ? activeFile.path : "Select File"}</span>
+                {activeFile && (
+                  <span className="editor-meta-pill">
+                    {activeFile.linesCount || (activeFile.content ? activeFile.content.split("\n").length : 0)} LINES • {activeFile.language}
+                  </span>
+                )}
+              </div>
 
-              {/* Selected Snippet Indicator with Quick Clear */}
-              {selectedSnippet && (
-                <div className="snippet-indicator-badge mono-label">
-                  <Check size={11} color="#61dafb" />
-                  <span>Snippet ({selectedSnippet.length}c)</span>
+              <div className="editor-actions-strip">
+                <button
+                  type="button"
+                  className={`subbar-btn ${findOpen ? "is-active" : ""}`}
+                  onClick={() => setFindOpen((o) => !o)}
+                  title="Find in code (Ctrl+F)"
+                >
+                  <Search size={13} />
+                  <span>Find</span>
+                </button>
+                <button
+                  type="button"
+                  className="subbar-btn"
+                  onClick={handleCopyCode}
+                  title="Copy code or selected snippet"
+                >
+                  {copiedCode ? <Check size={13} color="#c8ff3d" /> : <Copy size={13} />}
+                  <span>{copiedCode ? "Copied" : selectedSnippet ? "Copy Snippet" : "Copy"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* In-File Find Bar Overlay */}
+            {findOpen && (
+              <div className="in-file-find-bar">
+                <Search size={13} color="#c8ff3d" />
+                <input
+                  ref={findInputRef}
+                  type="text"
+                  placeholder="Find in active file..."
+                  value={findQuery}
+                  onChange={(e) => setFindQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleJumpToMatch(e.shiftKey ? "prev" : "next");
+                    }
+                  }}
+                  className="find-input"
+                />
+                <span className="find-counter mono-label">
+                  {findMatches.length > 0
+                    ? `${activeMatchIdx + 1} of ${findMatches.length}`
+                    : findQuery ? "No matches" : "Type query"}
+                </span>
+                <button
+                  type="button"
+                  className="find-arrow-btn"
+                  onClick={() => handleJumpToMatch("prev")}
+                  disabled={findMatches.length === 0}
+                  title="Previous match (Shift+Enter)"
+                >
+                  <ChevronUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="find-arrow-btn"
+                  onClick={() => handleJumpToMatch("next")}
+                  disabled={findMatches.length === 0}
+                  title="Next match (Enter)"
+                >
+                  <ChevronDown size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="find-close-btn"
+                  onClick={() => setFindOpen(false)}
+                  title="Close search (Esc)"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* ============================================================
+                INTERACTIVE BRAIN PROMPT & SELECTION COMMAND BAR
+                ============================================================ */}
+            <div className="brain-selection-bar">
+              {/* Action Mode Preset Selector */}
+              <div className="brain-action-select-group">
+                <Sparkles size={14} color="#c8ff3d" />
+                <span className="mono-label brain-action-label">MODE:</span>
+                <select
+                  value={selectedAction}
+                  onChange={(e) => {
+                    setSelectedAction(e.target.value);
+                    handleInspectCode(e.target.value);
+                  }}
+                  className="brain-action-dropdown"
+                >
+                  {BRAIN_ACTIONS.map((action) => (
+                    <option key={action.id} value={action.id}>
+                      {action.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Direct Custom Prompt Input for Project Brain */}
+              <div className="brain-custom-prompt-wrap">
+                <input
+                  type="text"
+                  className="brain-prompt-input"
+                  placeholder={
+                    selectedSnippet
+                      ? `Ask Brain about highlighted snippet (${selectedSnippet.length} chars, e.g. "Optimize this", "Find bugs")...`
+                      : `Ask Brain custom prompt for ${activeFile ? activeFile.name : "code"}... (or press Enter)`
+                  }
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !isInspecting) {
+                      handleInspectCode();
+                    }
+                  }}
+                />
+
+                {/* Selected Snippet Indicator with Quick Clear */}
+                {selectedSnippet && (
+                  <div className="snippet-indicator-badge mono-label">
+                    <Check size={11} color="#c8ff3d" />
+                    <span>Snippet ({selectedSnippet.length}c)</span>
+                    <button
+                      type="button"
+                      className="clear-snippet-btn"
+                      onClick={() => {
+                        setSelectedSnippet("");
+                        setShowSelectionHud(false);
+                      }}
+                      title="Clear selected snippet to inspect full file"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                {/* Run Action / Custom Prompt Button */}
+                <button
+                  type="button"
+                  className="button button--lime button--small studio-run-btn"
+                  onClick={() => handleInspectCode()}
+                  disabled={isInspecting || loadingFileContent}
+                >
+                  {isInspecting ? (
+                    <RefreshCw size={13} className="spin" />
+                  ) : (
+                    <Zap size={13} />
+                  )}
+                  <span>Ask Brain</span>
+                </button>
+              </div>
+            </div>
+
+            {/* ============================================================
+                EXPANDED CODE VIEWER VIEWPORT (UNIFIED SINGLE SCROLL CONTAINER)
+                ============================================================ */}
+            <div
+              className="code-viewer-container"
+              ref={codeViewerRef}
+              onMouseUp={handleCodeMouseUp}
+            >
+              {/* Floating Selection AI HUD Pill */}
+              {showSelectionHud && selectedSnippet && (
+                <div
+                  className="floating-selection-hud"
+                  style={{ top: `${hudCoords.top}px`, left: `${hudCoords.left}px` }}
+                >
+                  <span className="hud-badge">
+                    <Sparkles size={11} color="#c8ff3d" />
+                    {selectedSnippet.length}c
+                  </span>
                   <button
                     type="button"
-                    className="clear-snippet-btn"
-                    onClick={() => setSelectedSnippet("")}
-                    title="Clear selected snippet to inspect full file"
+                    className="hud-action-btn"
+                    onClick={() => handleInspectCode("explain", selectedSnippet)}
+                  >
+                    Explain
+                  </button>
+                  <button
+                    type="button"
+                    className="hud-action-btn"
+                    onClick={() => handleInspectCode("optimize", selectedSnippet)}
+                  >
+                    Optimize
+                  </button>
+                  <button
+                    type="button"
+                    className="hud-action-btn"
+                    onClick={() => handleInspectCode("security", selectedSnippet)}
+                  >
+                    Security
+                  </button>
+                  <button
+                    type="button"
+                    className="hud-action-btn"
+                    onClick={() => handleInspectCode("tests", selectedSnippet)}
+                  >
+                    Tests
+                  </button>
+                  <button
+                    type="button"
+                    className="hud-action-btn"
+                    onClick={handleCopyCode}
+                  >
+                    <Copy size={11} />
+                  </button>
+                  <button
+                    type="button"
+                    className="hud-close-btn"
+                    onClick={() => setShowSelectionHud(false)}
                   >
                     ×
                   </button>
                 </div>
               )}
 
-              {/* Run Action / Custom Prompt Button */}
-              <button
-                type="button"
-                className="button button--lime button--small studio-run-btn"
-                onClick={() => handleInspectCode()}
-                disabled={isInspecting || loadingFileContent}
-              >
-                {isInspecting ? (
-                  <RefreshCw size={13} className="spin" />
-                ) : (
-                  <Zap size={13} />
-                )}
-                <span>{customPrompt.trim() ? "Ask Brain" : "Ask Brain"}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* ============================================================
-              EXPANDED CODE VIEWER VIEWPORT (BIG AREA & CRISP TEXT)
-              ============================================================ */}
-          <div className="code-viewer-container" onMouseUp={handleCodeMouseUp}>
-            {loadingFileContent ? (
-              <div className="code-editor-empty" style={{ padding: "100px 20px" }}>
-                <RefreshCw size={32} className="spin" color="#61dafb" />
-                <p style={{ color: "#fff", fontWeight: 600, marginTop: "12px", fontSize: "15px" }}>
-                  Streaming live from GitHub...
-                </p>
-                <span className="mono-label" style={{ color: "rgba(255, 255, 255, 0.45)", fontSize: "12px" }}>
-                  {activeFile?.path}
-                </span>
-              </div>
-            ) : activeFile ? (
-              <div className="code-editor-viewport">
-                {/* Line Numbers Gutter */}
-                <div
-                  className="line-numbers-gutter"
-                  aria-hidden="true"
-                  style={{ fontSize: `${fontSize}px`, lineHeight: 1.7 }}
-                >
-                  {(activeFile.content || "")
-                    .split("\n")
-                    .map((_, idx) => (
-                      <span key={idx} className="line-num">
-                        {idx + 1}
-                      </span>
-                    ))}
-                </div>
-
-                {/* Preformatted Code Content with Dynamic Font Size & Wrap */}
-                <pre
-                  className="code-content-pre"
-                  ref={codePreRef}
-                  style={{
-                    fontSize: `${fontSize}px`,
-                    lineHeight: 1.7,
-                    whiteSpace: wordWrap ? "pre-wrap" : "pre",
-                    wordBreak: wordWrap ? "break-word" : "normal"
-                  }}
-                >
-                  <code>{activeFile.content || "// File content empty or loading..."}</code>
-                </pre>
-              </div>
-            ) : (
-              <div className="code-editor-empty">
-                <Code2 size={40} color="#61dafb" />
-                <p style={{ fontSize: "15px" }}>Select any repository file from the Explorer on the left</p>
-              </div>
-            )}
-          </div>
-
-          {/* ============================================================
-              EDITOR STATUS BAR (VS Code / IDE Bottom Bar)
-              ============================================================ */}
-          <div className="editor-status-bar mono-label">
-            <div className="editor-status-left">
-              <span className="status-item lang-badge">
-                <span
-                  className="lang-indicator-dot"
-                  style={{ background: getLanguageColor(activeFile?.language) }}
-                />
-                {activeFile?.language ? activeFile.language.toUpperCase() : "TEXT"}
-              </span>
-              <span className="status-separator">•</span>
-              <span className="status-item">UTF-8</span>
-              <span className="status-separator">•</span>
-              <span className="status-item">
-                {activeFile?.linesCount || (activeFile?.content ? activeFile.content.split("\n").length : 0)} lines
-              </span>
-              <span className="status-separator">•</span>
-              <span className="status-item">
-                {activeFile?.content ? `${(activeFile.content.length / 1024).toFixed(1)} KB` : "0 KB"}
-              </span>
-              {selectedSnippet && (
-                <>
-                  <span className="status-separator">•</span>
-                  <span className="status-item highlighted-status">
-                    {selectedSnippet.length} chars selected
+              {loadingFileContent ? (
+                <div className="code-editor-empty">
+                  <RefreshCw size={32} className="spin text-lime" />
+                  <p style={{ color: "#fff", fontWeight: 600, marginTop: "12px", fontSize: "15px" }}>
+                    Streaming live from GitHub...
+                  </p>
+                  <span className="mono-label" style={{ color: "rgba(255, 255, 255, 0.45)", fontSize: "12px" }}>
+                    {activeFile?.path}
                   </span>
-                </>
-              )}
-            </div>
-
-            <div className="editor-status-right">
-              {/* Font Size Adjuster Controls */}
-              <div className="font-size-controls" title="Adjust Code Font Size">
-                <span style={{ fontSize: "10px", color: "#666" }}>FONT:</span>
-                <button
-                  type="button"
-                  className="font-btn"
-                  onClick={() => setFontSize((s) => Math.max(12, s - 1))}
-                  title="Decrease font size"
-                >
-                  A-
-                </button>
-                <span className="font-val">{fontSize}px</span>
-                <button
-                  type="button"
-                  className="font-btn"
-                  onClick={() => setFontSize((s) => Math.min(22, s + 1))}
-                  title="Increase font size"
-                >
-                  A+
-                </button>
-              </div>
-
-              {/* Word wrap toggle */}
-              <button
-                type="button"
-                className={`status-btn ${wordWrap ? "is-active" : ""}`}
-                onClick={() => setWordWrap((w) => !w)}
-                title="Toggle Word Wrap"
-              >
-                Wrap: {wordWrap ? "ON" : "OFF"}
-              </button>
-
-              {/* Focus / Fullscreen Mode toggle */}
-              <button
-                type="button"
-                className={`status-btn focus-btn ${isMaximized ? "is-active" : ""}`}
-                onClick={() => setIsMaximized((m) => !m)}
-                title={isMaximized ? "Restore sidebars" : "Focus / Fullscreen Mode (collapse sidebars)"}
-              >
-                {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-                <span>{isMaximized ? "Exit Focus" : "Focus View"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================
-            PANE 3: LIVE PROJECT BRAIN CODE INSPECTOR (Hidden in Focus Mode)
-            ============================================================ */}
-        <div className="studio-pane studio-brain-pane">
-          <div className="pane-header">
-            <div className="pane-title">
-              <Sparkles size={14} color="#c8ff3d" />
-              <span>PROJECT BRAIN INTELLIGENCE</span>
-            </div>
-            <span className="mono-label provider-pill">Groq 120B</span>
-          </div>
-
-          <div className="brain-pane-body">
-            {/* Active Mode Info Card */}
-            <div className="brain-mode-card">
-              <div className="brain-mode-header">
-                <currentActionObj.icon size={15} color="#c8ff3d" />
-                <strong>{currentActionObj.label}</strong>
-              </div>
-              <p>{currentActionObj.desc}</p>
-            </div>
-
-            {/* Analysis Output Container */}
-            <div className="brain-analysis-output">
-              {isInspecting ? (
-                <div className="brain-inspecting-state">
-                  <RefreshCw size={24} className="spin" color="#c8ff3d" />
-                  <h4>Project Brain is Analyzing...</h4>
-                  <p>Synthesizing code architecture with Groq 120B &amp; RAG vector chunks.</p>
                 </div>
-              ) : brainAnalysis ? (
-                <>
-                  <div className="analysis-header-row">
-                    <span className="mono-label" style={{ color: "#c8ff3d", fontSize: "11px" }}>
-                      AI CODE ANALYSIS {brainAnalysis.customPrompt ? `• "${brainAnalysis.customPrompt.slice(0, 30)}..."` : ""}
-                    </span>
-                    <button
-                      type="button"
-                      className="copy-analysis-btn"
-                      onClick={handleCopyAnalysis}
-                    >
-                      {copiedAnalysis ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
-                      <span>{copiedAnalysis ? "Copied" : "Copy"}</span>
-                    </button>
+              ) : activeFile ? (
+                <div className="code-editor-viewport">
+                  {/* Sticky Pinned Line Numbers Gutter */}
+                  <div
+                    className="line-numbers-gutter"
+                    aria-hidden="true"
+                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.7 }}
+                  >
+                    {(activeFile.content || "")
+                      .split("\n")
+                      .map((_, idx) => {
+                        const lineNum = idx + 1;
+                        const isMatch = findMatches.includes(lineNum);
+                        const isCurrentActive = activeLine === lineNum;
+                        return (
+                          <span
+                            key={idx}
+                            className={`line-num ${isMatch ? "is-match" : ""} ${isCurrentActive ? "is-active" : ""}`}
+                            onClick={() => setActiveLine(lineNum)}
+                            title={`Jump to line ${lineNum}`}
+                          >
+                            {lineNum}
+                          </span>
+                        );
+                      })}
                   </div>
 
-                  {brainAnalysis.error ? (
-                    <div className="analysis-error-box">
-                      <AlertCircle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
-                      <div>
-                        <strong style={{ display: "block", marginBottom: "4px", color: "#fca5a5" }}>
-                          AI Service Notice:
-                        </strong>
-                        <span>{brainAnalysis.error}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="analysis-content-markdown">
-                      <FormattedAIResponse content={brainAnalysis.analysis} />
-                    </div>
-                  )}
-
-                  {/* Related RAG Knowledge Chunks */}
-                  {brainAnalysis.relevantChunks && brainAnalysis.relevantChunks.length > 0 && (
-                    <div className="related-chunks-section">
-                      <span className="mono-label related-chunks-title">
-                        RELATED REPOSITORY CONTEXT:
-                      </span>
-                      {brainAnalysis.relevantChunks.map((chunk, i) => (
-                        <div key={i} className="related-chunk-card">
-                          <div className="chunk-card-top">
-                            <span className="chunk-file">📄 {chunk.filePath}</span>
-                            <span className="chunk-score mono-label">
-                              {Math.round(chunk.score * 100)}% match
-                            </span>
-                          </div>
-                          {chunk.title && <div className="chunk-title">{chunk.title}</div>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
+                  {/* Preformatted Code Content with Unified Scrolling */}
+                  <pre
+                    className="code-content-pre"
+                    ref={codePreRef}
+                    style={{
+                      fontSize: `${fontSize}px`,
+                      lineHeight: 1.7,
+                      whiteSpace: wordWrap ? "pre-wrap" : "pre",
+                      wordBreak: wordWrap ? "break-word" : "normal"
+                    }}
+                  >
+                    <code>{activeFile.content || "// File content is empty."}</code>
+                  </pre>
+                </div>
               ) : (
-                <div className="brain-empty-state">
-                  <Sparkles size={24} color="#666" />
-                  <p>Click "Ask Project Brain" or type a custom prompt to inspect this file's architecture or highlight any code snippet.</p>
+                <div className="code-editor-empty">
+                  <Code2 size={40} color="#c8ff3d" />
+                  <p style={{ fontSize: "15px" }}>Select any repository file from the Explorer on the left</p>
                 </div>
               )}
             </div>
 
-            {/* Interactive Ask Follow-up Bar */}
-            <div className="brain-followup-bar">
-              <div className="followup-input-wrap">
-                <input
-                  type="text"
-                  placeholder="Ask follow-up question to Brain..."
-                  value={customPrompt}
-                  onChange={(e) => setCustomPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && customPrompt.trim()) {
-                      handleInspectCode("explain", undefined, customPrompt.trim());
-                      setCustomPrompt("");
-                    }
-                  }}
-                />
+            {/* ============================================================
+                EDITOR STATUS BAR (IDE Bottom Bar)
+                ============================================================ */}
+            <div className="editor-status-bar mono-label">
+              <div className="editor-status-left">
+                <span className="status-item lang-badge">
+                  <span
+                    className="lang-indicator-dot"
+                    style={{ background: getLanguageColor(activeFile?.language) }}
+                  />
+                  {activeFile?.language ? activeFile.language.toUpperCase() : "TEXT"}
+                </span>
+                <span className="status-separator">•</span>
+                <span className="status-item">UTF-8</span>
+                <span className="status-separator">•</span>
+                <span className="status-item">
+                  {activeFile?.linesCount || (activeFile?.content ? activeFile.content.split("\n").length : 0)} lines
+                </span>
+                <span className="status-separator">•</span>
+                <span className="status-item">
+                  {activeFile?.content ? `${(activeFile.content.length / 1024).toFixed(1)} KB` : "0 KB"}
+                </span>
+                {activeLine && (
+                  <>
+                    <span className="status-separator">•</span>
+                    <span className="status-item text-lime">Line {activeLine}</span>
+                  </>
+                )}
+                {selectedSnippet && (
+                  <>
+                    <span className="status-separator">•</span>
+                    <span className="status-item highlighted-status">
+                      {selectedSnippet.length} chars selected
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div className="editor-status-right">
+                {/* Font Size Adjuster Controls */}
+                <div className="font-size-controls" title="Adjust Code Font Size">
+                  <span style={{ fontSize: "10px", color: "#666" }}>FONT:</span>
+                  <button
+                    type="button"
+                    className="font-btn"
+                    onClick={() => setFontSize((s) => Math.max(11, Number((s - 1).toFixed(1))))}
+                    title="Decrease font size"
+                  >
+                    A-
+                  </button>
+                  <span className="font-val">{fontSize}px</span>
+                  <button
+                    type="button"
+                    className="font-btn"
+                    onClick={() => setFontSize((s) => Math.min(22, Number((s + 1).toFixed(1))))}
+                    title="Increase font size"
+                  >
+                    A+
+                  </button>
+                </div>
+
+                {/* Word wrap toggle */}
                 <button
                   type="button"
-                  className="followup-send-btn"
-                  onClick={() => {
-                    if (customPrompt.trim()) {
-                      handleInspectCode("explain", undefined, customPrompt.trim());
-                      setCustomPrompt("");
-                    }
-                  }}
-                  disabled={isInspecting || !customPrompt.trim()}
+                  className={`status-btn ${wordWrap ? "is-active" : ""}`}
+                  onClick={() => setWordWrap((w) => !w)}
+                  title="Toggle Word Wrap"
                 >
-                  <Send size={13} />
+                  Wrap: {wordWrap ? "ON" : "OFF"}
+                </button>
+
+                {/* Focus / Fullscreen Mode toggle */}
+                <button
+                  type="button"
+                  className={`status-btn focus-btn ${isMaximized ? "is-active" : ""}`}
+                  onClick={() => setIsMaximized((m) => !m)}
+                  title={isMaximized ? "Restore sidebars" : "Focus / Fullscreen Mode (collapse sidebars)"}
+                >
+                  {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                  <span>{isMaximized ? "Exit Focus" : "Focus View"}</span>
                 </button>
               </div>
             </div>
           </div>
+
+          {/* ============================================================
+              PANE 3: LIVE PROJECT BRAIN CODE INSPECTOR (Hidden in Focus Mode)
+              ============================================================ */}
+          <div className="studio-pane studio-brain-pane">
+            <div className="pane-header">
+              <div className="pane-title">
+                <Sparkles size={14} color="#c8ff3d" />
+                <span>PROJECT BRAIN INTELLIGENCE</span>
+              </div>
+              <div className="brain-header-right">
+                {chatThread.length > 1 && (
+                  <button
+                    type="button"
+                    className="brain-clear-chat-btn"
+                    onClick={() => setChatThread([])}
+                    title="Clear analysis thread"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
+                <span className="mono-label provider-pill">Groq • RAG 384d</span>
+              </div>
+            </div>
+
+            <div className="brain-pane-body">
+              {/* Active Mode Info Card */}
+              <div className="brain-mode-card">
+                <div className="brain-mode-header">
+                  <currentActionObj.icon size={15} color="#c8ff3d" />
+                  <strong>{currentActionObj.label}</strong>
+                </div>
+                <p>{currentActionObj.desc}</p>
+              </div>
+
+              {/* Single Smooth Scroll Analysis Output Container */}
+              <div className="brain-analysis-output">
+                {isInspecting ? (
+                  <div className="brain-inspecting-state">
+                    <RefreshCw size={26} className="spin text-lime" />
+                    <h4>Project Brain is Analyzing...</h4>
+                    <p>Synthesizing code architecture with Groq &amp; RAG vector chunks.</p>
+                  </div>
+                ) : chatThread.length > 0 ? (
+                  <div className="brain-messages-stream">
+                    {chatThread.map((turn, tIdx) => (
+                      <div key={turn.id || tIdx} className="brain-chat-turn">
+                        <div className="analysis-header-row">
+                          <span className="mono-label turn-title">
+                            <Sparkles size={11} className="text-lime" />
+                            {turn.prompt}
+                            <span className="turn-timestamp">{turn.timestamp}</span>
+                          </span>
+                          <button
+                            type="button"
+                            className="copy-analysis-btn"
+                            onClick={() => handleCopyAnalysis(turn.analysis)}
+                          >
+                            <Copy size={12} />
+                            <span>Copy</span>
+                          </button>
+                        </div>
+
+                        <div className="analysis-content-markdown">
+                          <FormattedAIResponse content={turn.analysis} />
+                        </div>
+
+                        {/* Related RAG Knowledge Chunks */}
+                        {turn.relevantChunks && turn.relevantChunks.length > 0 && (
+                          <div className="related-chunks-section">
+                            <span className="mono-label related-chunks-title">
+                              RELATED REPOSITORY CONTEXT:
+                            </span>
+                            {turn.relevantChunks.map((chunk, i) => (
+                              <div key={i} className="related-chunk-card">
+                                <div className="chunk-card-top">
+                                  <span className="chunk-file">📄 {chunk.filePath}</span>
+                                  <span className="chunk-score mono-label">
+                                    {Math.round(chunk.score * 100)}% match
+                                  </span>
+                                </div>
+                                {chunk.title && <div className="chunk-title">{chunk.title}</div>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : brainAnalysis ? (
+                  <>
+                    <div className="analysis-header-row">
+                      <span className="mono-label turn-title">
+                        <Sparkles size={11} className="text-lime" />
+                        AI CODE ANALYSIS
+                      </span>
+                      <button
+                        type="button"
+                        className="copy-analysis-btn"
+                        onClick={() => handleCopyAnalysis(brainAnalysis.analysis)}
+                      >
+                        {copiedAnalysis ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
+                        <span>{copiedAnalysis ? "Copied" : "Copy"}</span>
+                      </button>
+                    </div>
+
+                    {brainAnalysis.error ? (
+                      <div className="analysis-error-box">
+                        <AlertCircle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                        <div>
+                          <strong style={{ display: "block", marginBottom: "4px", color: "#fca5a5" }}>
+                            AI Service Notice:
+                          </strong>
+                          <span>{brainAnalysis.error}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="analysis-content-markdown">
+                        <FormattedAIResponse content={brainAnalysis.analysis} />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="brain-empty-state">
+                    <Sparkles size={24} color="#666" />
+                    <p>Click "Ask Brain" or type a custom prompt to inspect this file's architecture or highlight any code snippet.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Interactive Ask Follow-up Bar */}
+              <div className="brain-followup-bar">
+                <div className="followup-input-wrap">
+                  <input
+                    type="text"
+                    placeholder="Ask follow-up question to Brain..."
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && customPrompt.trim()) {
+                        handleInspectCode("explain", undefined, customPrompt.trim());
+                        setCustomPrompt("");
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="followup-send-btn"
+                    onClick={() => {
+                      if (customPrompt.trim()) {
+                        handleInspectCode("explain", undefined, customPrompt.trim());
+                        setCustomPrompt("");
+                      }
+                    }}
+                    disabled={isInspecting || !customPrompt.trim()}
+                    title="Send to Brain"
+                  >
+                    <Send size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
       )}
     </div>
   );
