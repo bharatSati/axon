@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Github,
   Check,
+  Copy,
   ChevronDown,
   ArrowLeft,
   LogOut,
@@ -507,20 +508,22 @@ export default function CEODashboard() {
   };
 
   // Filtered employees for directory table
-  const filteredEmployees = employees.filter((emp) => {
-    const matchesDept = selectedDept === "all" || emp.department?.toLowerCase() === selectedDept.toLowerCase();
-    const q = searchTerm.toLowerCase();
+  const filteredEmployees = (employees || []).filter((emp) => {
+    if (!emp) return false;
+    const matchesDept = selectedDept === "all" || (emp.department && emp.department.toLowerCase() === selectedDept.toLowerCase());
+    const q = (searchTerm || "").toLowerCase();
     const matchesSearch =
       !searchTerm ||
-      emp.name?.toLowerCase().includes(q) ||
-      emp.email?.toLowerCase().includes(q) ||
-      emp.githubUsername?.toLowerCase().includes(q) ||
-      emp.role?.toLowerCase().includes(q);
+      (emp.name && emp.name.toLowerCase().includes(q)) ||
+      (emp.email && emp.email.toLowerCase().includes(q)) ||
+      (emp.githubUsername && emp.githubUsername.toLowerCase().includes(q)) ||
+      (emp.role && emp.role.toLowerCase().includes(q));
     return matchesDept && matchesSearch;
   });
 
   const getRoleColor = (roleName) => {
-    const r = ROLES_LIST.find((role) => role.name === roleName);
+    if (!roleName) return "#c8ff3d";
+    const r = ROLES_LIST.find((role) => role.name?.toLowerCase() === roleName?.toLowerCase());
     return r ? r.color : "#c8ff3d";
   };
 
@@ -1537,88 +1540,97 @@ export default function CEODashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredEmployees.map((emp) => (
-                      <tr key={emp.id}>
-                        <td>
-                          <div className="emp-user-cell">
-                            <img
-                              src={emp.avatar || `https://avatars.githubusercontent.com/${emp.githubUsername}`}
-                              alt={emp.name}
-                              className="emp-avatar"
-                              onError={(e) => {
-                                e.target.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80";
-                              }}
-                            />
-                            <div>
-                              <strong>{emp.name}</strong>
-                              <span>{emp.email}</span>
+                    {filteredEmployees.map((emp, idx) => {
+                      const empId = emp.id || emp._id || `emp-${idx}`;
+                      const empRole = emp.role || "Developer";
+                      const ghUser = emp.githubUsername || "";
+                      return (
+                        <tr key={empId}>
+                          <td>
+                            <div className="emp-user-cell">
+                              <img
+                                src={emp.avatar || (ghUser ? `https://avatars.githubusercontent.com/${ghUser}` : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80")}
+                                alt={emp.name || "Member"}
+                                className="emp-avatar"
+                                onError={(e) => {
+                                  e.target.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80";
+                                }}
+                              />
+                              <div>
+                                <strong>{emp.name || ghUser || "Team Member"}</strong>
+                                <span>{emp.email || "No email available"}</span>
+                              </div>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td>
-                          <a
-                            href={`https://github.com/${emp.githubUsername}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="emp-github-link"
-                          >
-                            <Github size={13} />
-                            <span>@{emp.githubUsername}</span>
-                            <ExternalLink size={11} />
-                          </a>
-                        </td>
+                          <td>
+                            {ghUser ? (
+                              <a
+                                href={`https://github.com/${ghUser}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="emp-github-link"
+                              >
+                                <Github size={13} />
+                                <span>@{ghUser}</span>
+                                <ExternalLink size={11} />
+                              </a>
+                            ) : (
+                              <span className="mono-label" style={{ color: "#777" }}>Direct Added</span>
+                            )}
+                          </td>
 
-                        <td>
-                          <span className="mono-label dept-pill">{emp.department || "Engineering"}</span>
-                        </td>
+                          <td>
+                            <span className="mono-label dept-pill">{emp.department || "Engineering"}</span>
+                          </td>
 
-                        <td>
-                          <div className="role-selector-wrap">
-                            <span
-                              className="role-badge"
-                              style={{
-                                borderColor: `${getRoleColor(emp.role)}55`,
-                                color: getRoleColor(emp.role)
-                              }}
-                            >
-                              <i style={{ background: getRoleColor(emp.role) }} />
-                              {emp.role}
+                          <td>
+                            <div className="role-selector-wrap">
+                              <span
+                                className="role-badge"
+                                style={{
+                                  borderColor: `${getRoleColor(empRole)}55`,
+                                  color: getRoleColor(empRole)
+                                }}
+                              >
+                                <i style={{ background: getRoleColor(empRole) }} />
+                                {empRole}
+                              </span>
+
+                              <select
+                                value={empRole}
+                                onChange={(e) => handleRoleChange(empId, e.target.value)}
+                                className="role-inline-select"
+                                title="Change employee role"
+                              >
+                                {ROLES_LIST.map((r) => (
+                                  <option key={r.id} value={r.name}>
+                                    {r.name} ({r.department})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </td>
+
+                          <td>
+                            <span className={`status-pill status-pill--${(emp.status || "active").toLowerCase()}`}>
+                              <i /> {emp.status || "Active"}
                             </span>
+                          </td>
 
-                            <select
-                              value={emp.role}
-                              onChange={(e) => handleRoleChange(emp.id, e.target.value)}
-                              className="role-inline-select"
-                              title="Change employee role"
+                          <td style={{ textAlign: "right" }}>
+                            <button
+                              type="button"
+                              className="remove-emp-btn"
+                              onClick={() => handleDeleteEmployee(empId, emp.name)}
+                              title="Remove employee from workspace"
                             >
-                              {ROLES_LIST.map((r) => (
-                                <option key={r.id} value={r.name}>
-                                  {r.name} ({r.department})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </td>
-
-                        <td>
-                          <span className={`status-pill status-pill--${(emp.status || "active").toLowerCase()}`}>
-                            <i /> {emp.status || "Active"}
-                          </span>
-                        </td>
-
-                        <td style={{ textAlign: "right" }}>
-                          <button
-                            type="button"
-                            className="remove-emp-btn"
-                            onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                            title="Remove employee from workspace"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                              <Trash2 size={15} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
 
                     {employees.length === 0 ? (
                       <tr>
@@ -1682,27 +1694,31 @@ export default function CEODashboard() {
                 </div>
 
                 <div className="invites-grid">
-                  {pendingInvitations.map((inv) => {
-                    const isPending = inv.status === "pending";
+                  {pendingInvitations.map((inv, idx) => {
+                    const isPending = (inv.status || "pending") === "pending";
+                    const invId = inv.id || inv._id || `inv-${idx}`;
                     return (
-                      <div key={inv.id} className={`invite-grid-item invite-grid-item--${inv.status}`}>
+                      <div key={invId} className={`invite-grid-item invite-grid-item--${inv.status || "pending"}`}>
                         <div className="invite-item-head">
                           <div className="invite-user-info">
                             <img
-                              src={inv.targetAvatar || `https://github.com/${inv.targetGithubUsername}.png`}
-                              alt={inv.targetGithubUsername}
+                              src={inv.targetAvatar || (inv.targetGithubUsername ? `https://github.com/${inv.targetGithubUsername}.png` : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80")}
+                              alt={inv.targetGithubUsername || "Target user"}
                               className="invite-avatar"
+                              onError={(e) => {
+                                e.target.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80";
+                              }}
                             />
                             <div>
-                              <strong className="invite-handle">@{inv.targetGithubUsername}</strong>
+                              <strong className="invite-handle">@{inv.targetGithubUsername || "user"}</strong>
                               <span className="mono-label invite-role-tag">
-                                {inv.position} ({inv.role?.toUpperCase()})
+                                {inv.position || "Member"} ({inv.role ? inv.role.toUpperCase() : "MEMBER"})
                               </span>
                             </div>
                           </div>
 
-                          <span className={`mono-label invite-status-pill status--${inv.status}`}>
-                            {inv.status?.toUpperCase()}
+                          <span className={`mono-label invite-status-pill status--${inv.status || "pending"}`}>
+                            {(inv.status || "pending").toUpperCase()}
                           </span>
                         </div>
 
@@ -1712,7 +1728,7 @@ export default function CEODashboard() {
                               <input
                                 type="text"
                                 readOnly
-                                value={`${window.location.origin}?invite=${inv.token}`}
+                                value={`${typeof window !== "undefined" ? window.location.origin : ""}?invite=${inv.token || ""}`}
                                 className="inline-link-input mono-label"
                               />
                               <button
@@ -1720,7 +1736,7 @@ export default function CEODashboard() {
                                 className="inline-copy-btn mono-label"
                                 onClick={() => handleCopyInviteLink(inv)}
                               >
-                                {copiedInviteId === inv.id ? (
+                                {copiedInviteId === invId ? (
                                   <>
                                     <Check size={12} color="#c8ff3d" />
                                     <span>Copied!</span>
@@ -1747,7 +1763,7 @@ export default function CEODashboard() {
                               <button
                                 type="button"
                                 className="revoke-btn mono-label"
-                                onClick={() => handleRevokeInvite(inv.id)}
+                                onClick={() => handleRevokeInvite(invId)}
                               >
                                 Revoke Link
                               </button>

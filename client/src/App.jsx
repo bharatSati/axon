@@ -18,6 +18,7 @@ import Atmosphere from "./components/three/Atmosphere";
 import GitHubAuthModal from "./components/GitHubAuthModal";
 import AcceptInviteModal from "./components/AcceptInviteModal";
 import CEODashboard from "./components/CEODashboard";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { useAuth } from "./context/AuthContext";
 
 export default function App() {
@@ -72,7 +73,9 @@ export default function App() {
       <div className="site-noise" aria-hidden="true" />
 
       {currentView === "dashboard" ? (
-        <CEODashboard />
+        <ErrorBoundary>
+          <CEODashboard />
+        </ErrorBoundary>
       ) : (
         <>
           {showLoader && <Preloader onReveal={revealSite} onComplete={finishLoading} />}
