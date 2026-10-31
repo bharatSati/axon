@@ -44,7 +44,8 @@ import {
   GitPullRequest,
   UploadCloud,
   FileText,
-  ChevronUp
+  ChevronUp,
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import ConnectRepoModal from "./ConnectRepoModal";
@@ -59,6 +60,7 @@ import MarketerDeck from "./MarketerDeck";
 import TimeMachine from "./TimeMachine";
 import FlowchartStudio from "./FlowchartStudio";
 import PRIntelligenceStudio from "./PRIntelligenceStudio";
+import AnalyticsStudio from "./AnalyticsStudio";
 import InviteMemberModal from "./InviteMemberModal";
 import FormattedAIResponse from "./FormattedAIResponse";
 import { API_BASE } from "../config/api.js";
@@ -82,6 +84,7 @@ export const ROLE_DEFINITIONS = {
     description: "Full governance, all studios unlocked, workspace settings & team access control.",
     allowedFeatures: [
       "overview",
+      "analytics",
       "developer",
       "tester",
       "marketer",
@@ -102,6 +105,7 @@ export const ROLE_DEFINITIONS = {
     description: "Code inspection, RAG Project Brain, PR reviews, time machine evolution, and architecture diagrams.",
     allowedFeatures: [
       "overview",
+      "analytics",
       "developer",
       "pr-review",
       "timemachine",
@@ -119,6 +123,7 @@ export const ROLE_DEFINITIONS = {
     description: "Automated test suites, edge case verification, PR regression analysis, and testing flowcharts.",
     allowedFeatures: [
       "overview",
+      "analytics",
       "tester",
       "pr-review",
       "flowchart",
@@ -135,6 +140,7 @@ export const ROLE_DEFINITIONS = {
     description: "Product positioning, launch campaigns, customer journey flowcharts, and release tracking.",
     allowedFeatures: [
       "overview",
+      "analytics",
       "marketer",
       "flowchart",
       "timemachine"
@@ -146,7 +152,8 @@ const ALL_SIDEBAR_ITEMS = [
   {
     group: "CORE COMMAND",
     items: [
-      { id: "overview", label: "Workspace Command", icon: Layers, color: "#c8ff3d" }
+      { id: "overview", label: "Workspace Command", icon: Layers, color: "#c8ff3d" },
+      { id: "analytics", label: "Repo & Org Analytics", icon: BarChart3, color: "#c8ff3d" }
     ]
   },
   {
@@ -746,7 +753,9 @@ export default function CEODashboard() {
   const RoleIcon = roleConfig.icon;
 
   const activeFeatureId =
-    perspective === "developer"
+    perspective === "analytics"
+      ? "analytics"
+      : perspective === "developer"
       ? "developer"
       : perspective === "tester"
       ? "tester"
@@ -1092,6 +1101,14 @@ export default function CEODashboard() {
 
         {/* Viewport for Active Studio / Feature */}
         <div className="axon-viewport">
+          {activeFeatureId === "analytics" && (
+            <AnalyticsStudio
+              workspace={activeWorkspace}
+              token={token}
+              onOpenConnectRepo={() => setIsConnectRepoModalOpen(true)}
+            />
+          )}
+
           {activeFeatureId === "developer" && (
             <DeveloperStudio
               workspace={activeWorkspace}
@@ -1172,6 +1189,16 @@ export default function CEODashboard() {
               </div>
 
               <div className="ws-header-actions">
+                <button
+                  type="button"
+                  className="button button--ghost button--small"
+                  onClick={() => setPerspective("analytics")}
+                  style={{ borderColor: "rgba(200, 255, 61, 0.4)", color: "#c8ff3d", background: "rgba(200, 255, 61, 0.08)" }}
+                  title="Launch Repo & Org Analytics"
+                >
+                  <BarChart3 size={14} />
+                  <span>Repo Analytics</span>
+                </button>
                 <button
                   type="button"
                   className="button button--ghost button--small"

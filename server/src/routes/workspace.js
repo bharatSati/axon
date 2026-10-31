@@ -44,6 +44,10 @@ import {
   analyzePullRequestHandler,
   askPRQuestionHandler
 } from "../controllers/prIntelligenceController.js";
+import {
+  getWorkspaceAnalyticsHandler,
+  generateAIDiagnosticHandler
+} from "../controllers/analyticsController.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = Router();
@@ -102,5 +106,9 @@ router.get("/:id/pr", authenticateToken, getPullRequestsHandler);
 router.get("/:id/pr/:prNumber", authenticateToken, getPullRequestDetailsHandler);
 router.post("/:id/pr/analyze", authenticateToken, analyzePullRequestHandler);
 router.post("/:id/pr/ask", authenticateToken, askPRQuestionHandler);
+
+// Organization & Repository Deep Analytics Studio
+router.get("/:id/analytics", authenticateToken, getWorkspaceAnalyticsHandler);
+router.post("/:id/analytics/ai-diagnostic", authenticateToken, generateAIDiagnosticHandler);
 
 export default router;
