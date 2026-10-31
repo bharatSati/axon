@@ -41,7 +41,11 @@ export const getUserGitHubToken = async (userIdOrUsername) => {
 };
 
 export const initiateGitHubOAuth = (req, res) => {
-  const { clientId, callbackUrl } = config.github;
+  const rawClientId = config.github.clientId;
+  const rawCallbackUrl = config.github.callbackUrl;
+
+  const clientId = rawClientId ? rawClientId.trim() : "";
+  const callbackUrl = rawCallbackUrl ? rawCallbackUrl.trim() : "";
 
   // Check if real GitHub OAuth credentials have been set in .env
   const isConfigured = clientId && clientId !== "your_github_client_id_here" && !clientId.startsWith("your_");
@@ -59,7 +63,13 @@ export const initiateGitHubOAuth = (req, res) => {
     githubAuthUrl.searchParams.set("redirect_uri", callbackUrl);
   }
 
-  githubAuthUrl.searchParams.set("scope", "repo read:user user:email");
+  // GitHub Apps (Client IDs starting with 'Iv') configure permissions in the GitHub App settings.
+  // Passing dynamic 'scope' parameter to a GitHub App causes GitHub to return a 404 error!
+  // Only pass 'scope' for traditional OAuth Apps (IDs not starting with 'Iv').
+  if (!clientId.startsWith("Iv")) {
+    githubAuthUrl.searchParams.set("scope", "repo read:user user:email");
+  }
+
   githubAuthUrl.searchParams.set("state", Math.random().toString(36).substring(7));
 
   res.redirect(githubAuthUrl.toString());
@@ -68,13 +78,13 @@ export const initiateGitHubOAuth = (req, res) => {
 // Reusable helper to exchange GitHub code for CEO profile and JWT
 export const exchangeCodeForCEO = async (code) => {
   const tokenPayload = {
-    client_id: config.github.clientId,
-    client_secret: config.github.clientSecret,
+    client_id: config.github.clientId?.trim(),
+    client_secret: config.github.clientSecret?.trim(),
     code
   };
 
   if (config.github.callbackUrl) {
-    tokenPayload.redirect_uri = config.github.callbackUrl;
+    tokenPayload.redirect_uri = config.github.callbackUrl.trim();
   }
 
   // 1. Exchange code for GitHub access token
