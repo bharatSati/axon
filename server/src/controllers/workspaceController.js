@@ -679,7 +679,7 @@ export const inspectCodeHandler = async (req, res) => {
     const query = `${customPrompt || ""} ${filePath || ""} ${codeSnippet?.slice(0, 150) || ""}`.trim();
     const ragRes = await queryWorkspaceBrain(workspaceId, query, { topK: 4 });
 
-    // 2. Perform Groq 120B inspection
+    // 2. Perform Groq inspection with smart model fallback
     const analysis = await inspectCodeWithBrain({
       filePath: filePath || "Active Snippet",
       codeSnippet: codeSnippet || "(Full File)",
@@ -689,18 +689,28 @@ export const inspectCodeHandler = async (req, res) => {
       workspaceMeta: { id: workspaceId }
     });
 
+    if (!analysis) {
+      return res.status(502).json({
+        error: "AI code inspection failed: Model returned empty response. Please check rate limits or try again.",
+        relevantChunks: ragRes.results || []
+      });
+    }
+
     res.json({
       success: true,
       action,
       filePath,
       customPrompt,
-      analysis: analysis || "Code analyzed based on Project Brain context.",
-      provider: "groq (openai/gpt-oss-120b)",
+      analysis,
+      provider: "groq (openai/gpt-oss-120b with fallback)",
       relevantChunks: ragRes.results || []
     });
   } catch (err) {
-    console.error("inspectCodeHandler error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("inspectCodeHandler error:", err.message);
+    res.status(502).json({
+      error: err.message || "Failed to inspect code with Project Brain.",
+      relevantChunks: []
+    });
   }
 };
 
@@ -712,15 +722,22 @@ export const testLabHandler = async (req, res) => {
     const ragRes = await queryWorkspaceBrain(workspaceId, targetModule, { topK: 4 });
     const plan = await generateQATestPlan(targetModule, ragRes.results || [], { id: workspaceId });
 
+    if (!plan) {
+      return res.status(502).json({
+        error: "AI QA test plan could not be generated. Please check Groq API rate limits.",
+        relevantChunks: ragRes.results || []
+      });
+    }
+
     res.json({
       success: true,
       targetModule,
-      plan: plan || "QA plan generated from Project Brain.",
-      provider: "groq (openai/gpt-oss-120b)"
+      plan,
+      provider: "groq (openai/gpt-oss-120b with fallback)"
     });
   } catch (err) {
-    console.error("testLabHandler error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("testLabHandler error:", err.message);
+    res.status(502).json({ error: err.message });
   }
 };
 
@@ -747,6 +764,13 @@ export const growthDeckHandler = async (req, res) => {
       workspaceMeta: { id: workspaceId }
     });
 
+    if (!deck) {
+      return res.status(502).json({
+        error: "AI marketing deck could not be generated. Please check Groq API rate limits.",
+        relevantChunks: ragRes.results || []
+      });
+    }
+
     res.json({
       success: true,
       featureQuery,
@@ -754,13 +778,13 @@ export const growthDeckHandler = async (req, res) => {
       audience,
       tone,
       customPrompt,
-      deck: deck || "Product marketing brief generated from Project Brain.",
-      provider: "groq (openai/gpt-oss-120b)",
+      deck,
+      provider: "groq (openai/gpt-oss-120b with fallback)",
       relevantChunks: ragRes.results || []
     });
   } catch (err) {
-    console.error("growthDeckHandler error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("growthDeckHandler error:", err.message);
+    res.status(502).json({ error: err.message });
   }
 };
 

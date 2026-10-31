@@ -220,7 +220,8 @@ export const synthesizeBrainAnswer = async (
     snippet: truncateSnippet(c.content, 220)
   }));
 
-  // 1. Synthesize using Groq LLM (openai/gpt-oss-120b) with retrieved structured context
+  // 1. Synthesize using Groq LLM with smart fallback models
+  let groqFailureNotice = null;
   try {
     const brainStatus = await getBrainStatus(workspaceId);
     const groqAnswer = await generateGroqBrainAnswer(query, chunks, {
@@ -234,12 +235,13 @@ export const synthesizeBrainAnswer = async (
         workspaceId,
         query,
         answer: groqAnswer,
-        provider: "Groq (openai/gpt-oss-120b) + all-MiniLM-L6-v2 RAG",
+        provider: "Groq LLM + all-MiniLM-L6-v2 RAG",
         sources
       };
     }
   } catch (err) {
-    console.warn("[RAG Query] Groq synthesis failed, using local semantic synthesis:", err.message);
+    groqFailureNotice = err.message;
+    console.warn("[RAG Query] Groq synthesis notice:", err.message);
   }
 
   // 2. Graceful Local Structured Semantic Synthesis Fallback (Clean Natural English)
@@ -262,7 +264,12 @@ export const synthesizeBrainAnswer = async (
     );
   }
 
+  const noticePrefix = groqFailureNotice 
+    ? `Notice: Groq LLM was unavailable (${groqFailureNotice}). The following response is grounded directly from your workspace RAG vector index:\n\n`
+    : "";
+
   const synthesizedText =
+    noticePrefix +
     `Based on the Project Brain verified knowledge base for your workspace, here is the relevant engineering context found for "${query}":\n\n` +
     answerSections.join("\n\n") +
     `\n\nSummary: Verified across ${chunks.length} high-signal knowledge chunks from ${Object.keys(fileGroups).length} repository sources including code files, commits, pull requests, and documentation.`;
@@ -272,7 +279,8 @@ export const synthesizeBrainAnswer = async (
     workspaceId,
     query,
     answer: synthesizedText,
-    provider: "local-rag-vector (all-MiniLM-L6-v2)",
+    provider: groqFailureNotice ? "Local RAG Vector (Groq Rate Limited / Unavailable)" : "local-rag-vector (all-MiniLM-L6-v2)",
+    notice: groqFailureNotice,
     sources
   };
 };

@@ -21,58 +21,96 @@ export function sanitizeAIOutput(text) {
 }
 
 /**
- * Robust Groq API caller with automatic retry, timeout protection, and output sanitization.
+ * Robust Groq API caller with automatic model fallback, retry, timeout protection,
+ * and detailed error reporting. Never silently swallows errors!
  */
 export async function callGroqChat(messages, options = {}) {
-  const { apiKey, model, baseUrl } = config.groq;
-  if (!apiKey) return null;
+  const { apiKey, model: configuredModel, baseUrl } = config.groq;
+  if (!apiKey) {
+    throw new Error("Groq API Key is not configured. Please set GROQ_API_KEY in server/.env.");
+  }
 
-  const { max_tokens = 1400, temperature = 0.3, retries = 2 } = options;
+  const { max_tokens = 1400, temperature = 0.3, retries = 1 } = options;
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 40000);
+  // Primary model with smart fallback models (in case primary hits 429 daily token limits or 503 load)
+  const candidateModels = [
+    configuredModel || "openai/gpt-oss-120b",
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-20b"
+  ].filter(Boolean);
 
-      const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model || "openai/gpt-oss-120b",
-          messages,
-          temperature,
-          max_tokens
-        })
-      });
+  const modelsToTry = [...new Set(candidateModels)];
+  let lastError = null;
 
-      clearTimeout(timeoutId);
+  for (const currentModel of modelsToTry) {
+    for (let attempt = 1; attempt <= retries + 1; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 40000);
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.warn(`Groq API returned [${response.status}] attempt ${attempt}: ${errText}`);
-        if (response.status === 429 && attempt < retries) {
-          await new Promise((res) => setTimeout(res, 1200));
-          continue;
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: currentModel,
+            messages,
+            temperature,
+            max_tokens
+          })
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || (await response.text().catch(() => `HTTP ${response.status}`));
+          lastError = new Error(`Groq API Error (${response.status} on ${currentModel}): ${errMsg}`);
+
+          console.warn(`[Groq Service] ${lastError.message}`);
+
+          // If rate limit (429), model unavailable (404), or server error (503), break attempt loop to try next model immediately
+          if (response.status === 429 || response.status === 503 || response.status === 404) {
+            break;
+          }
+
+          if (attempt <= retries) {
+            await new Promise((res) => setTimeout(res, 1000));
+            continue;
+          }
+          break;
         }
-        return null;
-      }
 
-      const data = await response.json();
-      const answer = data.choices?.[0]?.message?.content;
-      return answer ? sanitizeAIOutput(answer) : null;
-    } catch (err) {
-      console.warn(`Groq request attempt ${attempt} failed: ${err.message}`);
-      if (attempt < retries) {
-        await new Promise((res) => setTimeout(res, 800));
+        const data = await response.json();
+        const choice = data.choices?.[0]?.message;
+        const answer = choice?.content || choice?.reasoning;
+
+        if (!answer || !answer.trim()) {
+          lastError = new Error(`Groq returned empty content for model ${currentModel}. Tokens may have been exhausted.`);
+          break;
+        }
+
+        return sanitizeAIOutput(answer);
+      } catch (err) {
+        const isTimeout = err.name === "AbortError";
+        lastError = new Error(
+          isTimeout
+            ? `Groq Request Timeout: Model ${currentModel} did not respond within 40 seconds.`
+            : `Groq Connection Error on ${currentModel}: ${err.message}`
+        );
+        console.warn(`[Groq Service] Attempt ${attempt} failed: ${lastError.message}`);
+        if (attempt <= retries && !isTimeout) {
+          await new Promise((res) => setTimeout(res, 800));
+        }
       }
     }
   }
 
-  return null;
+  // If all models failed, throw the exact last error so the client and user receive the real reason
+  throw lastError || new Error("Failed to communicate with Groq AI service.");
 }
 
 /**

@@ -35,7 +35,8 @@ import {
   AlignLeft,
   History,
   Palette,
-  GitPullRequest
+  GitPullRequest,
+  AlertCircle
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import TimeMachine from "./TimeMachine";
@@ -856,7 +857,15 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                   </div>
 
                   {brainAnalysis.error ? (
-                    <div className="analysis-error-box">{brainAnalysis.error}</div>
+                    <div className="analysis-error-box">
+                      <AlertCircle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                      <div>
+                        <strong style={{ display: "block", marginBottom: "4px", color: "#fca5a5" }}>
+                          AI Service Notice:
+                        </strong>
+                        <span>{brainAnalysis.error}</span>
+                      </div>
+                    </div>
                   ) : (
                     <div className="analysis-content-markdown">
                       <FormattedAIResponse content={brainAnalysis.analysis} />

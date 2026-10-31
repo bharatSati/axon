@@ -3438,10 +3438,15 @@
 
 .analysis-error-box {
   color: #ef4444;
-  font-size: 12px;
-  padding: 10px;
-  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding: 12px 14px;
+  border-radius: 8px;
   background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .related-chunks-section {
