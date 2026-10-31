@@ -303,125 +303,6 @@ function SecurityCard() {
   );
 }
 
-function ApolloCard() {
-  const handleRedirect = () => {
-    window.open("https://apollo-bnok-theta.vercel.app/", "_blank", "noopener,noreferrer");
-  };
-
-  return (
-    <SpotlightCard className="bento-card--apollo" delay={0.14}>
-      <div className="bento-top">
-        <span className="bento-tag mono-label" style={{ color: "#c8ff3d" }}>
-          <Sparkles size={13} color="#c8ff3d" />
-          ECOSYSTEM META-AGENT
-        </span>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span className="security-badge mono-label" style={{ background: "rgba(200, 255, 61, 0.12)", color: "#c8ff3d", border: "1px solid rgba(200, 255, 61, 0.3)" }}>
-            PARTNER SUITE
-          </span>
-          <a
-            href="https://apollo-bnok-theta.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bento-arrow"
-            data-cursor
-            title="Launch Apollo Deep Research Meta-Agent"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ArrowUpRight size={17} />
-          </a>
-        </div>
-      </div>
-
-      <div className="apollo-grid-content">
-        <div className="bento-copy apollo-copy">
-          <div className="apollo-badge-row">
-            <span className="apollo-pill">CONNECTED PRODUCT</span>
-            <span className="apollo-pill apollo-pill--accent">3 RESEARCH AGENTS</span>
-          </div>
-          <h3>Apollo — Deep Research Meta-Agent</h3>
-          <p>
-            Turn ambitious questions into evidence-backed intelligence. While Axon powers codebase RAG, workspaces,
-            and developer studios, Apollo orchestrates three collaborating autonomous agents for deep web research,
-            recursive evidence synthesis, and verifiable citations.
-          </p>
-          <div className="apollo-cta-row">
-            <a
-              href="https://apollo-bnok-theta.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="button button--lime button--small"
-            >
-              <Sparkles size={14} />
-              <span>Launch Apollo Meta-Agent</span>
-              <ArrowUpRight size={14} />
-            </a>
-            <span className="mono-label apollo-url-hint">apollo-bnok-theta.vercel.app</span>
-          </div>
-        </div>
-
-        <div className="apollo-visual" onClick={handleRedirect} style={{ cursor: "pointer" }}>
-          <div className="apollo-agents-cluster">
-            <div className="apollo-agent-node apollo-agent-node--1">
-              <div className="node-head">
-                <span className="node-pulse" />
-                <span className="mono-label">AGENT 01</span>
-              </div>
-              <strong>Deep Web Scout</strong>
-              <span>Multi-Source Crawler</span>
-            </div>
-
-            <div className="apollo-connector-flow">
-              <span className="connector-dot" />
-              <span className="connector-line" />
-              <span className="connector-dot" />
-            </div>
-
-            <div className="apollo-agent-node apollo-agent-node--2 is-lead">
-              <div className="node-head">
-                <Sparkles size={12} color="#c8ff3d" />
-                <span className="mono-label" style={{ color: "#c8ff3d" }}>AGENT 02 // LEAD</span>
-              </div>
-              <strong>Recursive Synthesizer</strong>
-              <span>Cross-Source Evidence</span>
-            </div>
-
-            <div className="apollo-connector-flow">
-              <span className="connector-dot" />
-              <span className="connector-line" />
-              <span className="connector-dot" />
-            </div>
-
-            <div className="apollo-agent-node apollo-agent-node--3">
-              <div className="node-head">
-                <span className="node-pulse node-pulse--cyan" />
-                <span className="mono-label">AGENT 03</span>
-              </div>
-              <strong>Citation Auditor</strong>
-              <span>100% Verifiable Sources</span>
-            </div>
-          </div>
-
-          <div className="apollo-metrics-strip">
-            <div className="apollo-metric">
-              <span className="m-val">3</span>
-              <span className="m-lbl mono-label">META-AGENTS</span>
-            </div>
-            <div className="apollo-metric">
-              <span className="m-val" style={{ color: "#c8ff3d" }}>99.4%</span>
-              <span className="m-lbl mono-label">FACT GROUNDING</span>
-            </div>
-            <div className="apollo-metric">
-              <span className="m-val">0</span>
-              <span className="m-lbl mono-label">HALLUCINATIONS</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </SpotlightCard>
-  );
-}
-
 export default function Bento() {
   return (
     <section className="section features-section" id="features">
@@ -445,7 +326,6 @@ export default function Bento() {
           <TelemetryCard />
           <IntegrationsCard />
           <SecurityCard />
-          <ApolloCard />
         </div>
 
         <Reveal className="features-footer">
