@@ -31,8 +31,26 @@ export function sanitizeMermaidCode(rawCode) {
   code = code.replace(/\*\*/g, "").replace(/(?<!\w)\*(?!\w)/g, "");
 
   const lines = code.split("\n");
+  let hasEncounteredHeader = false;
+
   const cleaned = lines.map((line) => {
-    let l = line;
+    let l = line.trimEnd();
+    const trimmed = l.trim();
+
+    // Filter out markdown code fences or empty comment artifacts
+    if (trimmed.startsWith("```") || trimmed === "%%" || trimmed.includes("```mermaid")) {
+      return "";
+    }
+
+    // Check diagram declaration (flowchart TD, graph TD, sequenceDiagram, etc.)
+    if (/^\s*(flowchart\s+(?:TD|TB|BT|RL|LR)|graph\s+(?:TD|TB|BT|RL|LR)|sequenceDiagram|classDiagram|erDiagram|stateDiagram-v2|stateDiagram)\b/i.test(trimmed)) {
+      if (!hasEncounteredHeader) {
+        hasEncounteredHeader = true;
+        return trimmed;
+      } else {
+        return `%% [Deduplicated duplicate header]: ${trimmed}`;
+      }
+    }
 
     // Pattern A: Leading emoji or text outside quotes:
     // nodeId[🟦 "Click Login with GitHub"] -> nodeId["🟦 Click Login with GitHub"]
@@ -84,7 +102,6 @@ export function sanitizeMermaidCode(rawCode) {
     l = l.replace(/(-->|-\.->|==>)\|"([^"|\n]+)"\|/g, "$1|$2|");
 
     // Pattern G: Conversational explanation lines mistakenly inside code
-    const trimmed = l.trim();
     if (
       trimmed &&
       !trimmed.startsWith("flowchart") &&
@@ -109,31 +126,74 @@ export function sanitizeMermaidCode(rawCode) {
     return l;
   });
 
-  return cleaned.join("\n");
+  return cleaned.filter((l) => l.trim() !== "").join("\n");
 }
 
 /**
  * Clean and extract Mermaid code block from raw AI output
  */
-function extractMermaidCode(rawText) {
+function extractMermaidCode(rawText, orientation = "TD") {
   if (!rawText) return "";
 
+  let text = rawText;
+
   // 1. Try finding ```mermaid ... ``` block
-  const match = rawText.match(/```(?:mermaid)?\s*([\s\S]*?)\s*```/i);
-  let code = match ? match[1].trim() : rawText.trim();
-
-  // If code has leading markdown artifacts, clean them
-  code = code.replace(/^(?:mermaid|graph|flowchart)\b/i, (m) => m.toLowerCase());
-
-  // Ensure it starts with a valid mermaid diagram type
-  if (!code.startsWith("flowchart") && !code.startsWith("graph") && !code.startsWith("sequenceDiagram")) {
-    code = `flowchart TD\n${code}`;
+  const match = text.match(/```(?:mermaid)?\s*([\s\S]*?)```/i);
+  if (match && match[1]) {
+    text = match[1];
   }
 
-  // Sanitize syntax to avoid Mermaid parser crash
+  // 2. Strip any leftover backticks
+  let lines = text
+    .split("\n")
+    .map((l) => l.replace(/```(?:mermaid)?/gi, "").trimEnd())
+    .filter((l) => {
+      const t = l.trim();
+      return !t.startsWith("```") && t !== "%%" && !t.includes("```mermaid");
+    });
+
+  // 3. Find first valid diagram header
+  const headerRegex = /^\s*(flowchart\s+(?:TD|TB|BT|RL|LR)|graph\s+(?:TD|TB|BT|RL|LR)|sequenceDiagram|classDiagram|erDiagram|stateDiagram-v2|stateDiagram)\b/i;
+  let firstHeaderIndex = -1;
+  let detectedHeader = `flowchart ${orientation}`;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (headerRegex.test(line)) {
+      if (firstHeaderIndex === -1) {
+        firstHeaderIndex = i;
+        detectedHeader = line;
+      } else {
+        lines[i] = ""; // strip duplicate header
+      }
+    }
+  }
+
+  // Ensure ONE header exists and is positioned at top
+  if (firstHeaderIndex === -1) {
+    lines.unshift(`flowchart ${orientation}`);
+  } else if (firstHeaderIndex > 0) {
+    const h = lines[firstHeaderIndex];
+    lines.splice(firstHeaderIndex, 1);
+    lines.unshift(h);
+  }
+
+  let code = lines.join("\n").trim();
+
+  // 4. Sanitize syntax to avoid Mermaid parser crash
   code = sanitizeMermaidCode(code);
 
-  // Ensure colorful class definitions are appended if not present
+  // 5. Ensure balanced subgraphs
+  const openCount = (code.match(/^\s*subgraph\b/gm) || []).length;
+  const closeCount = (code.match(/^\s*end\b/gm) || []).length;
+  if (openCount > closeCount) {
+    const missing = openCount - closeCount;
+    for (let i = 0; i < missing; i++) {
+      code += "\nend";
+    }
+  }
+
+  // 6. Ensure colorful class definitions are appended if not present
   if (!code.includes("classDef client")) {
     code = `${code}\n\n${COLORFUL_MERMAID_CLASSES}`;
   }
@@ -222,7 +282,7 @@ Generate a vibrant, colorful, and accurate Mermaid flowchart diagram depicting t
 
     // Extract Mermaid block and explanation text
     const mermaidMatch = rawResponse.match(/```(?:mermaid)?\s*([\s\S]*?)\s*```/i);
-    const mermaidCode = extractMermaidCode(mermaidMatch ? mermaidMatch[1] : rawResponse);
+    const mermaidCode = extractMermaidCode(mermaidMatch ? mermaidMatch[1] : rawResponse, orientation);
 
     // Everything after the code block is the explanation walkthrough
     let explanation = "";
