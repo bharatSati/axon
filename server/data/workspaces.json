@@ -2,7 +2,7 @@
   {
     "_id": "6ae5863e7f7d5e6e4c166e50",
     "id": "ws_default_axon",
-    "__v": 0,
+    "__v": 1,
     "brain": {
       "status": "error",
       "error": "path is not defined",
@@ -30,7 +30,21 @@
       "htmlUrl": "https://github.com/bharatSati/saas-landing",
       "connectedAt": "2026-10-31T06:14:02.306Z"
     },
-    "updatedAt": "2026-10-31T06:14:04.569Z"
+    "updatedAt": "2026-10-31T11:51:11.276Z",
+    "members": [
+      {
+        "userId": "gh_555",
+        "githubUsername": "johndoe",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "avatar": "https://github.com/johndoe.png",
+        "role": "developer",
+        "position": "Senior Backend Engineer",
+        "department": "Engineering",
+        "joinedAt": "2026-10-31T11:51:11.267Z",
+        "invitedBy": "bharatSati"
+      }
+    ]
   },
   {
     "_id": "6ae589f87f7d5e6e4c166f28",

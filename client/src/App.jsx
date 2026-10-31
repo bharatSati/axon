@@ -16,6 +16,7 @@ import Footer from "./components/Footer";
 import ScrollEffects from "./components/ScrollEffects";
 import Atmosphere from "./components/three/Atmosphere";
 import GitHubAuthModal from "./components/GitHubAuthModal";
+import AcceptInviteModal from "./components/AcceptInviteModal";
 import CEODashboard from "./components/CEODashboard";
 import { useAuth } from "./context/AuthContext";
 
@@ -63,6 +64,7 @@ export default function App() {
   return (
     <>
       <GitHubAuthModal />
+      <AcceptInviteModal />
 
       {/* Synchronized Global Visuals: Custom Animated Cursor, Three.js Atmosphere & Noise Texture */}
       <Atmosphere />

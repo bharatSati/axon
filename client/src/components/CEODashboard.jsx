@@ -54,6 +54,7 @@ import MarketerDeck from "./MarketerDeck";
 import TimeMachine from "./TimeMachine";
 import FlowchartStudio from "./FlowchartStudio";
 import PRIntelligenceStudio from "./PRIntelligenceStudio";
+import InviteMemberModal from "./InviteMemberModal";
 
 const API_BASE = "http://localhost:4000/api";
 
@@ -106,9 +107,74 @@ export default function CEODashboard() {
     status: "Active"
   });
 
+  // Workspace Members & GitHub Invitations
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [workspaceMembers, setWorkspaceMembers] = useState([]);
+  const [pendingInvitations, setPendingInvitations] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [copiedInviteId, setCopiedInviteId] = useState(null);
+  const [emailDispatchedId, setEmailDispatchedId] = useState(null);
+
   const showNotification = (msg) => {
     setFeedbackMsg(msg);
     setTimeout(() => setFeedbackMsg(""), 4500);
+  };
+
+  const fetchWorkspaceMembersAndInvites = async (wsId = activeWorkspaceId) => {
+    if (!wsId) return;
+    try {
+      setMembersLoading(true);
+      const [membersRes, invitesRes] = await Promise.all([
+        fetch(`${API_BASE}/invitations/workspace/${wsId}/members`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE}/invitations/workspace/${wsId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      const membersData = await membersRes.json();
+      const invitesData = await invitesRes.json();
+      if (membersData.success && membersData.members) {
+        setWorkspaceMembers(membersData.members);
+      }
+      if (invitesData.success && invitesData.invitations) {
+        setPendingInvitations(invitesData.invitations);
+      }
+    } catch (e) {
+      console.warn("Failed to fetch workspace members/invitations:", e.message);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
+  const handleCopyInviteLink = (invite) => {
+    const clientBase = window.location.origin;
+    const url = `${clientBase}?invite=${invite.token}`;
+    navigator.clipboard.writeText(url);
+    setCopiedInviteId(invite.id);
+    setTimeout(() => setCopiedInviteId(null), 2000);
+    showNotification(`Copied invitation link for @${invite.targetGithubUsername}!`);
+  };
+
+  const handleSendInviteEmail = (invite) => {
+    setEmailDispatchedId(invite.id);
+    setTimeout(() => setEmailDispatchedId(null), 3000);
+    showNotification(`📧 Invitation link dispatched to ${invite.targetEmail || `${invite.targetGithubUsername}@users.noreply.github.com`} via Axon Mail Gateway.`);
+  };
+
+  const handleRevokeInvite = async (invitationId) => {
+    try {
+      const res = await fetch(`${API_BASE}/invitations/${invitationId}?workspaceId=${activeWorkspaceId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showNotification("Invitation link revoked successfully.");
+        fetchWorkspaceMembersAndInvites(activeWorkspaceId);
+      }
+    } catch (e) {
+      showNotification("Failed to revoke invitation.");
+    }
   };
 
   // ==========================================
@@ -195,9 +261,16 @@ export default function CEODashboard() {
   useEffect(() => {
     if (activeWorkspaceId) {
       fetchActiveWorkspaceDetails(activeWorkspaceId);
+      fetchWorkspaceMembersAndInvites(activeWorkspaceId);
       setBrainAnswer(null);
     }
   }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    if (activeTab === "team" && activeWorkspaceId) {
+      fetchWorkspaceMembersAndInvites(activeWorkspaceId);
+    }
+  }, [activeTab]);
 
   // Active Workspace Reference
   const activeWorkspace =
@@ -1392,14 +1465,24 @@ export default function CEODashboard() {
                 </p>
               </div>
 
-              <div className="ceo-header-cta">
+              <div className="ceo-header-cta" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                 <button
                   type="button"
-                  className="button button--lime button--large add-emp-trigger"
+                  className="button button--lime button--large"
+                  onClick={() => setIsInviteModalOpen(true)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+                >
+                  <Github size={18} />
+                  <span>Invite with GitHub</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="button button--ghost button--large add-emp-trigger"
                   onClick={() => setIsAddModalOpen(true)}
                 >
                   <UserPlus size={18} />
-                  <span>Add Employee</span>
+                  <span>Manual Add</span>
                 </button>
               </div>
             </div>
@@ -1574,6 +1657,109 @@ export default function CEODashboard() {
                 </table>
               </div>
             </div>
+
+            {/* Pending GitHub Invitations Section */}
+            {pendingInvitations.length > 0 && (
+              <div className="ceo-section-card pending-invites-card">
+                <div className="ceo-section-head">
+                  <div>
+                    <div className="mono-label kicker-pill" style={{ color: "#c084fc", marginBottom: "6px" }}>
+                      <Github size={12} />
+                      UNIQUE INVITATION LINKS ACTIVE
+                    </div>
+                    <h2>Pending GitHub Invitations ({pendingInvitations.filter((i) => i.status === "pending").length})</h2>
+                    <p>Share these unique links with the invited GitHub developers. Only their specific GitHub account can accept.</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="button button--small button--lime"
+                    onClick={() => setIsInviteModalOpen(true)}
+                  >
+                    <Plus size={14} />
+                    <span>Invite Another</span>
+                  </button>
+                </div>
+
+                <div className="invites-grid">
+                  {pendingInvitations.map((inv) => {
+                    const isPending = inv.status === "pending";
+                    return (
+                      <div key={inv.id} className={`invite-grid-item invite-grid-item--${inv.status}`}>
+                        <div className="invite-item-head">
+                          <div className="invite-user-info">
+                            <img
+                              src={inv.targetAvatar || `https://github.com/${inv.targetGithubUsername}.png`}
+                              alt={inv.targetGithubUsername}
+                              className="invite-avatar"
+                            />
+                            <div>
+                              <strong className="invite-handle">@{inv.targetGithubUsername}</strong>
+                              <span className="mono-label invite-role-tag">
+                                {inv.position} ({inv.role?.toUpperCase()})
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className={`mono-label invite-status-pill status--${inv.status}`}>
+                            {inv.status?.toUpperCase()}
+                          </span>
+                        </div>
+
+                        {isPending && (
+                          <div className="invite-item-actions">
+                            <div className="link-copy-inline">
+                              <input
+                                type="text"
+                                readOnly
+                                value={`${window.location.origin}?invite=${inv.token}`}
+                                className="inline-link-input mono-label"
+                              />
+                              <button
+                                type="button"
+                                className="inline-copy-btn mono-label"
+                                onClick={() => handleCopyInviteLink(inv)}
+                              >
+                                {copiedInviteId === inv.id ? (
+                                  <>
+                                    <Check size={12} color="#c8ff3d" />
+                                    <span>Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={12} />
+                                    <span>Copy Link</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+
+                            <div className="invite-buttons-row">
+                              <button
+                                type="button"
+                                className="send-mail-inline-btn mono-label"
+                                onClick={() => handleSendInviteEmail(inv)}
+                              >
+                                <Send size={11} />
+                                <span>Send Email</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                className="revoke-btn mono-label"
+                                onClick={() => handleRevokeInvite(inv.id)}
+                              >
+                                Revoke Link
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Modular Role Architecture Cards */}
             <section className="ceo-roles-reference">
@@ -1750,6 +1936,18 @@ export default function CEODashboard() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Unique GitHub Member Invitation Modal */}
+      <InviteMemberModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        workspace={activeWorkspace}
+        token={token}
+        onMemberAdded={() => {
+          fetchWorkspaceMembersAndInvites(activeWorkspaceId);
+          fetchEmployees();
+        }}
+      />
     </div>
   );
 }

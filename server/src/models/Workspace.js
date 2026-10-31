@@ -39,6 +39,22 @@ const BrainStatusSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const WorkspaceMemberSchema = new mongoose.Schema(
+  {
+    userId: { type: String, required: true },
+    githubUsername: { type: String, required: true, lowercase: true, trim: true },
+    name: { type: String, default: "" },
+    email: { type: String, default: "" },
+    avatar: { type: String, default: "" },
+    role: { type: String, default: "developer" }, // "ceo" | "developer" | "tester" | "marketer"
+    position: { type: String, default: "Software Engineer" },
+    department: { type: String, default: "Engineering" },
+    joinedAt: { type: Date, default: Date.now },
+    invitedBy: { type: String, default: "" }
+  },
+  { _id: false }
+);
+
 const WorkspaceSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true, index: true },
@@ -46,7 +62,8 @@ const WorkspaceSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     description: { type: String, default: "", trim: true },
     repository: { type: RepositorySchema, default: null },
-    brain: { type: BrainStatusSchema, default: () => ({ status: "uninitialized" }) }
+    brain: { type: BrainStatusSchema, default: () => ({ status: "uninitialized" }) },
+    members: { type: [WorkspaceMemberSchema], default: [] }
   },
   {
     timestamps: true

@@ -7,6 +7,7 @@ import workspaceRouter from "./routes/workspace.js";
 import authRouter from "./routes/auth.js";
 import employeeRouter from "./routes/employees.js";
 import githubRouter from "./routes/github.js";
+import invitationRouter from "./routes/invitations.js";
 
 const app = express();
 const PORT = config.port;
@@ -26,6 +27,7 @@ app.use("/api/workspaces", workspaceRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/employees", employeeRouter);
 app.use("/api/github", githubRouter);
+app.use("/api/invitations", invitationRouter);
 
 // Root informational endpoint
 app.get("/api", (req, res) => {
