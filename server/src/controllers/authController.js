@@ -2,22 +2,17 @@ import jwt from "jsonwebtoken";
 import { config } from "../config/index.js";
 import { User } from "../models/User.js";
 
-// In-memory store for active CEO sessions and GitHub tokens
-let currentCEO = null;
+// In-memory store for user GitHub tokens indexed strictly by userId and username
 export const userAccessTokens = new Map();
 
 export const getUserGitHubToken = async (userIdOrUsername) => {
-  if (!userIdOrUsername) {
-    return process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || null;
-  }
+  if (!userIdOrUsername) return null;
 
-  // 1. In-memory cache
-  const cached =
-    userAccessTokens.get(userIdOrUsername) ||
-    (currentCEO && (userAccessTokens.get(currentCEO.id) || userAccessTokens.get(currentCEO.username)));
+  // 1. In-memory cache for this specific user
+  const cached = userAccessTokens.get(userIdOrUsername);
   if (cached) return cached;
 
-  // 2. Check MongoDB User persistence
+  // 2. Check MongoDB User persistence for this specific user
   try {
     const userDoc = await User.findOne({
       $or: [
@@ -37,7 +32,7 @@ export const getUserGitHubToken = async (userIdOrUsername) => {
     // MongoDB lookup non-blocking
   }
 
-  return process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || null;
+  return null;
 };
 
 export const initiateGitHubOAuth = (req, res) => {
@@ -206,8 +201,6 @@ export const exchangeCodeForCEO = async (code) => {
     console.warn("MongoDB User save notice:", e.message);
   }
 
-  currentCEO = ceoProfile;
-
   // 5. Sign JWT session token with githubToken included
   const token = jwt.sign(ceoProfile, config.jwtSecret, { expiresIn: "7d" });
 
@@ -272,8 +265,6 @@ export const devCEOLogin = (req, res) => {
     loginAt: new Date().toISOString()
   };
 
-  currentCEO = devCEO;
-
   const token = jwt.sign(devCEO, config.jwtSecret, { expiresIn: "7d" });
 
   res.json({
@@ -286,12 +277,14 @@ export const devCEOLogin = (req, res) => {
 
 export const getCurrentUser = (req, res) => {
   res.json({
-    user: req.user || currentCEO
+    user: req.user || null
   });
 };
 
 export const logout = (req, res) => {
-  currentCEO = null;
+  if (req.user?.id) {
+    userAccessTokens.delete(req.user.id);
+  }
   res.json({
     success: true,
     message: "Logged out successfully"

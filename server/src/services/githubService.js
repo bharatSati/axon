@@ -49,25 +49,24 @@ const fetchFromGitHub = async (endpoint, token) => {
  * Strictly filters to ONLY repositories owned by the authenticated user
  */
 export const listUserRepositories = async (userIdOrToken, { search = "", page = 1, perPage = 30, username = "" } = {}) => {
-  const token = userIdOrToken?.startsWith("gh") || userIdOrToken?.length > 25
+  const token = (typeof userIdOrToken === "string" && (userIdOrToken.startsWith("gh") || userIdOrToken.length > 25))
     ? userIdOrToken
     : await getUserGitHubToken(userIdOrToken);
 
   const targetUsername = (
     username ||
-    (typeof userIdOrToken === "string" && !userIdOrToken.startsWith("gh") && userIdOrToken.length < 25 ? userIdOrToken : "") ||
-    "bharatSati"
+    (typeof userIdOrToken === "string" && !userIdOrToken.startsWith("gh") && userIdOrToken.length < 25 ? userIdOrToken : "")
   ).trim();
 
   let repos = [];
 
-  // 1. Try fetching via authenticated GitHub token (with affiliation=owner to strictly return user's own repos)
+  // 1. Try fetching via authenticated GitHub token
   if (token) {
     try {
-      const data = await fetchFromGitHub("/user/repos?sort=updated&per_page=100&affiliation=owner", token);
+      const data = await fetchFromGitHub("/user/repos?sort=updated&per_page=100", token);
       if (Array.isArray(data) && data.length > 0) {
         repos = data
-          .filter((r) => !targetUsername || r.owner?.login?.toLowerCase() === targetUsername.toLowerCase())
+          .filter((r) => !targetUsername || r.owner?.login?.toLowerCase() === targetUsername.toLowerCase() || r.permissions?.push)
           .map((r) => mapRepoObject(r));
       }
     } catch (err) {
@@ -75,8 +74,8 @@ export const listUserRepositories = async (userIdOrToken, { search = "", page = 
     }
   }
 
-  // 2. Fallback: Fetch public repositories owned directly by this GitHub user
-  if (!repos || repos.length === 0) {
+  // 2. Fallback: Fetch public repositories owned directly by this GitHub user if token failed
+  if ((!repos || repos.length === 0) && targetUsername) {
     try {
       const publicData = await fetchFromGitHub(`/users/${targetUsername}/repos?sort=updated&per_page=100`, null);
       if (Array.isArray(publicData) && publicData.length > 0) {
@@ -89,38 +88,9 @@ export const listUserRepositories = async (userIdOrToken, { search = "", page = 
     }
   }
 
-  // 3. Fallback: only if completely offline and network unreachable
-  if (!repos || repos.length === 0) {
-    repos = [
-      {
-        id: 92837101,
-        name: "saas-landing",
-        fullName: "bharatSati/saas-landing",
-        owner: "bharatSati",
-        description: "Modern SaaS landing page and modular workspace client with Three.js & GSAP",
-        defaultBranch: "main",
-        visibility: "public",
-        stars: 12,
-        forks: 3,
-        language: "JavaScript",
-        htmlUrl: "https://github.com/bharatSati/saas-landing",
-        updatedAt: "2026-10-31T09:30:00Z"
-      },
-      {
-        id: 92837102,
-        name: "axon",
-        fullName: "bharatSati/axon",
-        owner: "bharatSati",
-        description: "Axon — Unified & Intelligent Workspace platform with client-server architecture",
-        defaultBranch: "main",
-        visibility: "private",
-        stars: 28,
-        forks: 7,
-        language: "JavaScript",
-        htmlUrl: "https://github.com/bharatSati/axon",
-        updatedAt: "2026-10-31T08:15:00Z"
-      }
-    ];
+  // If user has no repositories, return empty list (NEVER leak another user's repos)
+  if (!repos) {
+    repos = [];
   }
 
   // Filter by search query if provided

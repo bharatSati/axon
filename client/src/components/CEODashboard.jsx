@@ -300,6 +300,9 @@ export default function CEODashboard() {
             setActiveWorkspaceId(list[0].id);
             localStorage.setItem("axon_active_workspace_id", list[0].id);
           }
+        } else {
+          setActiveWorkspaceId("");
+          localStorage.removeItem("axon_active_workspace_id");
         }
       }
     } catch (err) {

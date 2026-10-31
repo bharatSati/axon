@@ -1,5 +1,31 @@
 [
   {
+    "id": "ws_1793459141266_dtdf",
+    "ownerId": "gh_279609904",
+    "name": "AnshumanVerma-04's Workspace",
+    "description": "Personal workspace for intelligent engineering & Project Brain",
+    "createdAt": "2026-10-31T15:05:41.266Z",
+    "updatedAt": "2026-10-31T15:05:41.266Z",
+    "repository": null,
+    "brain": {
+      "status": "uninitialized",
+      "message": "Connect a GitHub repository to activate the Project Brain."
+    }
+  },
+  {
+    "id": "ws_1793459140760_lh3u",
+    "ownerId": "gh_305568045",
+    "name": "satya10-x's Workspace",
+    "description": "Personal workspace for intelligent engineering & Project Brain",
+    "createdAt": "2026-10-31T15:05:40.760Z",
+    "updatedAt": "2026-10-31T15:05:40.760Z",
+    "repository": null,
+    "brain": {
+      "status": "uninitialized",
+      "message": "Connect a GitHub repository to activate the Project Brain."
+    }
+  },
+  {
     "_id": "6ae5863e7f7d5e6e4c166e50",
     "id": "ws_default_axon",
     "__v": 1,
@@ -16,7 +42,7 @@
     "createdAt": "2026-10-31T06:10:06.963Z",
     "description": "Main software platform workspace with modular client-server architecture",
     "name": "Axon Core Platform",
-    "ownerId": "default",
+    "ownerId": "gh_203698456",
     "repository": {
       "id": 92837101,
       "name": "saas-landing",
@@ -30,7 +56,7 @@
       "htmlUrl": "https://github.com/bharatSati/saas-landing",
       "connectedAt": "2026-10-31T06:14:02.306Z"
     },
-    "updatedAt": "2026-10-31T11:51:11.276Z",
+    "updatedAt": "2026-10-31T14:58:05.921Z",
     "members": [
       {
         "userId": "gh_555",

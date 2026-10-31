@@ -150,6 +150,7 @@ export function AuthProvider({ children }) {
       console.warn("Logout request failed:", e);
     }
     localStorage.removeItem("axon_token");
+    localStorage.removeItem("axon_active_workspace_id");
     setToken("");
     setUser(null);
     setCurrentView("landing");

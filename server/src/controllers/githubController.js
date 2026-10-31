@@ -1,12 +1,17 @@
 import { listUserRepositories, fetchRepositoryData } from "../services/githubService.js";
+import { getUserGitHubToken } from "./authController.js";
 
 export const getRepositories = async (req, res) => {
   try {
-    const userIdOrToken = req.user?.id || req.user?.username || null;
-    const username = req.user?.username || "bharatSati";
+    const token = req.user?.githubToken || (await getUserGitHubToken(req.user?.id || req.user?.username));
+    const username = req.user?.username;
     const { search = "", page = 1, perPage = 30 } = req.query;
 
-    const data = await listUserRepositories(userIdOrToken, { search, page, perPage, username });
+    if (!username && !token) {
+      return res.status(401).json({ error: "Authenticated GitHub user session required." });
+    }
+
+    const data = await listUserRepositories(token, { search, page, perPage, username });
     res.json({
       success: true,
       ...data
@@ -19,9 +24,9 @@ export const getRepositories = async (req, res) => {
 export const getRepository = async (req, res) => {
   try {
     const { owner, repo } = req.params;
-    const userIdOrToken = req.user?.id || req.user?.username || null;
+    const token = req.user?.githubToken || (await getUserGitHubToken(req.user?.id || req.user?.username));
 
-    const data = await fetchRepositoryData(userIdOrToken, owner, repo);
+    const data = await fetchRepositoryData(token, owner, repo);
     res.json({
       success: true,
       data

@@ -70,11 +70,55 @@ const syncWorkspaceToDB = async (ws) => {
 };
 
 /**
- * List all workspaces for an owner (or all workspaces if owner matches or default)
+ * List all workspaces accessible by a user (owner or invited member)
  */
-export const listWorkspaces = async (ownerId) => {
+export const listWorkspaces = async (user) => {
   await ensureInitialized();
-  return workspaces.map((ws) => ({
+  if (!user) return [];
+
+  const userId = user.id || user._id;
+  const username = user.username?.toLowerCase();
+
+  const userWorkspaces = workspaces.filter((ws) => {
+    // 1. Is workspace owner (matches user id or username)
+    if (userId && (ws.ownerId === userId || ws.ownerId === `gh_${userId}`)) return true;
+    if (username && ws.ownerId?.toLowerCase() === username) return true;
+
+    // 2. Is an active member of this workspace
+    if (Array.isArray(ws.members)) {
+      return ws.members.some(
+        (m) =>
+          (userId && (m.userId === userId || m.userId === `gh_${userId}`)) ||
+          (username && m.githubUsername?.toLowerCase() === username)
+      );
+    }
+
+    return false;
+  });
+
+  // If user has zero workspaces, auto-create their personal workspace!
+  if (userWorkspaces.length === 0 && (userId || username)) {
+    const ownerIdentifier = userId || `gh_${username}`;
+    const personalWs = await createWorkspace(ownerIdentifier, {
+      name: `${user.name || user.username || "My"}'s Workspace`,
+      description: "Personal workspace for intelligent engineering & Project Brain"
+    });
+    return [
+      {
+        id: personalWs.id,
+        name: personalWs.name,
+        description: personalWs.description,
+        createdAt: personalWs.createdAt,
+        updatedAt: personalWs.updatedAt,
+        hasRepository: false,
+        repository: null,
+        brain: { status: "uninitialized", message: "Connect a GitHub repository to activate the Project Brain." },
+        members: []
+      }
+    ];
+  }
+
+  return userWorkspaces.map((ws) => ({
     id: ws.id,
     name: ws.name,
     description: ws.description,
@@ -82,17 +126,36 @@ export const listWorkspaces = async (ownerId) => {
     updatedAt: ws.updatedAt,
     hasRepository: !!ws.repository,
     repository: ws.repository || null,
-    brain: ws.brain || { status: "uninitialized" }
+    brain: ws.brain || { status: "uninitialized" },
+    members: ws.members || []
   }));
 };
 
 /**
  * Get a specific workspace with full details
  */
-export const getWorkspaceById = async (workspaceId) => {
+export const getWorkspaceById = async (workspaceId, user = null) => {
   await ensureInitialized();
   const ws = workspaces.find((w) => w.id === workspaceId);
   if (!ws) return null;
+
+  // If user provided, check access permission
+  if (user) {
+    const userId = user.id || user._id;
+    const username = user.username?.toLowerCase();
+    const isOwner =
+      (userId && (ws.ownerId === userId || ws.ownerId === `gh_${userId}`)) ||
+      (username && ws.ownerId?.toLowerCase() === username);
+    const isMember = Array.isArray(ws.members) && ws.members.some(
+      (m) =>
+        (userId && (m.userId === userId || m.userId === `gh_${userId}`)) ||
+        (username && m.githubUsername?.toLowerCase() === username)
+    );
+
+    if (!isOwner && !isMember) {
+      return null;
+    }
+  }
 
   // Enhance with live brain status if connected
   const brainStatus = await getBrainStatus(workspaceId);

@@ -22,8 +22,7 @@ const projectRoot = path.resolve(__dirname, "../../..");
 
 export const getWorkspaces = async (req, res) => {
   try {
-    const ownerId = req.user?.id || "default";
-    const workspaces = await workspaceService.listWorkspaces(ownerId);
+    const workspaces = await workspaceService.listWorkspaces(req.user);
     res.json({
       success: true,
       total: workspaces.length,
@@ -36,9 +35,9 @@ export const getWorkspaces = async (req, res) => {
 
 export const getWorkspace = async (req, res) => {
   try {
-    const workspace = await workspaceService.getWorkspaceById(req.params.id);
+    const workspace = await workspaceService.getWorkspaceById(req.params.id, req.user);
     if (!workspace) {
-      return res.status(404).json({ error: "Workspace not found." });
+      return res.status(404).json({ error: "Workspace not found or access denied." });
     }
     res.json({ success: true, workspace });
   } catch (err) {
@@ -95,7 +94,7 @@ export const connectRepository = async (req, res) => {
   try {
     const workspaceId = req.params.id;
     const repoData = req.body;
-    const userIdOrToken = req.user?.id || req.user?.username || null;
+    const userIdOrToken = req.user?.githubToken || req.user?.id || req.user?.username || null;
 
     if (!repoData || !repoData.name) {
       return res.status(400).json({ error: "Repository data is required." });
@@ -322,7 +321,7 @@ async function fetchRawGitHubFile(owner, repoName, filePath, branch = "main", to
 export const getWorkspaceFiles = async (req, res) => {
   try {
     const workspaceId = req.params.id;
-    const workspace = await workspaceService.getWorkspaceById(workspaceId);
+    const workspace = await workspaceService.getWorkspaceById(workspaceId, req.user);
     if (!workspace) {
       return res.status(404).json({ error: "Workspace not found." });
     }
@@ -535,7 +534,7 @@ export const getWorkspaceFileContent = async (req, res) => {
       return res.status(400).json({ error: "Query parameter 'path' is required." });
     }
 
-    const workspace = await workspaceService.getWorkspaceById(workspaceId);
+    const workspace = await workspaceService.getWorkspaceById(workspaceId, req.user);
     if (!workspace) {
       return res.status(404).json({ error: "Workspace not found." });
     }
