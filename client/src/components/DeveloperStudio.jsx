@@ -43,13 +43,34 @@ import {
   MessageSquare,
   Trash2,
   FileSearch,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Activity,
+  HardDrive,
+  Monitor,
+  Power,
+  Disc
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import TimeMachine from "./TimeMachine";
 import FlowchartStudio from "./FlowchartStudio";
 import PRIntelligenceStudio from "./PRIntelligenceStudio";
 import { API_BASE } from "../config/api.js";
+
+const CYBER_MODULES_INIT = [
+  { id: "core_init", name: "core_init", state: "Ready", type: "KERNEL_CORE", latency: "4.2ms", mem: "32 MB", desc: "Microkernel orchestration & system thread scheduler" },
+  { id: "data_block", name: "data_block", state: "Active", type: "STREAM_PIPE", latency: "11.8ms", mem: "128 MB", desc: "Dual-buffered AST streaming & token parser" },
+  { id: "render_buffer", name: "render_buffer", state: "Active", type: "GPU_SURFACE", latency: "16.6ms", mem: "64 MB", desc: "3D Perspective viewport & CRT rasterizer engine" },
+  { id: "node_vector", name: "node_vector", state: "Ready", type: "RAG_EMBED", latency: "21.4ms", mem: "96 MB", desc: "384-dimensional semantic code vector memory" },
+  { id: "io_stream", name: "io_stream", state: "Active", type: "DUPLEX_NET", latency: "9.5ms", mem: "48 MB", desc: "Live GitHub websocket & duplex telemetry pipe" }
+];
+
+const SYSTEM_STATUS_INIT = [
+  { id: "boot_seq", name: "Boot sequence", state: "Ready", metric: "100% OK", desc: "Core OS microkernel verified & locked" },
+  { id: "render_buf", name: "Render buffer", state: "Active", metric: "60.0 FPS", desc: "DirectWebGL 3D surface composition" },
+  { id: "input_ch", name: "Input channel", state: "Active", metric: "1000 Hz", desc: "Low-latency keyboard & cursor interrupt" },
+  { id: "mem_block", name: "Memory block", state: "Ready", metric: "418 MB / 1024 MB", desc: "Volatile heap RAM partition allocated" },
+  { id: "session_lp", name: "Session loop", state: "Active", metric: "Δ 16.6ms", desc: "Frame sync locked with zero drift" }
+];
 
 const BRAIN_ACTIONS = [
   { id: "explain", label: "🧠 Architecture & Data Flow", icon: Sparkles, desc: "Deep architectural role, inputs, outputs, and design pattern analysis" },
@@ -126,6 +147,166 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   const codePreRef = useRef(null);
   const codeViewerRef = useRef(null);
   const findInputRef = useRef(null);
+  const terminalChassisRef = useRef(null);
+  const terminalScrollRef = useRef(null);
+
+  // 3D Cyberpunk Terminal State
+  const [crtEnabled, setCrtEnabled] = useState(true);
+  const [tiltEnabled, setTiltEnabled] = useState(true);
+  const [mouseTilt, setMouseTilt] = useState({ x: 0, y: 0 });
+  const [timeStr, setTimeStr] = useState("");
+  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [activeNav, setActiveNav] = useState("MAIN"); // "MAIN" | "FILES" | "SYSTEM" | "MENU"
+  const [showNavMenu, setShowNavMenu] = useState(false);
+  const [rightSidebarTab, setRightSidebarTab] = useState("modules"); // "modules" | "status" | "brain"
+  const [modulesList, setModulesList] = useState(CYBER_MODULES_INIT);
+  const [systemStatusList, setSystemStatusList] = useState(SYSTEM_STATUS_INIT);
+  const [memoryUsage, setMemoryUsage] = useState({ used: 418, total: 1024 });
+
+  // Bottom Terminal State
+  const [terminalOpen, setTerminalOpen] = useState(true);
+  const [terminalTab, setTerminalTab] = useState("all"); // "all" | "compile" | "runtime" | "system"
+  const [terminalInput, setTerminalInput] = useState("");
+  const [isRunningBuffer, setIsRunningBuffer] = useState(false);
+  const [terminalLogs, setTerminalLogs] = useState([
+    { id: 1, time: "00:00:01", type: "system", tag: "SYS", msg: "AXON // CORE TERMINAL v3.4 kernel loaded successfully." },
+    { id: 2, time: "00:00:02", type: "info", tag: "INIT", msg: "Workspace context mounted: AXON RAG 384d vector engine ready." },
+    { id: 3, time: "00:00:03", type: "success", tag: "OK", msg: "Subsystems online: core_init, data_block, render_buffer, node_vector, io_stream." },
+    { id: 4, time: "00:00:04", type: "runtime", tag: "READY", msg: "3D Perspective viewport initialized. Awaiting buffer commands." }
+  ]);
+
+  // Digital Clock Live Stream
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const h = pad(now.getUTCHours());
+      const m = pad(now.getUTCMinutes());
+      const s = pad(now.getUTCSeconds());
+      setTimeStr(`${h}:${m}:${s} UTC`);
+    };
+    updateTime();
+    const clockInterval = setInterval(updateTime, 1000);
+    return () => clearInterval(clockInterval);
+  }, []);
+
+  // Online / Offline Network Telemetry
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Realistic Memory Usage Telemetry Loop
+  useEffect(() => {
+    const memInterval = setInterval(() => {
+      setMemoryUsage((prev) => {
+        const delta = (Math.random() - 0.48) * 3;
+        const nextUsed = Math.min(620, Math.max(380, Math.round(prev.used + delta)));
+        return { used: nextUsed, total: 1024 };
+      });
+    }, 4500);
+    return () => clearInterval(memInterval);
+  }, []);
+
+  // 3D Chassis Mouse Tilt Calculator
+  const handleMouseMove = (e) => {
+    if (!tiltEnabled || !terminalChassisRef.current) return;
+    const rect = terminalChassisRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setMouseTilt({
+      x: Number((-(y * 3.0)).toFixed(2)),
+      y: Number(((x * 3.0)).toFixed(2))
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setMouseTilt({ x: 0, y: 0 });
+  };
+
+  // Bottom Terminal Append & Execution Handlers
+  const appendTerminalLog = (type, tag, msg) => {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const t = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
+    setTerminalLogs((prev) => [
+      ...prev,
+      { id: Date.now() + Math.random(), time: t, type, tag, msg }
+    ]);
+    setTimeout(() => {
+      if (terminalScrollRef.current) {
+        terminalScrollRef.current.scrollTop = terminalScrollRef.current.scrollHeight;
+      }
+    }, 50);
+  };
+
+  const handleRunBuffer = () => {
+    if (isRunningBuffer || !activeFile) return;
+    setIsRunningBuffer(true);
+    appendTerminalLog("runtime", "EXEC", `Compiling buffer: ${activeFile.name} (${activeFile.language || "text"})...`);
+    
+    setTimeout(() => {
+      appendTerminalLog("compile", "COMP", `Syntax validation: 0 errors, 0 warnings. Abstract Syntax Tree OK.`);
+    }, 300);
+
+    setTimeout(() => {
+      const lineCount = activeFile.linesCount || (activeFile.content ? activeFile.content.split("\n").length : 0);
+      appendTerminalLog("success", "OK", `Buffer executed successfully: ${lineCount} lines evaluated. Exit code: 0`);
+      setIsRunningBuffer(false);
+    }, 700);
+  };
+
+  const handleTerminalCommand = (e) => {
+    if (e.key !== "Enter") return;
+    const cmd = terminalInput.trim();
+    if (!cmd) return;
+    setTerminalInput("");
+    appendTerminalLog("info", "CLI", `$ ${cmd}`);
+
+    const lower = cmd.toLowerCase();
+    if (lower === "clear" || lower === "cls") {
+      setTerminalLogs([]);
+    } else if (lower === "help") {
+      appendTerminalLog("system", "HELP", "Available commands: run, compile, clear, status, modules, rag, ping, help");
+    } else if (lower === "run" || lower === "compile") {
+      handleRunBuffer();
+    } else if (lower === "status") {
+      appendTerminalLog("system", "SYS", `SYS: ${isOnline ? "ONLINE" : "OFFLINE"} | MEM: ${memoryUsage.used}MB/1024MB | MODE: DEV_KERNEL | FILES: ${files.length}`);
+    } else if (lower === "modules") {
+      appendTerminalLog("system", "MOD", "Active modules: core_init (Ready), data_block (Active), render_buffer (Active), node_vector (Ready), io_stream (Active)");
+    } else if (lower === "rag") {
+      appendTerminalLog("info", "RAG", "Project Brain RAG index: 384 dimensions, vector similarity: KNN, Provider: Groq");
+    } else if (lower === "ping") {
+      appendTerminalLog("success", "PONG", `Kernel latency: ${(Math.random() * 8 + 4).toFixed(1)}ms. Roundtrip OK.`);
+    } else {
+      appendTerminalLog("error", "ERR", `Command not recognized: '${cmd}'. Type 'help' for available commands.`);
+    }
+  };
+
+  const toggleModuleState = (modId) => {
+    setModulesList((prev) =>
+      prev.map((m) => {
+        if (m.id !== modId) return m;
+        const nextState = m.state === "Ready" ? "Active" : m.state === "Active" ? "Error" : "Ready";
+        appendTerminalLog("system", "MOD", `Module [${m.name}] transitioned to: ${nextState}`);
+        return { ...m, state: nextState };
+      })
+    );
+  };
+
+  const filteredLogs = terminalLogs.filter((log) => {
+    if (terminalTab === "all") return true;
+    if (terminalTab === "compile") return log.type === "compile" || log.tag === "COMP";
+    if (terminalTab === "runtime") return log.type === "runtime" || log.tag === "EXEC" || log.tag === "READY";
+    if (terminalTab === "system") return log.type === "system" || log.type === "info" || log.tag === "SYS";
+    return true;
+  });
 
   // Global Keyboard Shortcuts (e.g. Cmd+F / Ctrl+F for Find, Esc to close)
   useEffect(() => {
@@ -458,109 +639,298 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
 
   return (
     <div className="developer-studio-container">
-      {/* Studio Top Control Strip */}
-      <div className="studio-topbar">
-        <div className="studio-topbar-left">
-          <div className="studio-badge">
-            <Code2 size={16} color="#c8ff3d" />
-            <span style={{ color: "#fff", fontWeight: 700, letterSpacing: "0.02em" }}>DEVELOPER STUDIO</span>
-            <span className="studio-role-pill">IDE WORKBENCH</span>
+      {/* Subtle CRT Monitor Scanlines Effect */}
+      {crtEnabled && <div className="cyber-crt-scanlines" aria-hidden="true" />}
+
+      {/* 3D Perspective Terminal Chassis */}
+      <div
+        className="cyber-terminal-chassis"
+        ref={terminalChassisRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          transform: tiltEnabled
+            ? `perspective(1200px) rotateX(${mouseTilt.x}deg) rotateY(${mouseTilt.y}deg)`
+            : "none"
+        }}
+      >
+        {/* ============================================================
+            1. TOP STATUS BAR (CORE TERMINAL, SYS STATUS, MEMORY, CLOCK)
+            ============================================================ */}
+        <div className="cyber-top-statusbar">
+          <div className="cyber-status-left">
+            <div className="cyber-system-brand">
+              <span className="cyber-brand-marker">▲</span>
+              <span className="cyber-brand-title">CORE TERMINAL</span>
+              <span className="cyber-brand-ver">AXON_OS // v3.4</span>
+            </div>
+
+            {/* Online/Offline indicator */}
+            <div className={`cyber-online-badge ${isOnline ? "is-online" : "is-offline"}`}>
+              <span className="cyber-pulse-dot" />
+              <span>{isOnline ? "SYS: ONLINE" : "SYS: OFFLINE"}</span>
+            </div>
+
+            {/* Operating Mode */}
+            <div className="cyber-mode-badge mono-label">
+              <span className="cyber-tag-dim">MODE:</span>
+              <span className="cyber-mode-text">DEV_KERNEL</span>
+            </div>
+
+            {/* Memory Usage Meter */}
+            <div className="cyber-memory-badge mono-label" title="Dynamic RAM telemetry">
+              <span className="cyber-tag-dim">MEM:</span>
+              <span className="cyber-mem-val">{memoryUsage.used} MB / {memoryUsage.total} MB</span>
+              <div className="cyber-mem-meter-bar">
+                <div
+                  className="cyber-mem-fill"
+                  style={{ width: `${((memoryUsage.used / memoryUsage.total) * 100).toFixed(0)}%` }}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="studio-repo-info mono-label">
-            <Github size={13} color="#fff" />
-            <span style={{ color: "#fff", fontWeight: 500 }}>{workspace.repository.fullName || workspace.repository.name}</span>
-            <span className="studio-branch-tag">
-              <GitBranch size={10} style={{ marginRight: "3px" }} />
-              {workspace.repository.defaultBranch || "main"}
-            </span>
-            {isLiveGitHub && (
-              <span className="live-github-pill" title="Live stream from GitHub API">
-                <span className="live-dot" /> LIVE GITHUB
-              </span>
-            )}
-          </div>
+          <div className="cyber-status-right">
+            {/* Live Digital Clock */}
+            <div className="cyber-clock-display mono-label">
+              <span className="cyber-clock-icon">⏱</span>
+              <span>{timeStr || "00:00:00 UTC"}</span>
+            </div>
 
-          <div className="studio-mode-switcher">
+            {/* CRT Scanline Toggle */}
             <button
               type="button"
-              className={`studio-mode-tab ${studioMode === "editor" ? "is-active" : ""}`}
-              onClick={() => setStudioMode("editor")}
+              className={`cyber-toggle-btn ${crtEnabled ? "is-active" : ""}`}
+              onClick={() => setCrtEnabled((c) => !c)}
+              title="Toggle CRT Monitor Scanlines Effect"
             >
-              <Code2 size={13} />
-              <span>Code Editor</span>
+              CRT: {crtEnabled ? "ON" : "OFF"}
             </button>
+
+            {/* 3D Tilt Toggle */}
             <button
               type="button"
-              className={`studio-mode-tab studio-mode-tab--tm ${studioMode === "timemachine" ? "is-active" : ""}`}
-              onClick={() => setStudioMode("timemachine")}
+              className={`cyber-toggle-btn ${tiltEnabled ? "is-active" : ""}`}
+              onClick={() => {
+                setTiltEnabled((t) => !t);
+                if (tiltEnabled) setMouseTilt({ x: 0, y: 0 });
+              }}
+              title="Toggle 3D Perspective Mouse Tilt"
             >
-              <History size={13} color={studioMode === "timemachine" ? "#c8ff3d" : "#888"} />
-              <span>Time Machine</span>
+              3D: {tiltEnabled ? "ON" : "OFF"}
             </button>
+
+            {/* Sync GitHub */}
             <button
               type="button"
-              className={`studio-mode-tab studio-mode-tab--flow ${studioMode === "flowchart" ? "is-active" : ""}`}
-              onClick={() => setStudioMode("flowchart")}
+              className="cyber-action-btn"
+              onClick={fetchFiles}
+              title="Refresh repository files live from GitHub"
             >
-              <Palette size={13} color={studioMode === "flowchart" ? "#c8ff3d" : "#888"} />
-              <span>Flowcharts</span>
-            </button>
-            <button
-              type="button"
-              className={`studio-mode-tab studio-mode-tab--pr ${studioMode === "pr-review" ? "is-active" : ""}`}
-              onClick={() => setStudioMode("pr-review")}
-            >
-              <GitPullRequest size={13} color={studioMode === "pr-review" ? "#c8ff3d" : "#888"} />
-              <span>PR Reviewer</span>
+              <RefreshCw size={12} className={loadingFiles ? "spin" : ""} />
+              <span>SYNC REPO</span>
             </button>
           </div>
         </div>
 
-        <div className="studio-topbar-right">
-          <div className="studio-stats-pill mono-label">
-            <span>{files.length} REPO FILES</span>
-            <span>•</span>
-            <span style={{ color: "#c8ff3d" }}>RAG BRAIN READY</span>
+        {/* ============================================================
+            2. NAVIGATION BAR (MAIN, FILES, SYSTEM, MENU)
+            ============================================================ */}
+        <div className="cyber-navbar">
+          <div className="cyber-nav-left">
+            <button
+              type="button"
+              className={`cyber-nav-btn ${activeNav === "MAIN" && studioMode === "editor" ? "is-active" : ""}`}
+              onClick={() => {
+                setActiveNav("MAIN");
+                setStudioMode("editor");
+                setIsMaximized(false);
+              }}
+            >
+              <span className="cyber-btn-corner" />
+              <span className="cyber-nav-text">MAIN</span>
+            </button>
+
+            <button
+              type="button"
+              className={`cyber-nav-btn ${activeNav === "FILES" && studioMode === "editor" ? "is-active" : ""}`}
+              onClick={() => {
+                setActiveNav("FILES");
+                setStudioMode("editor");
+                setIsMaximized(false);
+              }}
+            >
+              <span className="cyber-btn-corner" />
+              <span className="cyber-nav-text">FILES</span>
+              <span className="cyber-nav-badge">{files.length}</span>
+            </button>
+
+            <button
+              type="button"
+              className={`cyber-nav-btn ${activeNav === "SYSTEM" && studioMode === "editor" ? "is-active" : ""}`}
+              onClick={() => {
+                setActiveNav("SYSTEM");
+                setStudioMode("editor");
+                setIsMaximized(false);
+                setRightSidebarTab("status");
+              }}
+            >
+              <span className="cyber-btn-corner" />
+              <span className="cyber-nav-text">SYSTEM</span>
+              <span className="cyber-nav-badge-green">ONLINE</span>
+            </button>
+
+            <div className="cyber-nav-menu-wrapper" style={{ position: "relative" }}>
+              <button
+                type="button"
+                className={`cyber-nav-btn ${showNavMenu || studioMode !== "editor" ? "is-active" : ""}`}
+                onClick={() => setShowNavMenu((m) => !m)}
+              >
+                <span className="cyber-btn-corner" />
+                <span className="cyber-nav-text">MENU</span>
+                <ChevronDown size={11} className={showNavMenu ? "rotate-180" : ""} />
+              </button>
+
+              {/* Futuristic Menu Dropdown */}
+              {showNavMenu && (
+                <div className="cyber-menu-dropdown">
+                  <div className="cyber-menu-heading mono-label">// SELECT PERSPECTIVE MODE</div>
+                  <button
+                    type="button"
+                    className={`cyber-menu-item ${studioMode === "editor" ? "is-active" : ""}`}
+                    onClick={() => {
+                      setStudioMode("editor");
+                      setActiveNav("MAIN");
+                      setShowNavMenu(false);
+                    }}
+                  >
+                    <Code2 size={13} color="#00FF66" />
+                    <span>Code Terminal (Core Editor)</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`cyber-menu-item ${studioMode === "timemachine" ? "is-active" : ""}`}
+                    onClick={() => {
+                      setStudioMode("timemachine");
+                      setShowNavMenu(false);
+                    }}
+                  >
+                    <History size={13} color="#00FF66" />
+                    <span>Time Machine (Commit Revisions)</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`cyber-menu-item ${studioMode === "flowchart" ? "is-active" : ""}`}
+                    onClick={() => {
+                      setStudioMode("flowchart");
+                      setShowNavMenu(false);
+                    }}
+                  >
+                    <Palette size={13} color="#00FF66" />
+                    <span>Architecture Flowcharts</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`cyber-menu-item ${studioMode === "pr-review" ? "is-active" : ""}`}
+                    onClick={() => {
+                      setStudioMode("pr-review");
+                      setShowNavMenu(false);
+                    }}
+                  >
+                    <GitPullRequest size={13} color="#00FF66" />
+                    <span>PR Reviewer Intelligence</span>
+                  </button>
+                  <div className="cyber-menu-divider" />
+                  <button
+                    type="button"
+                    className="cyber-menu-item"
+                    onClick={() => {
+                      setIsMaximized((m) => !m);
+                      setShowNavMenu(false);
+                    }}
+                  >
+                    {isMaximized ? <Minimize2 size={13} color="#00FF66" /> : <Maximize2 size={13} color="#00FF66" />}
+                    <span>{isMaximized ? "Exit Focus Mode" : "Focus / Fullscreen View"}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Perspective Switcher */}
+            <div className="studio-mode-switcher">
+              <button
+                type="button"
+                className={`studio-mode-tab ${studioMode === "editor" ? "is-active" : ""}`}
+                onClick={() => setStudioMode("editor")}
+              >
+                <Code2 size={12} />
+                <span>Editor</span>
+              </button>
+              <button
+                type="button"
+                className={`studio-mode-tab studio-mode-tab--tm ${studioMode === "timemachine" ? "is-active" : ""}`}
+                onClick={() => setStudioMode("timemachine")}
+              >
+                <History size={12} color={studioMode === "timemachine" ? "#00FF66" : "#888"} />
+                <span>Revisions</span>
+              </button>
+              <button
+                type="button"
+                className={`studio-mode-tab studio-mode-tab--flow ${studioMode === "flowchart" ? "is-active" : ""}`}
+                onClick={() => setStudioMode("flowchart")}
+              >
+                <Palette size={12} color={studioMode === "flowchart" ? "#00FF66" : "#888"} />
+                <span>Flowcharts</span>
+              </button>
+              <button
+                type="button"
+                className={`studio-mode-tab studio-mode-tab--pr ${studioMode === "pr-review" ? "is-active" : ""}`}
+                onClick={() => setStudioMode("pr-review")}
+              >
+                <GitPullRequest size={12} color={studioMode === "pr-review" ? "#00FF66" : "#888"} />
+                <span>PR Review</span>
+              </button>
+            </div>
           </div>
 
-          {/* Quick In-File Search Toggle */}
-          <button
-            type="button"
-            className={`button button--small ${findOpen ? "button--lime" : "button--ghost"}`}
-            onClick={() => {
-              setFindOpen((o) => !o);
-              if (!findOpen) setTimeout(() => findInputRef.current?.focus(), 50);
-            }}
-            title="Find in active file (Ctrl+F)"
-          >
-            <Search size={13} />
-            <span>Find</span>
-          </button>
+          <div className="cyber-nav-right">
+            <div className="cyber-repo-pill mono-label">
+              <Github size={12} color="#00FF66" />
+              <span className="cyber-repo-name">{workspace.repository.fullName || workspace.repository.name}</span>
+              <span className="cyber-branch-tag">:{workspace.repository.defaultBranch || "main"}</span>
+              {isLiveGitHub && (
+                <span className="live-github-pill" title="Live stream from GitHub API">
+                  <span className="live-dot" /> LIVE
+                </span>
+              )}
+            </div>
 
-          {/* Quick Focus Mode toggle in topbar */}
-          <button
-            type="button"
-            className={`button button--small ${isMaximized ? "button--lime" : "button--ghost"}`}
-            onClick={() => setIsMaximized((m) => !m)}
-            title={isMaximized ? "Exit Focus Mode" : "Focus / Fullscreen Editor"}
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-          >
-            {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-            <span>{isMaximized ? "Exit Focus" : "Focus View"}</span>
-          </button>
+            {/* Quick In-File Search */}
+            <button
+              type="button"
+              className={`cyber-rect-btn ${findOpen ? "is-active" : ""}`}
+              onClick={() => {
+                setFindOpen((o) => !o);
+                if (!findOpen) setTimeout(() => findInputRef.current?.focus(), 50);
+              }}
+              title="Find in active file (Ctrl+F)"
+            >
+              <Search size={12} />
+              <span>FIND</span>
+            </button>
 
-          <button
-            type="button"
-            className="button button--small button--ghost"
-            onClick={fetchFiles}
-            title="Refresh repository files live from GitHub"
-          >
-            <RefreshCw size={13} className={loadingFiles ? "spin" : ""} />
-            <span>Sync GitHub</span>
-          </button>
+            {/* Quick Focus Mode toggle */}
+            <button
+              type="button"
+              className={`cyber-rect-btn ${isMaximized ? "is-active" : ""}`}
+              onClick={() => setIsMaximized((m) => !m)}
+              title={isMaximized ? "Exit Focus Mode" : "Focus / Fullscreen View"}
+            >
+              {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+              <span>{isMaximized ? "RESTORE" : "FOCUS"}</span>
+            </button>
+          </div>
         </div>
-      </div>
 
       {/* Main Studio Work Area / Time Machine / Flowchart / PR Review Switcher */}
       {studioMode === "timemachine" ? (
@@ -991,12 +1361,126 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                     }}
                   >
                     <code>{activeFile.content || "// File content is empty."}</code>
+                    <span className="cyber-terminal-cursor" aria-hidden="true">█</span>
                   </pre>
                 </div>
               ) : (
                 <div className="code-editor-empty">
-                  <Code2 size={40} color="#c8ff3d" />
+                  <Code2 size={40} color="#00FF66" />
                   <p style={{ fontSize: "15px" }}>Select any repository file from the Explorer on the left</p>
+                </div>
+              )}
+            </div>
+
+            {/* ============================================================
+                BOTTOM TERMINAL (LOGS, COMPILE, RUNTIME, CLI INTERFACE)
+                ============================================================ */}
+            <div className={`cyber-bottom-terminal ${terminalOpen ? "is-open" : "is-collapsed"}`}>
+              <div className="terminal-header-strip">
+                <div className="terminal-title-group">
+                  <Terminal size={13} color="#00FF66" />
+                  <span className="terminal-title-text mono-label">AXON_TERMINAL // STDOUT &amp; RUNTIME</span>
+                  <span className="terminal-status-tag mono-label">ONLINE • EXIT: 0</span>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="terminal-filter-tabs">
+                  <button
+                    type="button"
+                    className={`term-tab ${terminalTab === "all" ? "is-active" : ""}`}
+                    onClick={() => setTerminalTab("all")}
+                  >
+                    ALL ({terminalLogs.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`term-tab ${terminalTab === "compile" ? "is-active" : ""}`}
+                    onClick={() => setTerminalTab("compile")}
+                  >
+                    COMPILE
+                  </button>
+                  <button
+                    type="button"
+                    className={`term-tab ${terminalTab === "runtime" ? "is-active" : ""}`}
+                    onClick={() => setTerminalTab("runtime")}
+                  >
+                    RUNTIME
+                  </button>
+                  <button
+                    type="button"
+                    className={`term-tab ${terminalTab === "system" ? "is-active" : ""}`}
+                    onClick={() => setTerminalTab("system")}
+                  >
+                    SYSTEM
+                  </button>
+                </div>
+
+                {/* Terminal Actions */}
+                <div className="terminal-actions-group">
+                  <button
+                    type="button"
+                    className="term-run-btn"
+                    onClick={handleRunBuffer}
+                    disabled={isRunningBuffer || !activeFile}
+                    title="Compile & Run current active file"
+                  >
+                    {isRunningBuffer ? <RefreshCw size={11} className="spin" /> : <Play size={11} fill="#00FF66" />}
+                    <span>{isRunningBuffer ? "COMPILING..." : "RUN BUFFER"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="term-ctrl-btn"
+                    onClick={() => setTerminalLogs([])}
+                    title="Clear Terminal Output"
+                  >
+                    <Trash2 size={11} />
+                    <span>CLEAR</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="term-ctrl-btn"
+                    onClick={() => setTerminalOpen((o) => !o)}
+                    title={terminalOpen ? "Collapse Terminal" : "Expand Terminal"}
+                  >
+                    {terminalOpen ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Terminal Logs & Interactive CLI Input */}
+              {terminalOpen && (
+                <div className="terminal-body-scroll" ref={terminalScrollRef}>
+                  <div className="terminal-logs-stream mono-label">
+                    {filteredLogs.map((log) => (
+                      <div key={log.id} className={`terminal-log-row log-${log.type}`}>
+                        <span className="log-time">[{log.time}]</span>
+                        <span className={`log-tag tag-${log.type}`}>[{log.tag}]</span>
+                        <span className="log-message">{log.msg}</span>
+                      </div>
+                    ))}
+                    {isRunningBuffer && (
+                      <div className="terminal-log-row log-runtime">
+                        <span className="log-time">[{new Date().toUTCString().slice(17, 25)}]</span>
+                        <span className="log-tag tag-runtime">[EXEC]</span>
+                        <span className="log-message">
+                          Executing AST pipeline... <span className="cyber-terminal-cursor">█</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="terminal-cli-bar">
+                    <span className="cli-prompt mono-label">axon@core-terminal:~$</span>
+                    <input
+                      type="text"
+                      className="cli-input mono-label"
+                      placeholder="Type CLI command (e.g. 'run', 'compile', 'status', 'modules', 'ping', 'help')..."
+                      value={terminalInput}
+                      onChange={(e) => setTerminalInput(e.target.value)}
+                      onKeyDown={handleTerminalCommand}
+                    />
+                    <span className="cyber-terminal-cursor">█</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -1087,169 +1571,337 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
           </div>
 
           {/* ============================================================
-              PANE 3: LIVE PROJECT BRAIN CODE INSPECTOR (Hidden in Focus Mode)
+              PANE 3: CYBER RIGHT SIDEBAR (MODULES, SYSTEM STATUS, BRAIN)
               ============================================================ */}
-          <div className="studio-pane studio-brain-pane">
-            <div className="pane-header">
-              <div className="pane-title">
-                <Sparkles size={14} color="#c8ff3d" />
-                <span>PROJECT BRAIN INTELLIGENCE</span>
+          <div className="studio-pane studio-cyber-sidebar-pane">
+            <div className="pane-header cyber-sidebar-header">
+              <div className="cyber-sidebar-tabs">
+                <button
+                  type="button"
+                  className={`cyber-side-tab ${rightSidebarTab === "modules" ? "is-active" : ""}`}
+                  onClick={() => setRightSidebarTab("modules")}
+                  title="Hardware & Subsystem Modules"
+                >
+                  <Layers size={12} />
+                  <span>MODULES</span>
+                  <span className="cyber-tab-badge">5</span>
+                </button>
+                <button
+                  type="button"
+                  className={`cyber-side-tab ${rightSidebarTab === "status" ? "is-active" : ""}`}
+                  onClick={() => setRightSidebarTab("status")}
+                  title="Real-Time System Diagnostics"
+                >
+                  <Activity size={12} />
+                  <span>SYSTEM STATUS</span>
+                  <span className="cyber-tab-badge-green">OK</span>
+                </button>
+                <button
+                  type="button"
+                  className={`cyber-side-tab ${rightSidebarTab === "brain" ? "is-active" : ""}`}
+                  onClick={() => setRightSidebarTab("brain")}
+                  title="Project Brain Vector Intelligence"
+                >
+                  <Sparkles size={12} />
+                  <span>PROJECT BRAIN</span>
+                </button>
               </div>
-              <div className="brain-header-right">
-                {chatThread.length > 1 && (
-                  <button
-                    type="button"
-                    className="brain-clear-chat-btn"
-                    onClick={() => setChatThread([])}
-                    title="Clear analysis thread"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                )}
-                <span className="mono-label provider-pill">Groq • RAG 384d</span>
-              </div>
+
+              {rightSidebarTab === "brain" && chatThread.length > 1 && (
+                <button
+                  type="button"
+                  className="brain-clear-chat-btn"
+                  onClick={() => setChatThread([])}
+                  title="Clear analysis thread"
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
             </div>
 
-            <div className="brain-pane-body">
-              {/* Active Mode Info Card */}
-              <div className="brain-mode-card">
-                <div className="brain-mode-header">
-                  <currentActionObj.icon size={15} color="#c8ff3d" />
-                  <strong>{currentActionObj.label}</strong>
+            {/* TAB CONTENT 1: MODULES PANEL */}
+            {rightSidebarTab === "modules" && (
+              <div className="cyber-modules-panel">
+                <div className="cyber-panel-legend mono-label">
+                  <span>// CORE HARDWARE &amp; LOGIC MODULES</span>
+                  <span className="text-dim">TOTAL: {modulesList.length}</span>
                 </div>
-                <p>{currentActionObj.desc}</p>
-              </div>
 
-              {/* Single Smooth Scroll Analysis Output Container */}
-              <div className="brain-analysis-output">
-                {isInspecting ? (
-                  <div className="brain-inspecting-state">
-                    <RefreshCw size={26} className="spin text-lime" />
-                    <h4>Project Brain is Analyzing...</h4>
-                    <p>Synthesizing code architecture with Groq &amp; RAG vector chunks.</p>
-                  </div>
-                ) : chatThread.length > 0 ? (
-                  <div className="brain-messages-stream">
-                    {chatThread.map((turn, tIdx) => (
-                      <div key={turn.id || tIdx} className="brain-chat-turn">
-                        <div className="analysis-header-row">
-                          <span className="mono-label turn-title">
-                            <Sparkles size={11} className="text-lime" />
-                            {turn.prompt}
-                            <span className="turn-timestamp">{turn.timestamp}</span>
-                          </span>
-                          <button
-                            type="button"
-                            className="copy-analysis-btn"
-                            onClick={() => handleCopyAnalysis(turn.analysis)}
-                          >
-                            <Copy size={12} />
-                            <span>Copy</span>
-                          </button>
+                <div className="cyber-modules-list">
+                  {modulesList.map((mod) => (
+                    <div key={mod.id} className="cyber-module-card">
+                      <div className="mod-card-top">
+                        <div className="mod-title-group">
+                          <span className="mod-accent-mark">›</span>
+                          <span className="mod-name mono-label">{mod.name}</span>
+                          <span className="mod-type-tag mono-label">{mod.type}</span>
                         </div>
-
-                        <div className="analysis-content-markdown">
-                          <FormattedAIResponse content={turn.analysis} />
-                        </div>
-
-                        {/* Related RAG Knowledge Chunks */}
-                        {turn.relevantChunks && turn.relevantChunks.length > 0 && (
-                          <div className="related-chunks-section">
-                            <span className="mono-label related-chunks-title">
-                              RELATED REPOSITORY CONTEXT:
-                            </span>
-                            {turn.relevantChunks.map((chunk, i) => (
-                              <div key={i} className="related-chunk-card">
-                                <div className="chunk-card-top">
-                                  <span className="chunk-file">📄 {chunk.filePath}</span>
-                                  <span className="chunk-score mono-label">
-                                    {Math.round(chunk.score * 100)}% match
-                                  </span>
-                                </div>
-                                {chunk.title && <div className="chunk-title">{chunk.title}</div>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          className={`mod-status-indicator state-${mod.state.toLowerCase()}`}
+                          onClick={() => toggleModuleState(mod.id)}
+                          title={`Click to cycle module state (Current: ${mod.state})`}
+                        >
+                          <span className="status-dot" />
+                          <span className="status-text">{mod.state}</span>
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                ) : brainAnalysis ? (
-                  <>
-                    <div className="analysis-header-row">
-                      <span className="mono-label turn-title">
-                        <Sparkles size={11} className="text-lime" />
-                        AI CODE ANALYSIS
-                      </span>
-                      <button
-                        type="button"
-                        className="copy-analysis-btn"
-                        onClick={() => handleCopyAnalysis(brainAnalysis.analysis)}
-                      >
-                        {copiedAnalysis ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
-                        <span>{copiedAnalysis ? "Copied" : "Copy"}</span>
-                      </button>
+
+                      <p className="mod-desc">{mod.desc}</p>
+
+                      <div className="mod-telemetry-row mono-label">
+                        <span className="mod-stat">
+                          <span className="stat-label">LATENCY:</span> {mod.latency}
+                        </span>
+                        <span className="mod-stat">
+                          <span className="stat-label">ALLOC:</span> {mod.mem}
+                        </span>
+                        <button
+                          type="button"
+                          className="mod-ping-btn"
+                          onClick={() => {
+                            appendTerminalLog(
+                              "info",
+                              "MOD",
+                              `Diagnostic ping sent to [${mod.name}]: ACK OK, latency=${(Math.random() * 5 + 3).toFixed(1)}ms`
+                            );
+                          }}
+                        >
+                          PING
+                        </button>
+                      </div>
                     </div>
+                  ))}
+                </div>
 
-                    {brainAnalysis.error ? (
-                      <div className="analysis-error-box">
-                        <AlertCircle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
-                        <div>
-                          <strong style={{ display: "block", marginBottom: "4px", color: "#fca5a5" }}>
-                            AI Service Notice:
-                          </strong>
-                          <span>{brainAnalysis.error}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="analysis-content-markdown">
-                        <FormattedAIResponse content={brainAnalysis.analysis} />
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="brain-empty-state">
-                    <Sparkles size={24} color="#666" />
-                    <p>Click "Ask Brain" or type a custom prompt to inspect this file's architecture or highlight any code snippet.</p>
+                {/* Subsystem Summary Footer */}
+                <div className="cyber-subsystem-footer mono-label">
+                  <div className="footer-stat">
+                    <span>ACTIVE BUFFER:</span>
+                    <strong className="text-lime">0x8F4A</strong>
                   </div>
-                )}
-              </div>
-
-              {/* Interactive Ask Follow-up Bar */}
-              <div className="brain-followup-bar">
-                <div className="followup-input-wrap">
-                  <input
-                    type="text"
-                    placeholder="Ask follow-up question to Brain..."
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && customPrompt.trim()) {
-                        handleInspectCode("explain", undefined, customPrompt.trim());
-                        setCustomPrompt("");
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="followup-send-btn"
-                    onClick={() => {
-                      if (customPrompt.trim()) {
-                        handleInspectCode("explain", undefined, customPrompt.trim());
-                        setCustomPrompt("");
-                      }
-                    }}
-                    disabled={isInspecting || !customPrompt.trim()}
-                    title="Send to Brain"
-                  >
-                    <Send size={13} />
-                  </button>
+                  <div className="footer-stat">
+                    <span>BUS LOAD:</span>
+                    <strong className="text-lime">14.2%</strong>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* TAB CONTENT 2: SYSTEM STATUS PANEL */}
+            {rightSidebarTab === "status" && (
+              <div className="cyber-status-panel">
+                <div className="cyber-panel-legend mono-label">
+                  <span>// SUBSYSTEM HEALTH &amp; TELEMETRY</span>
+                  <span className="text-lime">KERNEL: v3.4.19</span>
+                </div>
+
+                <div className="cyber-system-status-list">
+                  {systemStatusList.map((item) => (
+                    <div key={item.id} className="cyber-status-row">
+                      <div className="status-row-left">
+                        <div className="status-indicator-pill">
+                          <span className={`status-glow-dot dot-${item.state.toLowerCase()}`} />
+                        </div>
+                        <div className="status-text-meta">
+                          <span className="status-item-name">{item.name}</span>
+                          <span className="status-item-desc">{item.desc}</span>
+                        </div>
+                      </div>
+                      <div className="status-row-right">
+                        <span className={`status-metric-badge badge-${item.state.toLowerCase()} mono-label`}>
+                          {item.state === "Ready" ? "READY" : item.state === "Active" ? "ACTIVE" : "ERROR"}
+                        </span>
+                        <span className="status-sub-metric mono-label">{item.metric}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Hardware Telemetry Gauges */}
+                <div className="cyber-gauges-section">
+                  <span className="cyber-gauge-title mono-label">DYNAMIC HARDWARE UTILIZATION</span>
+
+                  <div className="cyber-gauge-item">
+                    <div className="gauge-label-row mono-label">
+                      <span>VOLATILE RAM ALLOCATION</span>
+                      <span className="text-lime">{memoryUsage.used} MB / {memoryUsage.total} MB</span>
+                    </div>
+                    <div className="cyber-gauge-track">
+                      <div
+                        className="cyber-gauge-bar bar-lime"
+                        style={{ width: `${((memoryUsage.used / memoryUsage.total) * 100).toFixed(0)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="cyber-gauge-item">
+                    <div className="gauge-label-row mono-label">
+                      <span>PIPELINE INSTRUCTION LOAD</span>
+                      <span className="text-cyan">34.8% • 4.2 GHz</span>
+                    </div>
+                    <div className="cyber-gauge-track">
+                      <div className="cyber-gauge-bar bar-cyan" style={{ width: "35%" }} />
+                    </div>
+                  </div>
+
+                  <div className="cyber-gauge-item">
+                    <div className="gauge-label-row mono-label">
+                      <span>PACKET DUPLEX STABILITY</span>
+                      <span className="text-lime">99.98% • TLS 1.3</span>
+                    </div>
+                    <div className="cyber-gauge-track">
+                      <div className="cyber-gauge-bar bar-lime" style={{ width: "99.8%" }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT 3: PROJECT BRAIN INTELLIGENCE */}
+            {rightSidebarTab === "brain" && (
+              <div className="brain-pane-body">
+                {/* Active Mode Info Card */}
+                <div className="brain-mode-card">
+                  <div className="brain-mode-header">
+                    <currentActionObj.icon size={15} color="#00FF66" />
+                    <strong>{currentActionObj.label}</strong>
+                  </div>
+                  <p>{currentActionObj.desc}</p>
+                </div>
+
+                {/* Single Smooth Scroll Analysis Output Container */}
+                <div className="brain-analysis-output">
+                  {isInspecting ? (
+                    <div className="brain-inspecting-state">
+                      <RefreshCw size={26} className="spin text-lime" />
+                      <h4>Project Brain is Analyzing...</h4>
+                      <p>Synthesizing code architecture with Groq &amp; RAG vector chunks.</p>
+                    </div>
+                  ) : chatThread.length > 0 ? (
+                    <div className="brain-messages-stream">
+                      {chatThread.map((turn, tIdx) => (
+                        <div key={turn.id || tIdx} className="brain-chat-turn">
+                          <div className="analysis-header-row">
+                            <span className="mono-label turn-title">
+                              <Sparkles size={11} className="text-lime" />
+                              {turn.prompt}
+                              <span className="turn-timestamp">{turn.timestamp}</span>
+                            </span>
+                            <button
+                              type="button"
+                              className="copy-analysis-btn"
+                              onClick={() => handleCopyAnalysis(turn.analysis)}
+                            >
+                              <Copy size={12} />
+                              <span>Copy</span>
+                            </button>
+                          </div>
+
+                          <div className="analysis-content-markdown">
+                            <FormattedAIResponse content={turn.analysis} />
+                          </div>
+
+                          {/* Related RAG Knowledge Chunks */}
+                          {turn.relevantChunks && turn.relevantChunks.length > 0 && (
+                            <div className="related-chunks-section">
+                              <span className="mono-label related-chunks-title">
+                                RELATED REPOSITORY CONTEXT:
+                              </span>
+                              {turn.relevantChunks.map((chunk, i) => (
+                                <div key={i} className="related-chunk-card">
+                                  <div className="chunk-card-top">
+                                    <span className="chunk-file">📄 {chunk.filePath}</span>
+                                    <span className="chunk-score mono-label">
+                                      {Math.round(chunk.score * 100)}% match
+                                    </span>
+                                  </div>
+                                  {chunk.title && <div className="chunk-title">{chunk.title}</div>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : brainAnalysis ? (
+                    <>
+                      <div className="analysis-header-row">
+                        <span className="mono-label turn-title">
+                          <Sparkles size={11} className="text-lime" />
+                          AI CODE ANALYSIS
+                        </span>
+                        <button
+                          type="button"
+                          className="copy-analysis-btn"
+                          onClick={() => handleCopyAnalysis(brainAnalysis.analysis)}
+                        >
+                          {copiedAnalysis ? <Check size={12} color="#00FF66" /> : <Copy size={12} />}
+                          <span>{copiedAnalysis ? "Copied" : "Copy"}</span>
+                        </button>
+                      </div>
+
+                      {brainAnalysis.error ? (
+                        <div className="analysis-error-box">
+                          <AlertCircle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                          <div>
+                            <strong style={{ display: "block", marginBottom: "4px", color: "#fca5a5" }}>
+                              AI Service Notice:
+                            </strong>
+                            <span>{brainAnalysis.error}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="analysis-content-markdown">
+                          <FormattedAIResponse content={brainAnalysis.analysis} />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="brain-empty-state">
+                      <Sparkles size={24} color="#666" />
+                      <p>Click "Ask Brain" or type a custom prompt to inspect this file's architecture or highlight any code snippet.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Interactive Ask Follow-up Bar */}
+                <div className="brain-followup-bar">
+                  <div className="followup-input-wrap">
+                    <input
+                      type="text"
+                      placeholder="Ask follow-up question to Brain..."
+                      value={customPrompt}
+                      onChange={(e) => setCustomPrompt(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && customPrompt.trim()) {
+                          handleInspectCode("explain", undefined, customPrompt.trim());
+                          setCustomPrompt("");
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="followup-send-btn"
+                      onClick={() => {
+                        if (customPrompt.trim()) {
+                          handleInspectCode("explain", undefined, customPrompt.trim());
+                          setCustomPrompt("");
+                        }
+                      }}
+                      disabled={isInspecting || !customPrompt.trim()}
+                      title="Send to Brain"
+                    >
+                      <Send size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
