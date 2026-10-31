@@ -1,19 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Code2,
   FileCode,
   FileText,
   FolderGit2,
-  Terminal,
-  Cpu,
   Sparkles,
   Send,
   Check,
   Copy,
   Search,
   RefreshCw,
-  Play,
   ShieldAlert,
   Zap,
   TestTube,
@@ -22,33 +19,15 @@ import {
   ChevronDown,
   Maximize2,
   Minimize2,
-  BookOpen,
-  Filter,
-  CheckCircle2,
-  GitBranch,
-  ArrowRight,
   Github,
-  Globe,
-  Radio,
-  ExternalLink,
-  Sliders,
-  AlignLeft,
   History,
   Palette,
   GitPullRequest,
   AlertCircle,
   X,
-  CornerDownLeft,
   ChevronUp,
-  MessageSquare,
   Trash2,
-  FileSearch,
-  SlidersHorizontal,
-  Activity,
-  HardDrive,
-  Monitor,
-  Power,
-  Disc
+  Activity
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import TimeMachine from "./TimeMachine";
@@ -105,6 +84,45 @@ const getLanguageColor = (lang) => {
   }
 };
 
+/**
+ * Fast & robust bright cyberpunk syntax highlighter for code buffers.
+ * Escapes HTML and tokenizes keywords, strings, functions, comments, numbers, types.
+ */
+function highlightSyntax(code) {
+  if (!code) return "";
+  const escaped = code
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  return escaped.replace(
+    /(\/\/.*$|\/\*[\s\S]*?\*\/|#.*$)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|import|export|from|class|async|await|try|catch|finally|throw|new|typeof|instanceof|switch|case|default|while|for|break|continue|def|elif|lambda|self|yield|interface|type|extends|implements|enum|public|private|protected)\b)|(\b(?:true|false|null|undefined|None|True|False|nil)\b)|(\b\d+(?:\.\d+)?\b)|(\b[A-Z][a-zA-Z0-9_]*\b)|(\b[a-zA-Z0-9_]+(?=\s*\()|(=>|===|!==|==|!=|&&|\|\||[+\-*\/%]=?))/gm,
+    (m, comment, str, kw, bool, num, type, fnOrOp) => {
+      if (comment) return `<span class="tok-comment">${comment}</span>`;
+      if (str) return `<span class="tok-string">${str}</span>`;
+      if (kw) return `<span class="tok-keyword">${kw}</span>`;
+      if (bool) return `<span class="tok-boolean">${bool}</span>`;
+      if (num) return `<span class="tok-number">${num}</span>`;
+      if (type) return `<span class="tok-type">${type}</span>`;
+      if (fnOrOp) {
+        if (
+          fnOrOp.includes("=") ||
+          fnOrOp.includes("&") ||
+          fnOrOp.includes("|") ||
+          fnOrOp.includes("+") ||
+          fnOrOp.includes("-") ||
+          fnOrOp.includes("*") ||
+          fnOrOp.includes("/")
+        ) {
+          return `<span class="tok-operator">${fnOrOp}</span>`;
+        }
+        return `<span class="tok-function">${fnOrOp}</span>`;
+      }
+      return m;
+    }
+  );
+}
+
 export default function DeveloperStudio({ workspace, token, onSwitchPerspective, onOpenConnectRepo }) {
   const [studioMode, setStudioMode] = useState("editor"); // "editor" | "timemachine" | "flowchart" | "pr-review"
   const [files, setFiles] = useState([]);
@@ -148,11 +166,10 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   const codeViewerRef = useRef(null);
   const findInputRef = useRef(null);
   const terminalChassisRef = useRef(null);
-  const terminalScrollRef = useRef(null);
 
   // 3D Cyberpunk Terminal State
-  const [crtEnabled, setCrtEnabled] = useState(true);
-  const [tiltEnabled, setTiltEnabled] = useState(true);
+  const [crtEnabled, setCrtEnabled] = useState(false);
+  const [tiltEnabled, setTiltEnabled] = useState(false);
   const [mouseTilt, setMouseTilt] = useState({ x: 0, y: 0 });
   const [timeStr, setTimeStr] = useState("");
   const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
@@ -163,17 +180,11 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   const [systemStatusList, setSystemStatusList] = useState(SYSTEM_STATUS_INIT);
   const [memoryUsage, setMemoryUsage] = useState({ used: 418, total: 1024 });
 
-  // Bottom Terminal State
-  const [terminalOpen, setTerminalOpen] = useState(true);
-  const [terminalTab, setTerminalTab] = useState("all"); // "all" | "compile" | "runtime" | "system"
-  const [terminalInput, setTerminalInput] = useState("");
-  const [isRunningBuffer, setIsRunningBuffer] = useState(false);
-  const [terminalLogs, setTerminalLogs] = useState([
-    { id: 1, time: "00:00:01", type: "system", tag: "SYS", msg: "AXON // CORE TERMINAL v3.4 kernel loaded successfully." },
-    { id: 2, time: "00:00:02", type: "info", tag: "INIT", msg: "Workspace context mounted: AXON RAG 384d vector engine ready." },
-    { id: 3, time: "00:00:03", type: "success", tag: "OK", msg: "Subsystems online: core_init, data_block, render_buffer, node_vector, io_stream." },
-    { id: 4, time: "00:00:04", type: "runtime", tag: "READY", msg: "3D Perspective viewport initialized. Awaiting buffer commands." }
-  ]);
+  // Memoized syntax-highlighted lines of the active file for 60FPS fluid scrolling
+  const highlightedLines = useMemo(() => {
+    if (!activeFile?.content) return [];
+    return activeFile.content.split("\n").map((line) => highlightSyntax(line));
+  }, [activeFile?.content]);
 
   // Digital Clock Live Stream
   useEffect(() => {
@@ -214,15 +225,15 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     return () => clearInterval(memInterval);
   }, []);
 
-  // 3D Chassis Mouse Tilt Calculator
+  // 3D Chassis Mouse Tilt Calculator (Smooth & Non-blocking)
   const handleMouseMove = (e) => {
     if (!tiltEnabled || !terminalChassisRef.current) return;
     const rect = terminalChassisRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     setMouseTilt({
-      x: Number((-(y * 3.0)).toFixed(2)),
-      y: Number(((x * 3.0)).toFixed(2))
+      x: Number((-(y * 2.0)).toFixed(2)),
+      y: Number(((x * 2.0)).toFixed(2))
     });
   };
 
@@ -230,83 +241,15 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     setMouseTilt({ x: 0, y: 0 });
   };
 
-  // Bottom Terminal Append & Execution Handlers
-  const appendTerminalLog = (type, tag, msg) => {
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, "0");
-    const t = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
-    setTerminalLogs((prev) => [
-      ...prev,
-      { id: Date.now() + Math.random(), time: t, type, tag, msg }
-    ]);
-    setTimeout(() => {
-      if (terminalScrollRef.current) {
-        terminalScrollRef.current.scrollTop = terminalScrollRef.current.scrollHeight;
-      }
-    }, 50);
-  };
-
-  const handleRunBuffer = () => {
-    if (isRunningBuffer || !activeFile) return;
-    setIsRunningBuffer(true);
-    appendTerminalLog("runtime", "EXEC", `Compiling buffer: ${activeFile.name} (${activeFile.language || "text"})...`);
-    
-    setTimeout(() => {
-      appendTerminalLog("compile", "COMP", `Syntax validation: 0 errors, 0 warnings. Abstract Syntax Tree OK.`);
-    }, 300);
-
-    setTimeout(() => {
-      const lineCount = activeFile.linesCount || (activeFile.content ? activeFile.content.split("\n").length : 0);
-      appendTerminalLog("success", "OK", `Buffer executed successfully: ${lineCount} lines evaluated. Exit code: 0`);
-      setIsRunningBuffer(false);
-    }, 700);
-  };
-
-  const handleTerminalCommand = (e) => {
-    if (e.key !== "Enter") return;
-    const cmd = terminalInput.trim();
-    if (!cmd) return;
-    setTerminalInput("");
-    appendTerminalLog("info", "CLI", `$ ${cmd}`);
-
-    const lower = cmd.toLowerCase();
-    if (lower === "clear" || lower === "cls") {
-      setTerminalLogs([]);
-    } else if (lower === "help") {
-      appendTerminalLog("system", "HELP", "Available commands: run, compile, clear, status, modules, rag, ping, help");
-    } else if (lower === "run" || lower === "compile") {
-      handleRunBuffer();
-    } else if (lower === "status") {
-      appendTerminalLog("system", "SYS", `SYS: ${isOnline ? "ONLINE" : "OFFLINE"} | MEM: ${memoryUsage.used}MB/1024MB | MODE: DEV_KERNEL | FILES: ${files.length}`);
-    } else if (lower === "modules") {
-      appendTerminalLog("system", "MOD", "Active modules: core_init (Ready), data_block (Active), render_buffer (Active), node_vector (Ready), io_stream (Active)");
-    } else if (lower === "rag") {
-      appendTerminalLog("info", "RAG", "Project Brain RAG index: 384 dimensions, vector similarity: KNN, Provider: Groq");
-    } else if (lower === "ping") {
-      appendTerminalLog("success", "PONG", `Kernel latency: ${(Math.random() * 8 + 4).toFixed(1)}ms. Roundtrip OK.`);
-    } else {
-      appendTerminalLog("error", "ERR", `Command not recognized: '${cmd}'. Type 'help' for available commands.`);
-    }
-  };
-
   const toggleModuleState = (modId) => {
     setModulesList((prev) =>
       prev.map((m) => {
         if (m.id !== modId) return m;
         const nextState = m.state === "Ready" ? "Active" : m.state === "Active" ? "Error" : "Ready";
-        appendTerminalLog("system", "MOD", `Module [${m.name}] transitioned to: ${nextState}`);
         return { ...m, state: nextState };
       })
     );
   };
-
-  const filteredLogs = terminalLogs.filter((log) => {
-    if (terminalTab === "all") return true;
-    if (terminalTab === "compile") return log.type === "compile" || log.tag === "COMP";
-    if (terminalTab === "runtime") return log.type === "runtime" || log.tag === "EXEC" || log.tag === "READY";
-    if (terminalTab === "system") return log.type === "system" || log.type === "info" || log.tag === "SYS";
-    return true;
-  });
 
   // Global Keyboard Shortcuts (e.g. Cmd+F / Ctrl+F for Find, Esc to close)
   useEffect(() => {
@@ -437,8 +380,13 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     // Smooth scroll to line
     if (codeViewerRef.current) {
       const lineTarget = findMatches[nextIdx];
-      const targetScroll = Math.max(0, (lineTarget - 5) * (fontSize * 1.7));
-      codeViewerRef.current.scrollTo({ top: targetScroll, behavior: "smooth" });
+      const lineEl = document.getElementById(`code-line-${lineTarget}`);
+      if (lineEl) {
+        lineEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        const targetScroll = Math.max(0, (lineTarget - 5) * (fontSize * 1.7));
+        codeViewerRef.current.scrollTo({ top: targetScroll, behavior: "smooth" });
+      }
     }
   };
 
@@ -1315,172 +1263,62 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               {loadingFileContent ? (
                 <div className="code-editor-empty">
                   <RefreshCw size={32} className="spin text-lime" />
-                  <p style={{ color: "#fff", fontWeight: 600, marginTop: "12px", fontSize: "15px" }}>
-                    Streaming live from GitHub...
+                  <p style={{ color: "#00FF66", fontWeight: 700, marginTop: "12px", fontSize: "15px", textShadow: "0 0 10px rgba(0, 255, 102, 0.5)" }}>
+                    Streaming buffer live from GitHub...
                   </p>
-                  <span className="mono-label" style={{ color: "rgba(255, 255, 255, 0.45)", fontSize: "12px" }}>
+                  <span className="mono-label" style={{ color: "rgba(0, 255, 102, 0.7)", fontSize: "12px" }}>
                     {activeFile?.path}
                   </span>
                 </div>
               ) : activeFile ? (
                 <div className="code-editor-viewport">
-                  {/* Sticky Pinned Line Numbers Gutter */}
-                  <div
-                    className="line-numbers-gutter"
-                    aria-hidden="true"
-                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.7 }}
-                  >
-                    {(activeFile.content || "")
-                      .split("\n")
-                      .map((_, idx) => {
-                        const lineNum = idx + 1;
-                        const isMatch = findMatches.includes(lineNum);
-                        const isCurrentActive = activeLine === lineNum;
-                        return (
+                  <div className="code-lines-table">
+                    {highlightedLines.map((html, idx) => {
+                      const lineNum = idx + 1;
+                      const isCurrentActive = activeLine === lineNum;
+                      const isMatch = findMatches.includes(lineNum);
+                      return (
+                        <div
+                          key={idx}
+                          id={`code-line-${lineNum}`}
+                          className={`code-line-row ${isCurrentActive ? "is-active" : ""} ${isMatch ? "is-match" : ""}`}
+                          onClick={() => setActiveLine(lineNum)}
+                        >
                           <span
-                            key={idx}
-                            className={`line-num ${isMatch ? "is-match" : ""} ${isCurrentActive ? "is-active" : ""}`}
-                            onClick={() => setActiveLine(lineNum)}
-                            title={`Jump to line ${lineNum}`}
+                            className="code-line-num mono-label"
+                            aria-hidden="true"
+                            style={{ fontSize: `${fontSize - 1}px` }}
                           >
                             {lineNum}
                           </span>
-                        );
-                      })}
+                          <span
+                            className="code-line-content mono-label"
+                            style={{
+                              fontSize: `${fontSize}px`,
+                              lineHeight: 1.7,
+                              whiteSpace: wordWrap ? "pre-wrap" : "pre",
+                              wordBreak: wordWrap ? "break-word" : "normal"
+                            }}
+                            dangerouslySetInnerHTML={{ __html: html || "&nbsp;" }}
+                          />
+                        </div>
+                      );
+                    })}
+                    <div className="code-cursor-indicator mono-label">
+                      <span className="code-line-num" style={{ visibility: "hidden" }}>0</span>
+                      <span className="cyber-terminal-cursor">█</span>
+                    </div>
                   </div>
-
-                  {/* Preformatted Code Content with Unified Scrolling */}
-                  <pre
-                    className="code-content-pre"
-                    ref={codePreRef}
-                    style={{
-                      fontSize: `${fontSize}px`,
-                      lineHeight: 1.7,
-                      whiteSpace: wordWrap ? "pre-wrap" : "pre",
-                      wordBreak: wordWrap ? "break-word" : "normal"
-                    }}
-                  >
-                    <code>{activeFile.content || "// File content is empty."}</code>
-                    <span className="cyber-terminal-cursor" aria-hidden="true">█</span>
-                  </pre>
                 </div>
               ) : (
                 <div className="code-editor-empty">
-                  <Code2 size={40} color="#00FF66" />
-                  <p style={{ fontSize: "15px" }}>Select any repository file from the Explorer on the left</p>
-                </div>
-              )}
-            </div>
-
-            {/* ============================================================
-                BOTTOM TERMINAL (LOGS, COMPILE, RUNTIME, CLI INTERFACE)
-                ============================================================ */}
-            <div className={`cyber-bottom-terminal ${terminalOpen ? "is-open" : "is-collapsed"}`}>
-              <div className="terminal-header-strip">
-                <div className="terminal-title-group">
-                  <Terminal size={13} color="#00FF66" />
-                  <span className="terminal-title-text mono-label">AXON_TERMINAL // STDOUT &amp; RUNTIME</span>
-                  <span className="terminal-status-tag mono-label">ONLINE • EXIT: 0</span>
-                </div>
-
-                {/* Filter Tabs */}
-                <div className="terminal-filter-tabs">
-                  <button
-                    type="button"
-                    className={`term-tab ${terminalTab === "all" ? "is-active" : ""}`}
-                    onClick={() => setTerminalTab("all")}
-                  >
-                    ALL ({terminalLogs.length})
-                  </button>
-                  <button
-                    type="button"
-                    className={`term-tab ${terminalTab === "compile" ? "is-active" : ""}`}
-                    onClick={() => setTerminalTab("compile")}
-                  >
-                    COMPILE
-                  </button>
-                  <button
-                    type="button"
-                    className={`term-tab ${terminalTab === "runtime" ? "is-active" : ""}`}
-                    onClick={() => setTerminalTab("runtime")}
-                  >
-                    RUNTIME
-                  </button>
-                  <button
-                    type="button"
-                    className={`term-tab ${terminalTab === "system" ? "is-active" : ""}`}
-                    onClick={() => setTerminalTab("system")}
-                  >
-                    SYSTEM
-                  </button>
-                </div>
-
-                {/* Terminal Actions */}
-                <div className="terminal-actions-group">
-                  <button
-                    type="button"
-                    className="term-run-btn"
-                    onClick={handleRunBuffer}
-                    disabled={isRunningBuffer || !activeFile}
-                    title="Compile & Run current active file"
-                  >
-                    {isRunningBuffer ? <RefreshCw size={11} className="spin" /> : <Play size={11} fill="#00FF66" />}
-                    <span>{isRunningBuffer ? "COMPILING..." : "RUN BUFFER"}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="term-ctrl-btn"
-                    onClick={() => setTerminalLogs([])}
-                    title="Clear Terminal Output"
-                  >
-                    <Trash2 size={11} />
-                    <span>CLEAR</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="term-ctrl-btn"
-                    onClick={() => setTerminalOpen((o) => !o)}
-                    title={terminalOpen ? "Collapse Terminal" : "Expand Terminal"}
-                  >
-                    {terminalOpen ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Terminal Logs & Interactive CLI Input */}
-              {terminalOpen && (
-                <div className="terminal-body-scroll" ref={terminalScrollRef}>
-                  <div className="terminal-logs-stream mono-label">
-                    {filteredLogs.map((log) => (
-                      <div key={log.id} className={`terminal-log-row log-${log.type}`}>
-                        <span className="log-time">[{log.time}]</span>
-                        <span className={`log-tag tag-${log.type}`}>[{log.tag}]</span>
-                        <span className="log-message">{log.msg}</span>
-                      </div>
-                    ))}
-                    {isRunningBuffer && (
-                      <div className="terminal-log-row log-runtime">
-                        <span className="log-time">[{new Date().toUTCString().slice(17, 25)}]</span>
-                        <span className="log-tag tag-runtime">[EXEC]</span>
-                        <span className="log-message">
-                          Executing AST pipeline... <span className="cyber-terminal-cursor">█</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="terminal-cli-bar">
-                    <span className="cli-prompt mono-label">axon@core-terminal:~$</span>
-                    <input
-                      type="text"
-                      className="cli-input mono-label"
-                      placeholder="Type CLI command (e.g. 'run', 'compile', 'status', 'modules', 'ping', 'help')..."
-                      value={terminalInput}
-                      onChange={(e) => setTerminalInput(e.target.value)}
-                      onKeyDown={handleTerminalCommand}
-                    />
-                    <span className="cyber-terminal-cursor">█</span>
-                  </div>
+                  <Code2 size={44} color="#00FF66" style={{ filter: "drop-shadow(0 0 12px #00FF66)" }} />
+                  <p style={{ fontSize: "16px", color: "#00FF66", fontWeight: 700, textShadow: "0 0 10px rgba(0,255,102,0.4)" }}>
+                    CORE TERMINAL BUFFER READY
+                  </p>
+                  <p style={{ fontSize: "13px", color: "#86efac", marginTop: "-6px" }}>
+                    Select any repository file from the Explorer on the left to inspect AST &amp; code
+                  </p>
                 </div>
               )}
             </div>
@@ -1660,12 +1498,15 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                           type="button"
                           className="mod-ping-btn"
                           onClick={() => {
-                            appendTerminalLog(
-                              "info",
-                              "MOD",
-                              `Diagnostic ping sent to [${mod.name}]: ACK OK, latency=${(Math.random() * 5 + 3).toFixed(1)}ms`
+                            setModulesList((prev) =>
+                              prev.map((m) =>
+                                m.id === mod.id
+                                  ? { ...m, latency: `${(Math.random() * 5 + 3).toFixed(1)}ms` }
+                                  : m
+                              )
                             );
                           }}
+                          title="Ping module to refresh latency"
                         >
                           PING
                         </button>
