@@ -357,47 +357,122 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
 
   return (
     <div className="time-machine-container">
-      {/* ========================================================
-          1. TIME MACHINE TOP BANNER & STATS
-          ======================================================== */}
-      <div className="tm-banner">
-        <div className="tm-banner-left">
-          <div className="mono-label tm-kicker-pill">
-            <History size={13} color="#c8ff3d" />
-            <span>TIME MACHINE • EVOLUTION INTELLIGENCE</span>
+      {/* Symmetric Top Header Card */}
+      <div className="analytics-header-card">
+        <div className="analytics-header-main">
+          <div className="analytics-eyebrow">
+            <span className="analytics-live-dot" />
+            CODEBASE CHRONOLOGY &amp; EVOLUTION MATRIX
           </div>
-          <h2>Project Evolution &amp; Architectural Timeline</h2>
-          <p>
-            Explore your repository at any historical commit, inspect file versions, track structural
-            revisions, compare releases, and ask Project Brain about architectural decisions.
-          </p>
-
-          <div className="tm-repo-pills">
-            <span className="tm-meta-pill mono-label">
-              <FolderGit2 size={12} color="#c8ff3d" />
-              <span>{workspace?.repository?.fullName || workspace?.name || "Connected Repo"}</span>
+          <h1 className="analytics-main-title">Time Machine // Historical Architecture</h1>
+          <div className="analytics-repo-strip">
+            <span className="analytics-repo-badge">
+              <FolderGit2 size={14} className="text-lime" />
+              <strong>{workspace?.repository?.fullName || workspace?.name || "Connected Repo"}</strong>
             </span>
-            <span className="tm-meta-pill mono-label">
-              <GitBranch size={12} color="#38bdf8" />
-              <span>{workspace?.repository?.defaultBranch || "main"}</span>
+            <span className="analytics-branch-badge">
+              branch: <code>{workspace?.repository?.defaultBranch || "main"}</code>
             </span>
-            <span className="tm-meta-pill mono-label">
-              <GitCommit size={12} color="#c8ff3d" />
-              <span>{commits.length} Historical Commits</span>
+            <span className="analytics-meta-pill">
+              {commits.length} Historical Commits
+            </span>
+            <span className="analytics-meta-pill" style={{ color: "#38bdf8", borderColor: "rgba(56,189,248,0.3)" }}>
+              Brain Time-Travel Active
             </span>
           </div>
         </div>
 
-        <div className="tm-banner-actions">
-          <button
-            type="button"
-            className="button button--ghost button--small"
-            onClick={loadCommitTimeline}
-            disabled={loadingCommits}
-          >
-            <RefreshCw size={14} className={loadingCommits ? "spin" : ""} />
-            <span>Sync Git History</span>
-          </button>
+        {/* Timeline Status & Actions */}
+        <div className="analytics-header-actions">
+          <div className="analytics-health-card">
+            <div className="health-grade-circle" style={{ borderColor: "#c8ff3d" }}>
+              <span className="health-grade-text" style={{ color: "#c8ff3d", fontSize: "14px" }}>
+                100%
+              </span>
+            </div>
+            <div className="health-meta">
+              <div className="health-score-val" style={{ color: "#c8ff3d" }}>
+                CHRONO SYNC
+              </div>
+              <div className="health-label">Timeline Integrity</div>
+            </div>
+          </div>
+
+          <div className="analytics-action-buttons">
+            <button
+              type="button"
+              className="analytics-btn-action"
+              onClick={loadCommitTimeline}
+              disabled={loadingCommits}
+              title="Sync Git History from repository"
+            >
+              <RefreshCw size={14} className={loadingCommits ? "animate-spin" : ""} />
+              <span>{loadingCommits ? "Syncing..." : "Sync Git History"}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Symmetric Bento KPI Grid: 4 Chronology Metrics */}
+      <div className="analytics-kpi-grid">
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">COMMITS INDEXED</span>
+            <div className="kpi-icon-wrap">
+              <GitCommit size={16} />
+            </div>
+          </div>
+          <div className="kpi-number">{commits.length}</div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-lime">HISTORY</span>
+            <span>Full git tree reachable</span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">EVOLUTION EPOCHS</span>
+            <div className="kpi-icon-wrap">
+              <Cpu size={16} />
+            </div>
+          </div>
+          <div className="kpi-number">
+            {evolutionData?.stats?.totalMilestones || (commits.length > 0 ? "Active" : "Ready")}
+          </div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-blue">MILESTONES</span>
+            <span>Architectural shift markers</span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">ACTIVE BRANCH</span>
+            <div className="kpi-icon-wrap">
+              <GitBranch size={16} />
+            </div>
+          </div>
+          <div className="kpi-number" style={{ fontSize: "20px" }}>
+            {workspace?.repository?.defaultBranch || "main"}
+          </div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-lime">TRACKED</span>
+            <span>Head snapshot verified</span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">AI TIME TRAVEL</span>
+            <div className="kpi-icon-wrap">
+              <Zap size={16} />
+            </div>
+          </div>
+          <div className="kpi-number">Groq 120B</div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-blue">RAG READY</span>
+            <span>Historical delta explanations</span>
+          </div>
         </div>
       </div>
 

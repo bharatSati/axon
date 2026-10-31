@@ -26,7 +26,8 @@ import {
   ChevronDown,
   ChevronUp,
   FileDiff,
-  Eye
+  Eye,
+  Clock
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import { API_BASE } from "../config/api.js";
@@ -232,40 +233,138 @@ export default function PRIntelligenceStudio({ workspace, token }) {
   const isReady = decision.includes("READY");
 
   return (
-    <div className="pr-intelligence-studio">
-      {/* Studio Header Banner */}
-      <div className="pr-banner">
-        <div className="pr-banner-left">
-          <div className="mono-label pr-kicker-pill">
-            <GitPullRequest size={13} color="#c8ff3d" />
-            <span>AI PULL REQUEST INTELLIGENCE &amp; CODE REVIEWER</span>
+    <div className="pr-intelligence-studio" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Symmetric Top Header Card */}
+      <div className="analytics-header-card">
+        <div className="analytics-header-main">
+          <div className="analytics-eyebrow">
+            <span className="analytics-live-dot" />
+            AI PULL REQUEST INTELLIGENCE &amp; CODE REVIEW MATRIX
           </div>
-          <h2>Pull Request Explainer &amp; Regression Intelligence</h2>
-          <p>
-            Understand PRs in simple language, uncover hidden edge-case bugs, audit security flaws,
-            and verify cross-module regression impact using Project Brain RAG context.
-          </p>
+          <h1 className="analytics-main-title">Pull Request Explainer &amp; Reviewer</h1>
+          <div className="analytics-repo-strip">
+            <span className="analytics-repo-badge">
+              <GitPullRequest size={14} className="text-lime" />
+              <strong>{workspace?.repository?.fullName || workspace?.name || "Repository"}</strong>
+            </span>
+            <span className="analytics-branch-badge">
+              branch: <code>{workspace?.repository?.defaultBranch || "main"}</code>
+            </span>
+            <span className="analytics-meta-pill">
+              {pullRequests.length} PRs Tracked
+            </span>
+            {isSample && (
+              <span className="analytics-meta-pill" style={{ color: "#fbbf24", borderColor: "rgba(251,191,36,0.3)" }}>
+                Architectural Samples Active
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="pr-banner-actions">
-          <button
-            type="button"
-            className="pr-custom-diff-btn mono-label"
-            onClick={() => setShowCustomDiffModal(true)}
-          >
-            <FileDiff size={14} />
-            <span>Paste Custom / Branch Diff</span>
-          </button>
+        {/* Merge Decision Card & Actions */}
+        <div className="analytics-header-actions">
+          <div className="analytics-health-card">
+            <div className="health-grade-circle" style={{ borderColor: isBlocked ? "#ef4444" : "#c8ff3d" }}>
+              <span className="health-grade-text" style={{ color: isBlocked ? "#ef4444" : "#c8ff3d", fontSize: "14px" }}>
+                {isBlocked ? "FAIL" : isReady ? "PASS" : "REV"}
+              </span>
+            </div>
+            <div className="health-meta">
+              <div className="health-score-val" style={{ color: isBlocked ? "#ef4444" : isReady ? "#c8ff3d" : "#fbbf24" }}>
+                {decision}
+              </div>
+              <div className="health-label">Merge Safety Assessment</div>
+            </div>
+          </div>
 
-          <button
-            type="button"
-            className="pr-refresh-btn mono-label"
-            onClick={fetchPullRequests}
-            disabled={loadingPrs}
-          >
-            <RefreshCw size={13} className={loadingPrs ? "spin" : ""} />
-            <span>Sync PRs</span>
-          </button>
+          <div className="analytics-action-buttons">
+            <button
+              type="button"
+              className="analytics-btn-action"
+              onClick={() => setShowCustomDiffModal(true)}
+              title="Paste custom or branch diff"
+            >
+              <FileDiff size={14} />
+              <span>Custom Diff</span>
+            </button>
+            <button
+              type="button"
+              className="analytics-btn-action"
+              onClick={fetchPullRequests}
+              disabled={loadingPrs}
+              title="Sync latest PRs from GitHub"
+            >
+              <RefreshCw size={14} className={loadingPrs ? "animate-spin" : ""} />
+              <span>{loadingPrs ? "Syncing..." : "Sync PRs"}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Symmetric Bento KPI Grid: 4 PR Intelligence Metrics */}
+      <div className="analytics-kpi-grid">
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">TOTAL PULL REQUESTS</span>
+            <div className="kpi-icon-wrap">
+              <GitPullRequest size={16} />
+            </div>
+          </div>
+          <div className="kpi-number">{pullRequests.length}</div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-lime">ALL TRACKED</span>
+            <span className="kpi-meta-desc">in this repository</span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">ACTIVE REVIEW QUEUE</span>
+            <div className="kpi-icon-wrap">
+              <Clock size={16} color="#38bdf8" />
+            </div>
+          </div>
+          <div className="kpi-number" style={{ color: "#38bdf8" }}>
+            {pullRequests.filter((p) => p.state === "open").length}
+          </div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-blue">OPEN NOW</span>
+            <span className="kpi-meta-desc">awaiting merge</span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">MERGED &amp; SHIPPED</span>
+            <div className="kpi-icon-wrap">
+              <CheckCircle2 size={16} color="#c8ff3d" />
+            </div>
+          </div>
+          <div className="kpi-number" style={{ color: "#c8ff3d" }}>
+            {pullRequests.filter((p) => p.state === "closed" || p.state === "merged").length}
+          </div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-lime">CLOSED</span>
+            <span className="kpi-meta-desc">history integrated</span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">SECURITY ISSUES</span>
+            <div className="kpi-icon-wrap">
+              <ShieldAlert size={16} color={criticalCount > 0 ? "#ef4444" : "#c8ff3d"} />
+            </div>
+          </div>
+          <div className="kpi-number" style={{ color: criticalCount > 0 ? "#ef4444" : "#c8ff3d" }}>
+            {criticalCount}
+          </div>
+          <div className="kpi-sub">
+            <span className={criticalCount > 0 ? "kpi-tag-amber" : "kpi-tag-lime"}>
+              {criticalCount > 0 ? "ATTENTION" : "ZERO CRITICAL"}
+            </span>
+            <span className="kpi-meta-desc">{highCount} high risk</span>
+          </div>
         </div>
       </div>
 

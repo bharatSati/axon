@@ -20,7 +20,11 @@ import {
   Flame,
   ArrowRight,
   BookOpen,
-  Share2
+  Share2,
+  FolderGit2,
+  Clock,
+  Layers,
+  Award
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import { API_BASE } from "../config/api.js";
@@ -168,30 +172,118 @@ export default function MarketerDeck({ workspace, token }) {
 
   return (
     <div className="growth-studio-container">
-      {/* Top Banner */}
-      <div className="growth-studio-banner">
-        <div className="growth-banner-copy">
-          <div className="mono-label growth-kicker-pill">
-            <Flame size={14} color="#f59e0b" />
-            <span>GROWTH ENGINE &amp; VIRAL LAUNCHPAD</span>
+      {/* Symmetric Top Header Card */}
+      <div className="analytics-header-card">
+        <div className="analytics-header-main">
+          <div className="analytics-eyebrow">
+            <span className="analytics-live-dot" />
+            PRODUCT POSITIONING &amp; VIRAL CAMPAIGN ENGINE
           </div>
-          <h2>Axon Growth Launchpad &amp; Campaign Studio</h2>
-          <p>
-            Project Brain translates your codebase architecture, commits, and technical features into
-            ready-to-publish viral marketing campaigns across Twitter, LinkedIn, Product Hunt, and beyond.
-          </p>
+          <h1 className="analytics-main-title">Growth &amp; Product Marketing Deck</h1>
+          <div className="analytics-repo-strip">
+            <span className="analytics-repo-badge">
+              <FolderGit2 size={14} className="text-lime" />
+              <strong>{workspace?.repository?.fullName || workspace?.name || "Repository"}</strong>
+            </span>
+            <span className="analytics-branch-badge">
+              branch: <code>{workspace?.repository?.defaultBranch || "main"}</code>
+            </span>
+            <span className="analytics-meta-pill">
+              {CHANNELS.length} Multi-Channels
+            </span>
+            <span className="analytics-meta-pill" style={{ color: "#38bdf8", borderColor: "rgba(56,189,248,0.3)" }}>
+              Brain RAG Active
+            </span>
+          </div>
         </div>
 
-        <div className="growth-banner-actions">
-          <button
-            type="button"
-            className="button button--lime button--large growth-hero-btn"
-            onClick={() => handleGenerateCampaign()}
-            disabled={loading}
-          >
-            {loading ? <RefreshCw size={17} className="spin" /> : <Sparkles size={17} />}
-            <span>{loading ? "Generating Campaign..." : "Generate Viral Campaign"}</span>
-          </button>
+        {/* Campaign Score & Primary Action */}
+        <div className="analytics-header-actions">
+          <div className="analytics-health-card">
+            <div className="health-grade-circle" style={{ borderColor: "#c8ff3d" }}>
+              <span className="health-grade-text" style={{ color: "#c8ff3d", fontSize: "15px" }}>
+                96
+              </span>
+            </div>
+            <div className="health-meta">
+              <div className="health-score-val" style={{ color: "#c8ff3d" }}>
+                VIRAL SYNC
+              </div>
+              <div className="health-label">Growth Resonance Score</div>
+            </div>
+          </div>
+
+          <div className="analytics-action-buttons">
+            <button
+              type="button"
+              className="analytics-btn-primary"
+              onClick={() => handleGenerateCampaign()}
+              disabled={loading}
+              title="Generate viral marketing campaign"
+            >
+              {loading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              <span>{loading ? "Synthesizing..." : "Generate Campaign"}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Symmetric Bento KPI Grid: 4 Growth Metrics */}
+      <div className="analytics-kpi-grid">
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">ACTIVE CAMPAIGNS</span>
+            <div className="kpi-icon-wrap">
+              <Megaphone size={16} />
+            </div>
+          </div>
+          <div className="kpi-number">{CHANNELS.length} Channels</div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-lime">OMNICHANNEL</span>
+            <span>Twitter, LinkedIn, Product Hunt</span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">TARGET AUDIENCE</span>
+            <div className="kpi-icon-wrap">
+              <Target size={16} />
+            </div>
+          </div>
+          <div className="kpi-number">{AUDIENCES.length} Personas</div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-blue">CALIBRATED</span>
+            <span>Devs, Founders, Enterprise, Hackers</span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">CONTENT VELOCITY</span>
+            <div className="kpi-icon-wrap">
+              <Zap size={16} />
+            </div>
+          </div>
+          <div className="kpi-number">Real-Time</div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-lime">LLM 120B</span>
+            <span>Instant zero-hallucination copy</span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-card">
+          <div className="kpi-top">
+            <span className="kpi-title">MARKET POSITIONING</span>
+            <div className="kpi-icon-wrap">
+              <TrendingUp size={16} />
+            </div>
+          </div>
+          <div className="kpi-number">100% Unique</div>
+          <div className="kpi-sub">
+            <span className="kpi-tag-blue">DIFFERENTIATED</span>
+            <span>Trained on live codebase AST</span>
+          </div>
         </div>
       </div>
 

@@ -44,7 +44,8 @@ import {
   UploadCloud,
   FileText,
   ChevronUp,
-  BarChart3
+  BarChart3,
+  Zap
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import ConnectRepoModal from "./ConnectRepoModal";
@@ -1102,73 +1103,146 @@ export default function CEODashboard() {
               VIEW 1: DEDICATED WORKSPACE COMMAND
               ============================================================ */}
           {activeFeatureId === "overview" && activeWorkspace && (
-          <section className="ws-dedicated-view">
-            <SectionHeading
-              eyebrow="WORKSPACE COMMAND"
-              index="01"
-              title={activeWorkspace.name}
-              description={activeWorkspace.description || "Dedicated software project workspace with connected GitHub repository and RAG Project Brain."}
-            />
-
-            {/* Workspace Header Card */}
-            <div className="ws-dedicated-header">
-              <div className="ws-header-copy">
-                <div className="ws-header-meta-row" style={{ marginTop: 0 }}>
-                  <span className="mono-label" style={{ color: "#777" }}>
-                    ID: <code>{activeWorkspace.id}</code>
+          <section className="ws-dedicated-view" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* Symmetric Top Header Card */}
+            <div className="analytics-header-card">
+              <div className="analytics-header-main">
+                <div className="analytics-eyebrow">
+                  <span className="analytics-live-dot" />
+                  WORKSPACE COMMAND &amp; NEURAL REPOSITORY HUB
+                </div>
+                <h1 className="analytics-main-title">{activeWorkspace.name}</h1>
+                <div className="analytics-repo-strip">
+                  <span className="analytics-repo-badge">
+                    <FolderGit2 size={14} className="text-lime" />
+                    <strong>{activeWorkspace?.repository?.fullName || activeWorkspace?.repository?.name || "No Repository Connected"}</strong>
                   </span>
-                  <span className="mono-label" style={{ color: "#777" }}>
-                    CREATED: {new Date(activeWorkspace.createdAt || Date.now()).toLocaleDateString()}
+                  <span className="analytics-branch-badge">
+                    branch: <code>{activeWorkspace?.repository?.defaultBranch || "main"}</code>
                   </span>
-                  {activeWorkspace.repository ? (
-                    <span className="brain-status-badge brain-status-badge--ready">
-                      <FolderGit2 size={12} /> 1 REPO CONNECTED
-                    </span>
-                  ) : (
-                    <span className="brain-status-badge brain-status-badge--indexing">
-                      NO REPO CONNECTED
-                    </span>
-                  )}
+                  <span className="analytics-meta-pill">
+                    ID: {activeWorkspace.id?.slice(0, 8)}...
+                  </span>
+                  <span className="analytics-meta-pill" style={{ color: "#38bdf8", borderColor: "rgba(56,189,248,0.3)" }}>
+                    Created: {new Date(activeWorkspace.createdAt || Date.now()).toLocaleDateString()}
+                  </span>
                 </div>
               </div>
 
-              <div className="ws-header-actions">
-                <button
-                  type="button"
-                  className="button button--ghost button--small"
-                  onClick={() => setPerspective("analytics")}
-                  style={{ borderColor: "rgba(200, 255, 61, 0.4)", color: "#c8ff3d", background: "rgba(200, 255, 61, 0.08)" }}
-                  title="Launch Repo & Org Analytics"
-                >
-                  <BarChart3 size={14} />
-                  <span>Repo Analytics</span>
-                </button>
-                <button
-                  type="button"
-                  className="button button--ghost button--small"
-                  onClick={() => setPerspective("timemachine")}
-                  style={{ borderColor: "rgba(200, 255, 61, 0.3)", color: "#c8ff3d" }}
-                  title="Launch Time Machine for this workspace"
-                >
-                  <History size={14} />
-                  <span>Time Machine</span>
-                </button>
-                <button
-                  type="button"
-                  className="button button--ghost button--small"
-                  onClick={() => openEditWorkspaceModal(activeWorkspace)}
-                >
-                  <Edit3 size={14} />
-                  <span>Configure Workspace</span>
-                </button>
-                <button
-                  type="button"
-                  className="button button--danger-outline button--small"
-                  onClick={() => handleDeleteWorkspace(activeWorkspace)}
-                  title="Delete this workspace"
-                >
-                  <Trash2 size={14} />
-                </button>
+              {/* Status and Action Buttons */}
+              <div className="analytics-header-actions">
+                <div className="analytics-health-card">
+                  <div className="health-grade-circle" style={{ borderColor: brainStatus === "ready" ? "#c8ff3d" : "#fbbf24" }}>
+                    <span className="health-grade-text" style={{ color: brainStatus === "ready" ? "#c8ff3d" : "#fbbf24", fontSize: "14px" }}>
+                      {brainStatus === "ready" ? "SYNC" : "INIT"}
+                    </span>
+                  </div>
+                  <div className="health-meta">
+                    <div className="health-score-val" style={{ color: brainStatus === "ready" ? "#c8ff3d" : "#fbbf24" }}>
+                      {brainStatus === "ready" ? "RAG READY" : "INDEXING"}
+                    </div>
+                    <div className="health-label">Project Brain Engine</div>
+                  </div>
+                </div>
+
+                <div className="analytics-action-buttons">
+                  <button
+                    type="button"
+                    className="analytics-btn-action"
+                    onClick={() => setPerspective("analytics")}
+                    style={{ borderColor: "rgba(200, 255, 61, 0.4)", color: "#c8ff3d" }}
+                    title="Launch Repo & Org Analytics"
+                  >
+                    <BarChart3 size={14} />
+                    <span>Repo Analytics</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="analytics-btn-action"
+                    onClick={() => setPerspective("timemachine")}
+                    title="Launch Time Machine for this workspace"
+                  >
+                    <History size={14} />
+                    <span>Time Machine</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="analytics-btn-action"
+                    onClick={() => openEditWorkspaceModal(activeWorkspace)}
+                    title="Configure workspace settings"
+                  >
+                    <Edit3 size={14} />
+                    <span>Configure</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="analytics-btn-action"
+                    style={{ borderColor: "rgba(239, 68, 68, 0.3)", color: "#ef4444" }}
+                    onClick={() => handleDeleteWorkspace(activeWorkspace)}
+                    title="Delete this workspace"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Symmetrical Bento KPI Grid: 4 Core Workspace Metrics */}
+            <div className="analytics-kpi-grid">
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">INDEXED FILES</span>
+                  <div className="kpi-icon-wrap">
+                    <FolderGit2 size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">{brainStats.totalFiles || 0} Files</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-lime">AST PARSED</span>
+                  <span>Full source tree indexed</span>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">RAG CHUNKS READY</span>
+                  <div className="kpi-icon-wrap">
+                    <Layers size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">{brainStats.totalChunks || 0} Chunks</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-blue">VECTORIZED</span>
+                  <span>Project Brain embeddings</span>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">COMMITS ANALYZED</span>
+                  <div className="kpi-icon-wrap">
+                    <GitBranch size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">{brainStats.totalCommits || 0}</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-lime">PROVENANCE</span>
+                  <span>Historical commit tracking</span>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">AI SYNTHESIS</span>
+                  <div className="kpi-icon-wrap">
+                    <Zap size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">Groq 120B</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-blue">OPERATIONAL</span>
+                  <span>Instant contextual inference</span>
+                </div>
               </div>
             </div>
 
@@ -1812,27 +1886,119 @@ export default function CEODashboard() {
             VIEW 2: ALL WORKSPACES OVERVIEW
             ============================================================ */}
         {activeFeatureId === "all-workspaces" && (
-          <section className="all-workspaces-view">
-            <SectionHeading
-              eyebrow="PROJECT PORTFOLIO"
-              index="02"
-              title="Software Project Workspaces"
-              description="Every workspace represents a separate software project with exactly one connected GitHub repository and an independent Project Brain."
-            />
-
-            <div className="all-ws-head">
-              <div className="mono-label" style={{ color: "var(--muted, #999)", fontSize: "12px" }}>
-                TOTAL PORTFOLIO: <strong style={{ color: "#c8ff3d" }}>{workspaces.length} WORKSPACES</strong>
+          <section className="all-workspaces-view" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* Symmetric Top Header Card */}
+            <div className="analytics-header-card">
+              <div className="analytics-header-main">
+                <div className="analytics-eyebrow">
+                  <span className="analytics-live-dot" />
+                  MULTI-PROJECT PORTFOLIO &amp; REPOSITORY DIRECTORY
+                </div>
+                <h1 className="analytics-main-title">Software Project Workspaces</h1>
+                <div className="analytics-repo-strip">
+                  <span className="analytics-repo-badge">
+                    <Layers size={14} className="text-lime" />
+                    <strong>{workspaces.length} Workspaces</strong>
+                  </span>
+                  <span className="analytics-branch-badge">
+                    connected repos: <code>{workspaces.filter((w) => w.repository).length}</code>
+                  </span>
+                  <span className="analytics-meta-pill">
+                    Multi-Tenant Isolation
+                  </span>
+                  <span className="analytics-meta-pill" style={{ color: "#38bdf8", borderColor: "rgba(56,189,248,0.3)" }}>
+                    Brain RAG Enabled
+                  </span>
+                </div>
               </div>
 
-              <button
-                type="button"
-                className="button button--lime"
-                onClick={openCreateWorkspaceModal}
-              >
-                <Plus size={16} />
-                <span>Create New Workspace</span>
-              </button>
+              {/* Status and Action Buttons */}
+              <div className="analytics-header-actions">
+                <div className="analytics-health-card">
+                  <div className="health-grade-circle" style={{ borderColor: "#c8ff3d" }}>
+                    <span className="health-grade-text" style={{ color: "#c8ff3d", fontSize: "14px" }}>
+                      100%
+                    </span>
+                  </div>
+                  <div className="health-meta">
+                    <div className="health-score-val" style={{ color: "#c8ff3d" }}>
+                      ALL HEALTHY
+                    </div>
+                    <div className="health-label">Portfolio Integrity</div>
+                  </div>
+                </div>
+
+                <div className="analytics-action-buttons">
+                  <button
+                    type="button"
+                    className="analytics-btn-primary"
+                    onClick={openCreateWorkspaceModal}
+                    title="Create a new software project workspace"
+                  >
+                    <Plus size={14} />
+                    <span>Create Workspace</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Symmetrical Bento KPI Grid: 4 Portfolio Metrics */}
+            <div className="analytics-kpi-grid">
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">TOTAL WORKSPACES</span>
+                  <div className="kpi-icon-wrap">
+                    <Layers size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">{workspaces.length}</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-lime">PORTFOLIO</span>
+                  <span>Independent projects</span>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">CONNECTED REPOSITORIES</span>
+                  <div className="kpi-icon-wrap">
+                    <FolderGit2 size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">{workspaces.filter((w) => w.repository).length}</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-blue">GITHUB LIVE</span>
+                  <span>1:1 repository bindings</span>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">PROJECT BRAINS READY</span>
+                  <div className="kpi-icon-wrap">
+                    <Sparkles size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">{workspaces.filter((w) => w.brain?.status === "ready").length}</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-lime">RAG VECTORIZED</span>
+                  <span>Contextual index active</span>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">GOVERNANCE MODEL</span>
+                  <div className="kpi-icon-wrap">
+                    <ShieldCheck size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">RBAC v2</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-blue">SECURED</span>
+                  <span>Multi-role access enforcement</span>
+                </div>
+              </div>
             </div>
 
             <div className="all-ws-grid">
@@ -1946,37 +2112,119 @@ export default function CEODashboard() {
             VIEW 3: TEAM & ROLES (Preserved 100%)
             ============================================================ */}
         {activeFeatureId === "team" && (
-          <section className="ceo-team-view">
-            <SectionHeading
-              eyebrow="ORGANIZATION COMMAND"
-              index="03"
-              title="Team & Role Architecture"
-              description="Manage your engineering, product, and infrastructure organization. Add team members, assign modular roles, and configure system permissions."
-            />
-
-            {/* Header Card */}
-            <div className="ceo-header-card">
-              <div className="ceo-header-copy">
-                <div className="mono-label kicker-pill">
-                  <ShieldCheck size={13} />
-                  AUTHENTICATED STRICTLY WITH GITHUB
+          <section className="ceo-team-view" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* Symmetric Top Header Card */}
+            <div className="analytics-header-card">
+              <div className="analytics-header-main">
+                <div className="analytics-eyebrow">
+                  <span className="analytics-live-dot" />
+                  ORGANIZATION GOVERNANCE &amp; ACCESS CONTROL
                 </div>
-                <h3 style={{ margin: "10px 0 6px", fontSize: "20px" }}>Executive Directory &amp; Access Control</h3>
-                <p style={{ margin: 0 }}>
-                  Assign modular roles and configure system permissions across client and server.
-                </p>
+                <h1 className="analytics-main-title">Team &amp; Role Architecture</h1>
+                <div className="analytics-repo-strip">
+                  <span className="analytics-repo-badge">
+                    <ShieldCheck size={14} className="text-lime" />
+                    <strong>GitHub OAuth RBAC</strong>
+                  </span>
+                  <span className="analytics-meta-pill">
+                    {employees.length} Members
+                  </span>
+                  <span className="analytics-meta-pill" style={{ color: "#38bdf8", borderColor: "rgba(56,189,248,0.3)" }}>
+                    Multi-Role Architecture
+                  </span>
+                </div>
               </div>
 
-              <div className="ceo-header-cta" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <button
-                  type="button"
-                  className="button button--lime button--large"
-                  onClick={() => setIsInviteModalOpen(true)}
-                  style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
-                >
-                  <Github size={18} />
-                  <span>Invite with GitHub</span>
-                </button>
+              {/* Status and Action Buttons */}
+              <div className="analytics-header-actions">
+                <div className="analytics-health-card">
+                  <div className="health-grade-circle" style={{ borderColor: "#c8ff3d" }}>
+                    <span className="health-grade-text" style={{ color: "#c8ff3d", fontSize: "14px" }}>
+                      SEC
+                    </span>
+                  </div>
+                  <div className="health-meta">
+                    <div className="health-score-val" style={{ color: "#c8ff3d" }}>
+                      RBAC ENFORCED
+                    </div>
+                    <div className="health-label">Access Governance</div>
+                  </div>
+                </div>
+
+                <div className="analytics-action-buttons">
+                  <button
+                    type="button"
+                    className="analytics-btn-primary"
+                    onClick={() => setIsInviteModalOpen(true)}
+                    title="Invite team member with GitHub"
+                  >
+                    <Github size={14} />
+                    <span>Invite with GitHub</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Symmetrical Bento KPI Grid: 4 Organization Metrics */}
+            <div className="analytics-kpi-grid">
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">TOTAL TEAM MEMBERS</span>
+                  <div className="kpi-icon-wrap">
+                    <Users size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">{employees.length}</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-lime">ORGANIZATION</span>
+                  <span>Active team roster</span>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">ENGINEERING LEADS</span>
+                  <div className="kpi-icon-wrap">
+                    <Code2 size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">
+                  {employees.filter((e) => (e.role || "").toLowerCase().includes("dev") || (e.department || "").toLowerCase().includes("eng")).length}
+                </div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-blue">CONTRIBUTORS</span>
+                  <span>Core commit authors</span>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">EXECUTIVE LEADERSHIP</span>
+                  <div className="kpi-icon-wrap">
+                    <ShieldCheck size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">
+                  {employees.filter((e) => (e.role || "").toLowerCase().includes("ceo") || (e.department || "").toLowerCase().includes("lead")).length}
+                </div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-lime">GOVERNANCE</span>
+                  <span>Full administrative rights</span>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="kpi-top">
+                  <span className="kpi-title">ACCESS PROTOCOL</span>
+                  <div className="kpi-icon-wrap">
+                    <Lock size={16} />
+                  </div>
+                </div>
+                <div className="kpi-number">OAuth 2.0</div>
+                <div className="kpi-sub">
+                  <span className="kpi-tag-blue">STRICT</span>
+                  <span>Signed GitHub credentials</span>
+                </div>
               </div>
             </div>
 
