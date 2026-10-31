@@ -39,7 +39,8 @@ import {
   TestTube,
   Megaphone,
   History,
-  Palette
+  Palette,
+  GitPullRequest
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import ConnectRepoModal from "./ConnectRepoModal";
@@ -52,6 +53,7 @@ import TesterLab from "./TesterLab";
 import MarketerDeck from "./MarketerDeck";
 import TimeMachine from "./TimeMachine";
 import FlowchartStudio from "./FlowchartStudio";
+import PRIntelligenceStudio from "./PRIntelligenceStudio";
 
 const API_BASE = "http://localhost:4000/api";
 
@@ -696,6 +698,14 @@ export default function CEODashboard() {
               <Palette size={14} color="#c8ff3d" />
               <span>AI Flowcharts</span>
             </button>
+            <button
+              type="button"
+              className={`perspective-btn perspective-btn--pr ${perspective === "pr-review" ? "is-active" : ""}`}
+              onClick={() => setPerspective("pr-review")}
+            >
+              <GitPullRequest size={14} color="#c084fc" />
+              <span>AI PR Reviewer</span>
+            </button>
           </div>
 
           <div className="perspective-meta mono-label">
@@ -778,7 +788,17 @@ export default function CEODashboard() {
         )}
 
         {/* ============================================================
-            PERSPECTIVE 6: CEO EXECUTIVE CONSOLE
+            PERSPECTIVE 6: AI PULL REQUEST INTELLIGENCE & CODE REVIEWER
+            ============================================================ */}
+        {perspective === "pr-review" && (
+          <PRIntelligenceStudio
+            workspace={activeWorkspace}
+            token={token}
+          />
+        )}
+
+        {/* ============================================================
+            PERSPECTIVE 7: CEO EXECUTIVE CONSOLE
             ============================================================ */}
         {perspective === "ceo" && (
           <>

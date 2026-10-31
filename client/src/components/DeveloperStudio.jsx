@@ -34,11 +34,13 @@ import {
   Sliders,
   AlignLeft,
   History,
-  Palette
+  Palette,
+  GitPullRequest
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import TimeMachine from "./TimeMachine";
 import FlowchartStudio from "./FlowchartStudio";
+import PRIntelligenceStudio from "./PRIntelligenceStudio";
 
 const API_BASE = "http://localhost:4000/api";
 
@@ -393,6 +395,14 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               <Palette size={13} color={studioMode === "flowchart" ? "#c8ff3d" : "#888"} />
               <span>Flowcharts</span>
             </button>
+            <button
+              type="button"
+              className={`studio-mode-tab studio-mode-tab--pr ${studioMode === "pr-review" ? "is-active" : ""}`}
+              onClick={() => setStudioMode("pr-review")}
+            >
+              <GitPullRequest size={13} color={studioMode === "pr-review" ? "#c084fc" : "#888"} />
+              <span>PR Reviewer</span>
+            </button>
           </div>
         </div>
 
@@ -427,7 +437,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
         </div>
       </div>
 
-      {/* Main Studio Work Area / Time Machine / Flowchart Switcher */}
+      {/* Main Studio Work Area / Time Machine / Flowchart / PR Review Switcher */}
       {studioMode === "timemachine" ? (
         <TimeMachine
           workspace={workspace}
@@ -436,6 +446,11 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
         />
       ) : studioMode === "flowchart" ? (
         <FlowchartStudio
+          workspace={workspace}
+          token={token}
+        />
+      ) : studioMode === "pr-review" ? (
+        <PRIntelligenceStudio
           workspace={workspace}
           token={token}
         />

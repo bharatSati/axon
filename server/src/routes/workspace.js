@@ -34,6 +34,12 @@ import {
   generateFlowchartHandler,
   getPresetsHandler
 } from "../controllers/flowchartController.js";
+import {
+  getPullRequestsHandler,
+  getPullRequestDetailsHandler,
+  analyzePullRequestHandler,
+  askPRQuestionHandler
+} from "../controllers/prIntelligenceController.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = Router();
@@ -78,5 +84,11 @@ router.post("/:id/time-machine/commit/:sha/ask", authenticateToken, askCommitHan
 // Architecture Flowchart Studio (AI Mermaid Engine)
 router.get("/:id/flowchart/presets", authenticateToken, getPresetsHandler);
 router.post("/:id/flowchart/generate", authenticateToken, generateFlowchartHandler);
+
+// AI Pull Request Explainer + Intelligent Code Reviewer
+router.get("/:id/pr", authenticateToken, getPullRequestsHandler);
+router.get("/:id/pr/:prNumber", authenticateToken, getPullRequestDetailsHandler);
+router.post("/:id/pr/analyze", authenticateToken, analyzePullRequestHandler);
+router.post("/:id/pr/ask", authenticateToken, askPRQuestionHandler);
 
 export default router;
