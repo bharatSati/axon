@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Users,
-  UserPlus,
   ShieldCheck,
   Search,
   Filter,
@@ -213,15 +212,6 @@ export default function CEODashboard() {
   const [employeesLoading, setEmployeesLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("all");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newEmp, setNewEmp] = useState({
-    name: "",
-    email: "",
-    githubUsername: "",
-    role: "Developer",
-    department: "Engineering",
-    status: "Active"
-  });
 
   // Workspace Members & GitHub Invitations
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -605,52 +595,6 @@ export default function CEODashboard() {
   // ==========================================
   // 5. EMPLOYEE ACTIONS (Preserved 100%)
   // ==========================================
-  const handleAddEmployee = async (e) => {
-    e.preventDefault();
-    if (!newEmp.name || !newEmp.email || !newEmp.role) return;
-
-    try {
-      const res = await fetch(`${API_BASE}/employees`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(newEmp)
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setEmployees((prev) => [data.employee, ...prev]);
-        setIsAddModalOpen(false);
-        setNewEmp({
-          name: "",
-          email: "",
-          githubUsername: "",
-          role: "Developer",
-          department: "Engineering",
-          status: "Active"
-        });
-        showNotification(`Added ${data.employee.name} as ${data.employee.role}`);
-      } else {
-        const errorData = await res.json();
-        alert(errorData.error || "Failed to add employee");
-      }
-    } catch (err) {
-      console.error("Add employee error:", err);
-      const localEmp = {
-        id: `emp_${Date.now()}`,
-        ...newEmp,
-        avatar: newEmp.githubUsername
-          ? `https://avatars.githubusercontent.com/${newEmp.githubUsername.replace(/^@/, "")}`
-          : ""
-      };
-      setEmployees((prev) => [localEmp, ...prev]);
-      setIsAddModalOpen(false);
-      showNotification(`Added ${localEmp.name} to workspace`);
-    }
-  };
-
   const handleRoleChange = async (employeeId, newRole) => {
     const roleObj = ROLES_LIST.find((r) => r.name === newRole);
     try {
@@ -2033,15 +1977,6 @@ export default function CEODashboard() {
                   <Github size={18} />
                   <span>Invite with GitHub</span>
                 </button>
-
-                <button
-                  type="button"
-                  className="button button--ghost button--large add-emp-trigger"
-                  onClick={() => setIsAddModalOpen(true)}
-                >
-                  <UserPlus size={18} />
-                  <span>Manual Add</span>
-                </button>
               </div>
             </div>
 
@@ -2193,15 +2128,16 @@ export default function CEODashboard() {
                           <Users size={26} color="#c8ff3d" style={{ marginBottom: "8px" }} />
                           <p style={{ margin: "4px 0", color: "#fff", fontWeight: 500 }}>No team members added yet.</p>
                           <p style={{ margin: "0 0 16px", color: "var(--muted)", fontSize: "13px" }}>
-                            Add your developer, tester, or marketer using the button below.
+                            Invite your developers, testers, or marketers securely with GitHub.
                           </p>
                           <button
                             type="button"
                             className="button button--small button--lime"
-                            onClick={() => setIsAddModalOpen(true)}
+                            onClick={() => setIsInviteModalOpen(true)}
+                            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
                           >
-                            <UserPlus size={14} />
-                            <span>Add First Team Member</span>
+                            <Github size={14} />
+                            <span>Invite with GitHub</span>
                           </button>
                         </td>
                       </tr>
@@ -2388,124 +2324,6 @@ export default function CEODashboard() {
         token={token}
         onSaved={handleWorkspaceSaved}
       />
-
-      {/* Add Employee Modal (Preserved 100%) */}
-      <AnimatePresence>
-        {isAddModalOpen && (
-          <div className="modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
-            <motion.div
-              className="add-emp-dialog"
-              onClick={(e) => e.stopPropagation()}
-              initial={{ opacity: 0, scale: 0.94, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 20 }}
-            >
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setIsAddModalOpen(false)}
-              >
-                <X size={18} />
-              </button>
-
-              <div className="modal-header">
-                <span className="icon-pill"><UserPlus size={20} /></span>
-                <div>
-                  <span className="mono-label">TEAM EXPANSION</span>
-                  <h3>Add Team Member</h3>
-                </div>
-              </div>
-
-              <form onSubmit={handleAddEmployee} className="add-emp-form">
-                <div className="form-group">
-                  <label>Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Full Name"
-                    value={newEmp.name}
-                    onChange={(e) => setNewEmp({ ...newEmp, name: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Work Email</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="user@axon.workspace"
-                    value={newEmp.email}
-                    onChange={(e) => setNewEmp({ ...newEmp, email: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>GitHub Username</label>
-                  <div className="input-with-prefix">
-                    <span>@</span>
-                    <input
-                      type="text"
-                      required
-                      placeholder="github_username"
-                      value={newEmp.githubUsername}
-                      onChange={(e) => setNewEmp({ ...newEmp, githubUsername: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Role</label>
-                    <select
-                      value={newEmp.role}
-                      onChange={(e) => {
-                        const selected = ROLES_LIST.find((r) => r.name === e.target.value);
-                        setNewEmp({
-                          ...newEmp,
-                          role: e.target.value,
-                          department: selected ? selected.department : newEmp.department
-                        });
-                      }}
-                    >
-                      {ROLES_LIST.map((r) => (
-                        <option key={r.id} value={r.name}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Department</label>
-                    <select
-                      value={newEmp.department}
-                      onChange={(e) => setNewEmp({ ...newEmp, department: e.target.value })}
-                    >
-                      <option value="Engineering">Engineering</option>
-                      <option value="Leadership">Leadership</option>
-                      <option value="Marketing">Marketing</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-actions">
-                  <button
-                    type="button"
-                    className="button button--ghost"
-                    onClick={() => setIsAddModalOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="button button--lime">
-                    <Check size={16} />
-                    <span>Confirm &amp; Add Employee</span>
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Unique GitHub Member Invitation Modal */}
       <InviteMemberModal
