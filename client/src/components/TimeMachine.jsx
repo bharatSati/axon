@@ -363,7 +363,7 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
       <div className="tm-banner">
         <div className="tm-banner-left">
           <div className="mono-label tm-kicker-pill">
-            <History size={13} color="#a855f7" />
+            <History size={13} color="#c8ff3d" />
             <span>TIME MACHINE • EVOLUTION INTELLIGENCE</span>
           </div>
           <h2>Project Evolution &amp; Architectural Timeline</h2>
@@ -382,7 +382,7 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
               <span>{workspace?.repository?.defaultBranch || "main"}</span>
             </span>
             <span className="tm-meta-pill mono-label">
-              <GitCommit size={12} color="#a855f7" />
+              <GitCommit size={12} color="#c8ff3d" />
               <span>{commits.length} Historical Commits</span>
             </span>
           </div>
@@ -487,7 +487,7 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
             <div className="tm-commits-list">
               {loadingCommits ? (
                 <div className="tm-loading-state">
-                  <RefreshCw size={22} className="spin" color="#a855f7" />
+                  <RefreshCw size={22} className="spin" color="#c8ff3d" />
                   <span>Loading commit history...</span>
                 </div>
               ) : filteredCommits.length === 0 ? (
@@ -919,7 +919,7 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
               <div className="tm-stat-label mono-label">AUTH &amp; SECURITY REVISIONS</div>
             </div>
             <div className="tm-stat-box">
-              <div className="tm-stat-num" style={{ color: "#a855f7" }}>
+              <div className="tm-stat-num" style={{ color: "#c8ff3d" }}>
                 {evolutionData?.stats?.databaseRevisions || 0}
               </div>
               <div className="tm-stat-label mono-label">DATABASE SCHEMA UPDATES</div>
@@ -947,7 +947,7 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
               {[
                 { id: "ALL", label: "All Milestones" },
                 { id: "AUTH_SECURITY", label: "Auth & Security", color: "#ef4444" },
-                { id: "DATABASE", label: "Database Schema", color: "#a855f7" },
+                { id: "DATABASE", label: "Database Schema", color: "#c8ff3d" },
                 { id: "MODULE", label: "Service Modules", color: "#38bdf8" },
                 { id: "API", label: "API & Routes", color: "#10b981" },
                 { id: "DEPENDENCY", label: "Dependencies", color: "#f59e0b" }

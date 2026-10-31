@@ -59,7 +59,7 @@ const CHANNELS = [
     label: "Launch Email",
     subtitle: "High-Converting Newsletter",
     icon: Mail,
-    color: "#a855f7"
+    color: "#c8ff3d"
   },
   {
     id: "battlecard",

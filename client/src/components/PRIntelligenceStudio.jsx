@@ -237,7 +237,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
       <div className="pr-banner">
         <div className="pr-banner-left">
           <div className="mono-label pr-kicker-pill">
-            <GitPullRequest size={13} color="#c084fc" />
+            <GitPullRequest size={13} color="#c8ff3d" />
             <span>AI PULL REQUEST INTELLIGENCE &amp; CODE REVIEWER</span>
           </div>
           <h2>Pull Request Explainer &amp; Regression Intelligence</h2>
@@ -275,7 +275,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
         <aside className="pr-sidebar">
           <div className="pr-sidebar-header">
             <div className="pr-sidebar-title mono-label">
-              <GitPullRequest size={12} color="#c084fc" />
+              <GitPullRequest size={12} color="#c8ff3d" />
               <span>REPOSITORY PULL REQUESTS</span>
             </div>
 
@@ -314,7 +314,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
           <div className="pr-list-scroll">
             {loadingPrs ? (
               <div className="pr-loading-list mono-label">
-                <RefreshCw size={16} className="spin" color="#c084fc" />
+                <RefreshCw size={16} className="spin" color="#c8ff3d" />
                 <span>Loading pull requests...</span>
               </div>
             ) : pullRequests.length === 0 ? (
@@ -441,7 +441,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
               {analyzing ? (
                 <div className="pr-analyzing-card">
                   <div className="analyzing-halo">
-                    <RefreshCw size={28} className="spin" color="#c084fc" />
+                    <RefreshCw size={28} className="spin" color="#c8ff3d" />
                   </div>
                   <div>
                     <h4>Project Brain AI Auditor is Inspecting PR #{selectedPr.number}...</h4>
@@ -548,7 +548,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
                   className={`pr-subnav-tab ${activeTab === "chat" ? "is-active" : ""}`}
                   onClick={() => setActiveTab("chat")}
                 >
-                  <MessageSquare size={14} color="#c084fc" />
+                  <MessageSquare size={14} color="#c8ff3d" />
                   <span>5. Ask AI About This PR</span>
                 </button>
               </div>
@@ -587,7 +587,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
                         {/* Architecture Fit */}
                         <div className="explainer-card">
                           <div className="explainer-card-head mono-label">
-                            <Layers size={13} color="#c084fc" />
+                            <Layers size={13} color="#c8ff3d" />
                             <span>HOW DOES THIS FIT INTO EXISTING ARCHITECTURE?</span>
                           </div>
                           <p className="explainer-text">
@@ -631,7 +631,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
                       </div>
                     ) : (
                       <div className="pr-loading-pane mono-label">
-                        <RefreshCw size={24} className="spin" color="#c084fc" />
+                        <RefreshCw size={24} className="spin" color="#c8ff3d" />
                         <span>Generating simple PR explanation...</span>
                       </div>
                     )}
@@ -869,7 +869,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
                       </div>
                     ) : (
                       <div className="pr-loading-pane mono-label">
-                        <RefreshCw size={24} className="spin" color="#c084fc" />
+                        <RefreshCw size={24} className="spin" color="#c8ff3d" />
                         <span>Analyzing cross-module regression impact...</span>
                       </div>
                     )}
@@ -918,7 +918,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
                 {activeTab === "chat" && (
                   <div className="pr-chat-pane">
                     <div className="chat-intro-banner">
-                      <Sparkles size={16} color="#c084fc" />
+                      <Sparkles size={16} color="#c8ff3d" />
                       <div>
                         <h4>Ask Project Brain AI Anything About PR #{selectedPr.number}</h4>
                         <p className="mono-label">
@@ -982,7 +982,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
 
                       {askingChat && (
                         <div className="pr-chat-bubble pr-chat-bubble--ai is-thinking mono-label">
-                          <RefreshCw size={14} className="spin" color="#c084fc" />
+                          <RefreshCw size={14} className="spin" color="#c8ff3d" />
                           <span>Auditing codebase chunks and synthesizing response...</span>
                         </div>
                       )}
@@ -1025,7 +1025,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
           <div className="pr-custom-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <div className="mono-label modal-kicker">
-                <FileDiff size={14} color="#c084fc" />
+                <FileDiff size={14} color="#c8ff3d" />
                 <span>ANALYZE CUSTOM / BRANCH DIFF</span>
               </div>
               <button

@@ -64,7 +64,7 @@ const getLanguageColor = (lang) => {
     case "json":
       return "#f59e0b";
     case "markdown":
-      return "#a78bfa";
+      return "#979b91";
     case "python":
       return "#3776ab";
     case "go":
@@ -383,7 +383,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               className={`studio-mode-tab studio-mode-tab--tm ${studioMode === "timemachine" ? "is-active" : ""}`}
               onClick={() => setStudioMode("timemachine")}
             >
-              <History size={13} color={studioMode === "timemachine" ? "#a855f7" : "#888"} />
+              <History size={13} color={studioMode === "timemachine" ? "#c8ff3d" : "#888"} />
               <span>Time Machine</span>
             </button>
             <button
@@ -399,7 +399,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               className={`studio-mode-tab studio-mode-tab--pr ${studioMode === "pr-review" ? "is-active" : ""}`}
               onClick={() => setStudioMode("pr-review")}
             >
-              <GitPullRequest size={13} color={studioMode === "pr-review" ? "#c084fc" : "#888"} />
+              <GitPullRequest size={13} color={studioMode === "pr-review" ? "#c8ff3d" : "#888"} />
               <span>PR Reviewer</span>
             </button>
           </div>
@@ -522,7 +522,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                   >
                     <span className="file-icon">
                       {isDoc ? (
-                        <FileText size={14} color="#a78bfa" />
+                        <FileText size={14} color="#979b91" />
                       ) : isJs ? (
                         <FileCode size={14} color="#61dafb" />
                       ) : (

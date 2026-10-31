@@ -1087,7 +1087,7 @@ export default function CEODashboard() {
                   type="button"
                   className="button button--ghost button--small"
                   onClick={() => setPerspective("timemachine")}
-                  style={{ borderColor: "rgba(168, 85, 247, 0.4)", color: "#c084fc" }}
+                  style={{ borderColor: "rgba(200, 255, 61, 0.3)", color: "#c8ff3d" }}
                   title="Launch Time Machine for this workspace"
                 >
                   <History size={14} />
@@ -1978,7 +1978,7 @@ export default function CEODashboard() {
               <div className="ceo-section-card pending-invites-card">
                 <div className="ceo-section-head">
                   <div>
-                    <div className="mono-label kicker-pill" style={{ color: "#c084fc", marginBottom: "6px" }}>
+                    <div className="mono-label kicker-pill" style={{ color: "#c8ff3d", marginBottom: "6px" }}>
                       <Github size={12} />
                       UNIQUE INVITATION LINKS ACTIVE
                     </div>
