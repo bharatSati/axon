@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Code2,
   FileCode,
@@ -26,8 +25,7 @@ import {
   AlertCircle,
   X,
   ChevronUp,
-  Trash2,
-  Activity
+  Trash2
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import TimeMachine from "./TimeMachine";
@@ -35,28 +33,12 @@ import FlowchartStudio from "./FlowchartStudio";
 import PRIntelligenceStudio from "./PRIntelligenceStudio";
 import { API_BASE } from "../config/api.js";
 
-const CYBER_MODULES_INIT = [
-  { id: "core_init", name: "core_init", state: "Ready", type: "KERNEL_CORE", latency: "4.2ms", mem: "32 MB", desc: "Microkernel orchestration & system thread scheduler" },
-  { id: "data_block", name: "data_block", state: "Active", type: "STREAM_PIPE", latency: "11.8ms", mem: "128 MB", desc: "Dual-buffered AST streaming & token parser" },
-  { id: "render_buffer", name: "render_buffer", state: "Active", type: "GPU_SURFACE", latency: "16.6ms", mem: "64 MB", desc: "3D Perspective viewport & CRT rasterizer engine" },
-  { id: "node_vector", name: "node_vector", state: "Ready", type: "RAG_EMBED", latency: "21.4ms", mem: "96 MB", desc: "384-dimensional semantic code vector memory" },
-  { id: "io_stream", name: "io_stream", state: "Active", type: "DUPLEX_NET", latency: "9.5ms", mem: "48 MB", desc: "Live GitHub websocket & duplex telemetry pipe" }
-];
-
-const SYSTEM_STATUS_INIT = [
-  { id: "boot_seq", name: "Boot sequence", state: "Ready", metric: "100% OK", desc: "Core OS microkernel verified & locked" },
-  { id: "render_buf", name: "Render buffer", state: "Active", metric: "60.0 FPS", desc: "DirectWebGL 3D surface composition" },
-  { id: "input_ch", name: "Input channel", state: "Active", metric: "1000 Hz", desc: "Low-latency keyboard & cursor interrupt" },
-  { id: "mem_block", name: "Memory block", state: "Ready", metric: "418 MB / 1024 MB", desc: "Volatile heap RAM partition allocated" },
-  { id: "session_lp", name: "Session loop", state: "Active", metric: "Δ 16.6ms", desc: "Frame sync locked with zero drift" }
-];
-
 const BRAIN_ACTIONS = [
-  { id: "explain", label: "🧠 Architecture & Data Flow", icon: Sparkles, desc: "Deep architectural role, inputs, outputs, and design pattern analysis" },
-  { id: "dependencies", label: "🔍 Dependencies & Callers", icon: Layers, desc: "Inspect internal modules, downstream callers, and external packages" },
-  { id: "security", label: "🛡️ Security & Edge Cases", icon: ShieldAlert, desc: "Identify vulnerability risks, sanitization gaps, and failure modes" },
-  { id: "optimize", label: "⚡ Performance & Latency", icon: Zap, desc: "Algorithmic complexity, memory footprint, and optimization tips" },
-  { id: "tests", label: "🧪 Unit Tests & Mocks", icon: TestTube, desc: "Comprehensive Jest/Vitest unit tests with realistic edge cases" }
+  { id: "explain", label: "Architecture & Data Flow", icon: Sparkles, desc: "Deep architectural role, inputs, outputs, and design pattern analysis" },
+  { id: "dependencies", label: "Dependencies & Callers", icon: Layers, desc: "Inspect internal modules, downstream callers, and external packages" },
+  { id: "security", label: "Security & Edge Cases", icon: ShieldAlert, desc: "Identify vulnerability risks, sanitization gaps, and failure modes" },
+  { id: "optimize", label: "Performance & Latency", icon: Zap, desc: "Algorithmic complexity, memory footprint, and optimization tips" },
+  { id: "tests", label: "Unit Tests & Mocks", icon: TestTube, desc: "Comprehensive Jest/Vitest unit tests with realistic edge cases" }
 ];
 
 const getLanguageColor = (lang) => {
@@ -85,7 +67,7 @@ const getLanguageColor = (lang) => {
 };
 
 /**
- * Fast & robust bright cyberpunk syntax highlighter for code buffers.
+ * Fast & clean syntax highlighter for code buffers.
  * Escapes HTML and tokenizes keywords, strings, functions, comments, numbers, types.
  */
 function highlightSyntax(code) {
@@ -162,90 +144,10 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   const [showSelectionHud, setShowSelectionHud] = useState(false);
   const [hudCoords, setHudCoords] = useState({ top: 0, left: 0 });
 
-  const codePreRef = useRef(null);
   const codeViewerRef = useRef(null);
   const findInputRef = useRef(null);
-  const terminalChassisRef = useRef(null);
 
-  // 3D Cyberpunk Terminal State
-  const [crtEnabled, setCrtEnabled] = useState(false);
-  const [tiltEnabled, setTiltEnabled] = useState(false);
-  const [mouseTilt, setMouseTilt] = useState({ x: 0, y: 0 });
-  const [timeStr, setTimeStr] = useState("");
-  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
-  const [activeNav, setActiveNav] = useState("MAIN"); // "MAIN" | "FILES" | "SYSTEM" | "MENU"
-  const [showNavMenu, setShowNavMenu] = useState(false);
-  const [rightSidebarTab, setRightSidebarTab] = useState("modules"); // "modules" | "status" | "brain"
-  const [modulesList, setModulesList] = useState(CYBER_MODULES_INIT);
-  const [systemStatusList, setSystemStatusList] = useState(SYSTEM_STATUS_INIT);
-  const [memoryUsage, setMemoryUsage] = useState({ used: 418, total: 1024 });
-
-  // Digital Clock Live Stream
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const pad = (n) => String(n).padStart(2, "0");
-      const h = pad(now.getUTCHours());
-      const m = pad(now.getUTCMinutes());
-      const s = pad(now.getUTCSeconds());
-      setTimeStr(`${h}:${m}:${s} UTC`);
-    };
-    updateTime();
-    const clockInterval = setInterval(updateTime, 1000);
-    return () => clearInterval(clockInterval);
-  }, []);
-
-  // Online / Offline Network Telemetry
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  // Realistic Memory Usage Telemetry Loop
-  useEffect(() => {
-    const memInterval = setInterval(() => {
-      setMemoryUsage((prev) => {
-        const delta = (Math.random() - 0.48) * 3;
-        const nextUsed = Math.min(620, Math.max(380, Math.round(prev.used + delta)));
-        return { used: nextUsed, total: 1024 };
-      });
-    }, 4500);
-    return () => clearInterval(memInterval);
-  }, []);
-
-  // 3D Chassis Mouse Tilt Calculator (Smooth & Non-blocking)
-  const handleMouseMove = (e) => {
-    if (!tiltEnabled || !terminalChassisRef.current) return;
-    const rect = terminalChassisRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setMouseTilt({
-      x: Number((-(y * 2.0)).toFixed(2)),
-      y: Number(((x * 2.0)).toFixed(2))
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setMouseTilt({ x: 0, y: 0 });
-  };
-
-  const toggleModuleState = (modId) => {
-    setModulesList((prev) =>
-      prev.map((m) => {
-        if (m.id !== modId) return m;
-        const nextState = m.state === "Ready" ? "Active" : m.state === "Active" ? "Error" : "Ready";
-        return { ...m, state: nextState };
-      })
-    );
-  };
-
-  // Global Keyboard Shortcuts (e.g. Cmd+F / Ctrl+F for Find, Esc to close)
+  // Global Keyboard Shortcuts (Cmd+F / Ctrl+F for Find, Esc to close)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
@@ -377,7 +279,6 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     setActiveMatchIdx(nextIdx);
     setActiveLine(findMatches[nextIdx]);
 
-    // Smooth scroll to line
     if (codeViewerRef.current) {
       const lineTarget = findMatches[nextIdx];
       const lineEl = document.getElementById(`code-line-${lineTarget}`);
@@ -523,7 +424,6 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     const text = selection ? selection.toString().trim() : "";
     if (text && text.length > 5) {
       setSelectedSnippet(text);
-      // Position floating HUD near cursor
       const rect = codeViewerRef.current?.getBoundingClientRect();
       if (rect) {
         setShowSelectionHud(true);
@@ -561,14 +461,14 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   if (!hasRepo) {
     return (
       <div className="developer-studio-container" style={{ padding: "40px 20px", display: "grid", placeItems: "center" }}>
-        <div style={{ maxWidth: "560px", textAlign: "center", background: "#0a0c0a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "48px 32px" }}>
+        <div style={{ maxWidth: "560px", textAlign: "center", background: "#0a0c0e", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "48px 32px" }}>
           <div style={{ width: "64px", height: "64px", borderRadius: "16px", background: "rgba(200, 255, 61, 0.1)", display: "grid", placeItems: "center", margin: "0 auto 20px" }}>
             <FolderGit2 size={32} color="#c8ff3d" />
           </div>
           <h2 style={{ fontSize: "22px", fontWeight: 700, color: "#fff", marginBottom: "10px" }}>
             No GitHub Repository Connected
           </h2>
-          <p style={{ color: "#9ca3af", fontSize: "14px", lineHeight: 1.6, marginBottom: "28px" }}>
+          <p style={{ color: "#94a3b8", fontSize: "14px", lineHeight: 1.6, marginBottom: "28px" }}>
             Developer Studio streams real repository source code directly from GitHub. Connect your GitHub repository to browse files, inspect functions, and unleash Project Brain.
           </p>
           <button
@@ -587,300 +487,100 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
 
   return (
     <div className="developer-studio-container">
-      {/* Subtle CRT Monitor Scanlines Effect */}
-      {crtEnabled && <div className="cyber-crt-scanlines" aria-hidden="true" />}
-
-      {/* 3D Perspective Terminal Chassis */}
-      <div
-        className="cyber-terminal-chassis"
-        ref={terminalChassisRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        style={{
-          transform: tiltEnabled
-            ? `perspective(1200px) rotateX(${mouseTilt.x}deg) rotateY(${mouseTilt.y}deg)`
-            : "none"
-        }}
-      >
-        {/* ============================================================
-            1. TOP STATUS BAR (CORE TERMINAL, SYS STATUS, MEMORY, CLOCK)
-            ============================================================ */}
-        <div className="cyber-top-statusbar">
-          <div className="cyber-status-left">
-            <div className="cyber-system-brand">
-              <span className="cyber-brand-marker">▲</span>
-              <span className="cyber-brand-title">CORE TERMINAL</span>
-              <span className="cyber-brand-ver">AXON_OS // v3.4</span>
-            </div>
-
-            {/* Online/Offline indicator */}
-            <div className={`cyber-online-badge ${isOnline ? "is-online" : "is-offline"}`}>
-              <span className="cyber-pulse-dot" />
-              <span>{isOnline ? "SYS: ONLINE" : "SYS: OFFLINE"}</span>
-            </div>
-
-            {/* Operating Mode */}
-            <div className="cyber-mode-badge mono-label">
-              <span className="cyber-tag-dim">MODE:</span>
-              <span className="cyber-mode-text">DEV_KERNEL</span>
-            </div>
-
-            {/* Memory Usage Meter */}
-            <div className="cyber-memory-badge mono-label" title="Dynamic RAM telemetry">
-              <span className="cyber-tag-dim">MEM:</span>
-              <span className="cyber-mem-val">{memoryUsage.used} MB / {memoryUsage.total} MB</span>
-              <div className="cyber-mem-meter-bar">
-                <div
-                  className="cyber-mem-fill"
-                  style={{ width: `${((memoryUsage.used / memoryUsage.total) * 100).toFixed(0)}%` }}
-                />
-              </div>
-            </div>
+      {/* ============================================================
+          TOP STUDIO HEADER (CLEAN AXON DASHBOARD BAR)
+          ============================================================ */}
+      <div className="studio-top-header">
+        <div className="studio-top-left">
+          {/* Repository Badge */}
+          <div className="studio-repo-badge mono-label">
+            <Github size={13} color="#c8ff3d" />
+            <span className="studio-repo-name">{workspace.repository.fullName || workspace.repository.name}</span>
+            <span className="studio-branch-tag">:{workspace.repository.defaultBranch || "main"}</span>
+            {isLiveGitHub && (
+              <span className="studio-live-pill" title="Live stream from GitHub API">
+                <span className="studio-live-dot" /> LIVE
+              </span>
+            )}
           </div>
 
-          <div className="cyber-status-right">
-            {/* Live Digital Clock */}
-            <div className="cyber-clock-display mono-label">
-              <span className="cyber-clock-icon">⏱</span>
-              <span>{timeStr || "00:00:00 UTC"}</span>
-            </div>
-
-            {/* CRT Scanline Toggle */}
+          {/* Perspective Mode Switcher */}
+          <div className="studio-mode-switcher">
             <button
               type="button"
-              className={`cyber-toggle-btn ${crtEnabled ? "is-active" : ""}`}
-              onClick={() => setCrtEnabled((c) => !c)}
-              title="Toggle CRT Monitor Scanlines Effect"
+              className={`studio-mode-tab ${studioMode === "editor" ? "is-active" : ""}`}
+              onClick={() => setStudioMode("editor")}
             >
-              CRT: {crtEnabled ? "ON" : "OFF"}
+              <Code2 size={13} />
+              <span>Editor</span>
             </button>
-
-            {/* 3D Tilt Toggle */}
             <button
               type="button"
-              className={`cyber-toggle-btn ${tiltEnabled ? "is-active" : ""}`}
-              onClick={() => {
-                setTiltEnabled((t) => !t);
-                if (tiltEnabled) setMouseTilt({ x: 0, y: 0 });
-              }}
-              title="Toggle 3D Perspective Mouse Tilt"
+              className={`studio-mode-tab ${studioMode === "timemachine" ? "is-active" : ""}`}
+              onClick={() => setStudioMode("timemachine")}
             >
-              3D: {tiltEnabled ? "ON" : "OFF"}
+              <History size={13} />
+              <span>Revisions</span>
             </button>
-
-            {/* Sync GitHub */}
             <button
               type="button"
-              className="cyber-action-btn"
-              onClick={fetchFiles}
-              title="Refresh repository files live from GitHub"
+              className={`studio-mode-tab ${studioMode === "flowchart" ? "is-active" : ""}`}
+              onClick={() => setStudioMode("flowchart")}
             >
-              <RefreshCw size={12} className={loadingFiles ? "spin" : ""} />
-              <span>SYNC REPO</span>
+              <Palette size={13} />
+              <span>Flowcharts</span>
+            </button>
+            <button
+              type="button"
+              className={`studio-mode-tab ${studioMode === "pr-review" ? "is-active" : ""}`}
+              onClick={() => setStudioMode("pr-review")}
+            >
+              <GitPullRequest size={13} />
+              <span>PR Review</span>
             </button>
           </div>
         </div>
 
-        {/* ============================================================
-            2. NAVIGATION BAR (MAIN, FILES, SYSTEM, MENU)
-            ============================================================ */}
-        <div className="cyber-navbar">
-          <div className="cyber-nav-left">
-            <button
-              type="button"
-              className={`cyber-nav-btn ${activeNav === "MAIN" && studioMode === "editor" ? "is-active" : ""}`}
-              onClick={() => {
-                setActiveNav("MAIN");
-                setStudioMode("editor");
-                setIsMaximized(false);
-              }}
-            >
-              <span className="cyber-btn-corner" />
-              <span className="cyber-nav-text">MAIN</span>
-            </button>
+        <div className="studio-top-right">
+          {/* Quick In-File Search */}
+          <button
+            type="button"
+            className={`studio-action-btn ${findOpen ? "is-active" : ""}`}
+            onClick={() => {
+              setFindOpen((o) => !o);
+              if (!findOpen) setTimeout(() => findInputRef.current?.focus(), 50);
+            }}
+            title="Find in active file (Ctrl+F)"
+          >
+            <Search size={13} />
+            <span>Find</span>
+          </button>
 
-            <button
-              type="button"
-              className={`cyber-nav-btn ${activeNav === "FILES" && studioMode === "editor" ? "is-active" : ""}`}
-              onClick={() => {
-                setActiveNav("FILES");
-                setStudioMode("editor");
-                setIsMaximized(false);
-              }}
-            >
-              <span className="cyber-btn-corner" />
-              <span className="cyber-nav-text">FILES</span>
-              <span className="cyber-nav-badge">{files.length}</span>
-            </button>
+          {/* Refresh / Sync Repo */}
+          <button
+            type="button"
+            className="studio-action-btn"
+            onClick={fetchFiles}
+            title="Refresh repository files live from GitHub"
+          >
+            <RefreshCw size={13} className={loadingFiles ? "spin" : ""} />
+            <span>Sync</span>
+          </button>
 
-            <button
-              type="button"
-              className={`cyber-nav-btn ${activeNav === "SYSTEM" && studioMode === "editor" ? "is-active" : ""}`}
-              onClick={() => {
-                setActiveNav("SYSTEM");
-                setStudioMode("editor");
-                setIsMaximized(false);
-                setRightSidebarTab("status");
-              }}
-            >
-              <span className="cyber-btn-corner" />
-              <span className="cyber-nav-text">SYSTEM</span>
-              <span className="cyber-nav-badge-green">ONLINE</span>
-            </button>
-
-            <div className="cyber-nav-menu-wrapper" style={{ position: "relative" }}>
-              <button
-                type="button"
-                className={`cyber-nav-btn ${showNavMenu || studioMode !== "editor" ? "is-active" : ""}`}
-                onClick={() => setShowNavMenu((m) => !m)}
-              >
-                <span className="cyber-btn-corner" />
-                <span className="cyber-nav-text">MENU</span>
-                <ChevronDown size={11} className={showNavMenu ? "rotate-180" : ""} />
-              </button>
-
-              {/* Futuristic Menu Dropdown */}
-              {showNavMenu && (
-                <div className="cyber-menu-dropdown">
-                  <div className="cyber-menu-heading mono-label">// SELECT PERSPECTIVE MODE</div>
-                  <button
-                    type="button"
-                    className={`cyber-menu-item ${studioMode === "editor" ? "is-active" : ""}`}
-                    onClick={() => {
-                      setStudioMode("editor");
-                      setActiveNav("MAIN");
-                      setShowNavMenu(false);
-                    }}
-                  >
-                    <Code2 size={13} color="#00FF66" />
-                    <span>Code Terminal (Core Editor)</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`cyber-menu-item ${studioMode === "timemachine" ? "is-active" : ""}`}
-                    onClick={() => {
-                      setStudioMode("timemachine");
-                      setShowNavMenu(false);
-                    }}
-                  >
-                    <History size={13} color="#00FF66" />
-                    <span>Time Machine (Commit Revisions)</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`cyber-menu-item ${studioMode === "flowchart" ? "is-active" : ""}`}
-                    onClick={() => {
-                      setStudioMode("flowchart");
-                      setShowNavMenu(false);
-                    }}
-                  >
-                    <Palette size={13} color="#00FF66" />
-                    <span>Architecture Flowcharts</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`cyber-menu-item ${studioMode === "pr-review" ? "is-active" : ""}`}
-                    onClick={() => {
-                      setStudioMode("pr-review");
-                      setShowNavMenu(false);
-                    }}
-                  >
-                    <GitPullRequest size={13} color="#00FF66" />
-                    <span>PR Reviewer Intelligence</span>
-                  </button>
-                  <div className="cyber-menu-divider" />
-                  <button
-                    type="button"
-                    className="cyber-menu-item"
-                    onClick={() => {
-                      setIsMaximized((m) => !m);
-                      setShowNavMenu(false);
-                    }}
-                  >
-                    {isMaximized ? <Minimize2 size={13} color="#00FF66" /> : <Maximize2 size={13} color="#00FF66" />}
-                    <span>{isMaximized ? "Exit Focus Mode" : "Focus / Fullscreen View"}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Perspective Switcher */}
-            <div className="studio-mode-switcher">
-              <button
-                type="button"
-                className={`studio-mode-tab ${studioMode === "editor" ? "is-active" : ""}`}
-                onClick={() => setStudioMode("editor")}
-              >
-                <Code2 size={12} />
-                <span>Editor</span>
-              </button>
-              <button
-                type="button"
-                className={`studio-mode-tab studio-mode-tab--tm ${studioMode === "timemachine" ? "is-active" : ""}`}
-                onClick={() => setStudioMode("timemachine")}
-              >
-                <History size={12} color={studioMode === "timemachine" ? "#00FF66" : "#888"} />
-                <span>Revisions</span>
-              </button>
-              <button
-                type="button"
-                className={`studio-mode-tab studio-mode-tab--flow ${studioMode === "flowchart" ? "is-active" : ""}`}
-                onClick={() => setStudioMode("flowchart")}
-              >
-                <Palette size={12} color={studioMode === "flowchart" ? "#00FF66" : "#888"} />
-                <span>Flowcharts</span>
-              </button>
-              <button
-                type="button"
-                className={`studio-mode-tab studio-mode-tab--pr ${studioMode === "pr-review" ? "is-active" : ""}`}
-                onClick={() => setStudioMode("pr-review")}
-              >
-                <GitPullRequest size={12} color={studioMode === "pr-review" ? "#00FF66" : "#888"} />
-                <span>PR Review</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="cyber-nav-right">
-            <div className="cyber-repo-pill mono-label">
-              <Github size={12} color="#00FF66" />
-              <span className="cyber-repo-name">{workspace.repository.fullName || workspace.repository.name}</span>
-              <span className="cyber-branch-tag">:{workspace.repository.defaultBranch || "main"}</span>
-              {isLiveGitHub && (
-                <span className="live-github-pill" title="Live stream from GitHub API">
-                  <span className="live-dot" /> LIVE
-                </span>
-              )}
-            </div>
-
-            {/* Quick In-File Search */}
-            <button
-              type="button"
-              className={`cyber-rect-btn ${findOpen ? "is-active" : ""}`}
-              onClick={() => {
-                setFindOpen((o) => !o);
-                if (!findOpen) setTimeout(() => findInputRef.current?.focus(), 50);
-              }}
-              title="Find in active file (Ctrl+F)"
-            >
-              <Search size={12} />
-              <span>FIND</span>
-            </button>
-
-            {/* Quick Focus Mode toggle */}
-            <button
-              type="button"
-              className={`cyber-rect-btn ${isMaximized ? "is-active" : ""}`}
-              onClick={() => setIsMaximized((m) => !m)}
-              title={isMaximized ? "Exit Focus Mode" : "Focus / Fullscreen View"}
-            >
-              {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-              <span>{isMaximized ? "RESTORE" : "FOCUS"}</span>
-            </button>
-          </div>
+          {/* Focus Mode Toggle */}
+          <button
+            type="button"
+            className={`studio-action-btn ${isMaximized ? "is-active" : ""}`}
+            onClick={() => setIsMaximized((m) => !m)}
+            title={isMaximized ? "Exit Focus Mode" : "Focus View (Collapse sidebars)"}
+          >
+            {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            <span>{isMaximized ? "Restore" : "Focus"}</span>
+          </button>
         </div>
+      </div>
 
-      {/* Main Studio Work Area / Time Machine / Flowchart / PR Review Switcher */}
+      {/* Main Studio Work Area / Perspective Switcher */}
       {studioMode === "timemachine" ? (
         <TimeMachine
           workspace={workspace}
@@ -900,7 +600,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
       ) : (
         <div className={`studio-workarea ${isMaximized ? "is-maximized" : ""}`}>
           {/* ============================================================
-              PANE 1: FILE EXPLORER / TREE (Hidden in Focus Mode)
+              PANE 1: FILE EXPLORER / TREE
               ============================================================ */}
           <div className="studio-pane studio-filetree-pane">
             <div className="pane-header">
@@ -956,7 +656,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               {loadingFiles ? (
                 <div className="filetree-loading">
                   <RefreshCw size={18} className="spin text-lime" />
-                  <span>Fetching live GitHub tree...</span>
+                  <span>Fetching repository files...</span>
                 </div>
               ) : filteredFiles.length === 0 ? (
                 <div className="filetree-empty">No matching files found.</div>
@@ -977,7 +677,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                       <div className="filetree-item-top">
                         <span className="file-icon">
                           {isDoc ? (
-                            <FileText size={13} color="#979b91" />
+                            <FileText size={13} color="#94a3b8" />
                           ) : isJs ? (
                             <FileCode size={13} color="#c8ff3d" />
                           ) : (
@@ -1000,7 +700,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
           </div>
 
           {/* ============================================================
-              PANE 2: EXPANDED CODE EDITOR & INTERACTIVE BRAIN PROMPT BAR
+              PANE 2: EXPANDED CODE EDITOR & BRAIN PROMPT BAR
               ============================================================ */}
           <div className="studio-pane studio-editor-pane">
             {/* Tab Bar */}
@@ -1015,7 +715,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                     className={`editor-tab ${isActive ? "is-active" : ""}`}
                     onClick={() => handleOpenFile(path)}
                   >
-                    <FileCode size={13} color={isActive ? "#c8ff3d" : "#888"} />
+                    <FileCode size={13} color={isActive ? "#c8ff3d" : "#94a3b8"} />
                     <span className="tab-title">{fileObj ? fileObj.name : path}</span>
                     {activeTabFiles.length > 1 && (
                       <button
@@ -1119,7 +819,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
             )}
 
             {/* ============================================================
-                INTERACTIVE BRAIN PROMPT & SELECTION COMMAND BAR
+                BRAIN PROMPT & SELECTION COMMAND BAR
                 ============================================================ */}
             <div className="brain-selection-bar">
               {/* Action Mode Preset Selector */}
@@ -1149,8 +849,8 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                   className="brain-prompt-input"
                   placeholder={
                     selectedSnippet
-                      ? `Ask Brain about highlighted snippet (${selectedSnippet.length} chars, e.g. "Optimize this", "Find bugs")...`
-                      : `Ask Brain custom prompt for ${activeFile ? activeFile.name : "code"}... (or press Enter)`
+                      ? `Ask Brain about highlighted snippet (${selectedSnippet.length} chars)...`
+                      : `Ask Brain about ${activeFile ? activeFile.name : "code"}... (or press Enter)`
                   }
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
@@ -1198,7 +898,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
             </div>
 
             {/* ============================================================
-                EXPANDED CODE VIEWER VIEWPORT (UNIFIED SINGLE SCROLL CONTAINER)
+                EXPANDED CODE VIEWER VIEWPORT (HIGH READABILITY)
                 ============================================================ */}
             <div
               className="code-viewer-container"
@@ -1262,11 +962,11 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
 
               {loadingFileContent ? (
                 <div className="code-editor-empty">
-                  <RefreshCw size={32} className="spin text-lime" />
-                  <p style={{ color: "#00FF66", fontWeight: 700, marginTop: "12px", fontSize: "15px", textShadow: "0 0 10px rgba(0, 255, 102, 0.5)" }}>
-                    Streaming buffer live from GitHub...
+                  <RefreshCw size={28} className="spin text-lime" />
+                  <p style={{ color: "#f1f5f9", fontWeight: 600, marginTop: "12px", fontSize: "14px" }}>
+                    Loading file content...
                   </p>
-                  <span className="mono-label" style={{ color: "rgba(0, 255, 102, 0.7)", fontSize: "12px" }}>
+                  <span className="mono-label" style={{ color: "#94a3b8", fontSize: "12px" }}>
                     {activeFile?.path}
                   </span>
                 </div>
@@ -1304,20 +1004,16 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                         </div>
                       );
                     })}
-                    <div className="code-cursor-indicator mono-label">
-                      <span className="code-line-num" style={{ visibility: "hidden" }}>0</span>
-                      <span className="cyber-terminal-cursor">█</span>
-                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="code-editor-empty">
-                  <Code2 size={44} color="#00FF66" style={{ filter: "drop-shadow(0 0 12px #00FF66)" }} />
-                  <p style={{ fontSize: "16px", color: "#00FF66", fontWeight: 700, textShadow: "0 0 10px rgba(0,255,102,0.4)" }}>
-                    CORE TERMINAL BUFFER READY
+                  <Code2 size={36} color="#64748b" />
+                  <p style={{ fontSize: "15px", color: "#f1f5f9", fontWeight: 600 }}>
+                    Select a file to inspect code
                   </p>
-                  <p style={{ fontSize: "13px", color: "#86efac", marginTop: "-6px" }}>
-                    Select any repository file from the Explorer on the left to inspect AST &amp; code
+                  <p style={{ fontSize: "13px", color: "#94a3b8", marginTop: "-4px" }}>
+                    Choose any repository file from the Explorer on the left
                   </p>
                 </div>
               )}
@@ -1364,7 +1060,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               <div className="editor-status-right">
                 {/* Font Size Adjuster Controls */}
                 <div className="font-size-controls" title="Adjust Code Font Size">
-                  <span style={{ fontSize: "10px", color: "#666" }}>FONT:</span>
+                  <span style={{ fontSize: "10px", color: "#94a3b8" }}>FONT:</span>
                   <button
                     type="button"
                     className="font-btn"
@@ -1399,350 +1095,182 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                   type="button"
                   className={`status-btn focus-btn ${isMaximized ? "is-active" : ""}`}
                   onClick={() => setIsMaximized((m) => !m)}
-                  title={isMaximized ? "Restore sidebars" : "Focus / Fullscreen Mode (collapse sidebars)"}
+                  title={isMaximized ? "Restore sidebars" : "Focus Mode (collapse sidebars)"}
                 >
                   {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-                  <span>{isMaximized ? "Exit Focus" : "Focus View"}</span>
+                  <span>{isMaximized ? "Exit Focus" : "Focus"}</span>
                 </button>
               </div>
             </div>
           </div>
 
           {/* ============================================================
-              PANE 3: CYBER RIGHT SIDEBAR (MODULES, SYSTEM STATUS, BRAIN)
+              PANE 3: PROJECT BRAIN (AI ARCHITECTURE & CODE INTELLIGENCE)
               ============================================================ */}
-          <div className="studio-pane studio-cyber-sidebar-pane">
-            <div className="pane-header cyber-sidebar-header">
-              <div className="cyber-sidebar-tabs">
-                <button
-                  type="button"
-                  className={`cyber-side-tab ${rightSidebarTab === "modules" ? "is-active" : ""}`}
-                  onClick={() => setRightSidebarTab("modules")}
-                  title="Hardware & Subsystem Modules"
-                >
-                  <Layers size={12} />
-                  <span>MODULES</span>
-                  <span className="cyber-tab-badge">5</span>
-                </button>
-                <button
-                  type="button"
-                  className={`cyber-side-tab ${rightSidebarTab === "status" ? "is-active" : ""}`}
-                  onClick={() => setRightSidebarTab("status")}
-                  title="Real-Time System Diagnostics"
-                >
-                  <Activity size={12} />
-                  <span>SYSTEM STATUS</span>
-                  <span className="cyber-tab-badge-green">OK</span>
-                </button>
-                <button
-                  type="button"
-                  className={`cyber-side-tab ${rightSidebarTab === "brain" ? "is-active" : ""}`}
-                  onClick={() => setRightSidebarTab("brain")}
-                  title="Project Brain Vector Intelligence"
-                >
-                  <Sparkles size={12} />
-                  <span>PROJECT BRAIN</span>
-                </button>
+          <div className="studio-pane studio-brain-pane">
+            <div className="pane-header brain-pane-header">
+              <div className="pane-title">
+                <Sparkles size={14} color="#c8ff3d" />
+                <span>PROJECT BRAIN</span>
               </div>
-
-              {rightSidebarTab === "brain" && chatThread.length > 1 && (
-                <button
-                  type="button"
-                  className="brain-clear-chat-btn"
-                  onClick={() => setChatThread([])}
-                  title="Clear analysis thread"
-                >
-                  <Trash2 size={12} />
-                </button>
-              )}
+              <div className="brain-header-right">
+                <span className="brain-provider-pill">Groq • Llama 3.3</span>
+                {chatThread.length > 0 && (
+                  <button
+                    type="button"
+                    className="brain-clear-chat-btn"
+                    onClick={() => {
+                      setChatThread([]);
+                      setBrainAnalysis(null);
+                    }}
+                    title="Clear analysis thread"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* TAB CONTENT 1: MODULES PANEL */}
-            {rightSidebarTab === "modules" && (
-              <div className="cyber-modules-panel">
-                <div className="cyber-panel-legend mono-label">
-                  <span>// CORE HARDWARE &amp; LOGIC MODULES</span>
-                  <span className="text-dim">TOTAL: {modulesList.length}</span>
+            <div className="brain-pane-body">
+              {/* Active Mode Info Card */}
+              <div className="brain-mode-card">
+                <div className="brain-mode-header">
+                  <currentActionObj.icon size={14} color="#c8ff3d" />
+                  <strong>{currentActionObj.label}</strong>
                 </div>
-
-                <div className="cyber-modules-list">
-                  {modulesList.map((mod) => (
-                    <div key={mod.id} className="cyber-module-card">
-                      <div className="mod-card-top">
-                        <div className="mod-title-group">
-                          <span className="mod-accent-mark">›</span>
-                          <span className="mod-name mono-label">{mod.name}</span>
-                          <span className="mod-type-tag mono-label">{mod.type}</span>
-                        </div>
-                        <button
-                          type="button"
-                          className={`mod-status-indicator state-${mod.state.toLowerCase()}`}
-                          onClick={() => toggleModuleState(mod.id)}
-                          title={`Click to cycle module state (Current: ${mod.state})`}
-                        >
-                          <span className="status-dot" />
-                          <span className="status-text">{mod.state}</span>
-                        </button>
-                      </div>
-
-                      <p className="mod-desc">{mod.desc}</p>
-
-                      <div className="mod-telemetry-row mono-label">
-                        <span className="mod-stat">
-                          <span className="stat-label">LATENCY:</span> {mod.latency}
-                        </span>
-                        <span className="mod-stat">
-                          <span className="stat-label">ALLOC:</span> {mod.mem}
-                        </span>
-                        <button
-                          type="button"
-                          className="mod-ping-btn"
-                          onClick={() => {
-                            setModulesList((prev) =>
-                              prev.map((m) =>
-                                m.id === mod.id
-                                  ? { ...m, latency: `${(Math.random() * 5 + 3).toFixed(1)}ms` }
-                                  : m
-                              )
-                            );
-                          }}
-                          title="Ping module to refresh latency"
-                        >
-                          PING
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Subsystem Summary Footer */}
-                <div className="cyber-subsystem-footer mono-label">
-                  <div className="footer-stat">
-                    <span>ACTIVE BUFFER:</span>
-                    <strong className="text-lime">0x8F4A</strong>
-                  </div>
-                  <div className="footer-stat">
-                    <span>BUS LOAD:</span>
-                    <strong className="text-lime">14.2%</strong>
-                  </div>
-                </div>
+                <p>{currentActionObj.desc}</p>
               </div>
-            )}
 
-            {/* TAB CONTENT 2: SYSTEM STATUS PANEL */}
-            {rightSidebarTab === "status" && (
-              <div className="cyber-status-panel">
-                <div className="cyber-panel-legend mono-label">
-                  <span>// SUBSYSTEM HEALTH &amp; TELEMETRY</span>
-                  <span className="text-lime">KERNEL: v3.4.19</span>
-                </div>
-
-                <div className="cyber-system-status-list">
-                  {systemStatusList.map((item) => (
-                    <div key={item.id} className="cyber-status-row">
-                      <div className="status-row-left">
-                        <div className="status-indicator-pill">
-                          <span className={`status-glow-dot dot-${item.state.toLowerCase()}`} />
-                        </div>
-                        <div className="status-text-meta">
-                          <span className="status-item-name">{item.name}</span>
-                          <span className="status-item-desc">{item.desc}</span>
-                        </div>
-                      </div>
-                      <div className="status-row-right">
-                        <span className={`status-metric-badge badge-${item.state.toLowerCase()} mono-label`}>
-                          {item.state === "Ready" ? "READY" : item.state === "Active" ? "ACTIVE" : "ERROR"}
-                        </span>
-                        <span className="status-sub-metric mono-label">{item.metric}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Hardware Telemetry Gauges */}
-                <div className="cyber-gauges-section">
-                  <span className="cyber-gauge-title mono-label">DYNAMIC HARDWARE UTILIZATION</span>
-
-                  <div className="cyber-gauge-item">
-                    <div className="gauge-label-row mono-label">
-                      <span>VOLATILE RAM ALLOCATION</span>
-                      <span className="text-lime">{memoryUsage.used} MB / {memoryUsage.total} MB</span>
-                    </div>
-                    <div className="cyber-gauge-track">
-                      <div
-                        className="cyber-gauge-bar bar-lime"
-                        style={{ width: `${((memoryUsage.used / memoryUsage.total) * 100).toFixed(0)}%` }}
-                      />
-                    </div>
+              {/* Single Smooth Scroll Analysis Output Container */}
+              <div className="brain-analysis-output">
+                {isInspecting ? (
+                  <div className="brain-inspecting-state">
+                    <RefreshCw size={24} className="spin text-lime" />
+                    <h4>Project Brain is Analyzing...</h4>
+                    <p>Synthesizing code architecture and repository context.</p>
                   </div>
-
-                  <div className="cyber-gauge-item">
-                    <div className="gauge-label-row mono-label">
-                      <span>PIPELINE INSTRUCTION LOAD</span>
-                      <span className="text-cyan">34.8% • 4.2 GHz</span>
-                    </div>
-                    <div className="cyber-gauge-track">
-                      <div className="cyber-gauge-bar bar-cyan" style={{ width: "35%" }} />
-                    </div>
-                  </div>
-
-                  <div className="cyber-gauge-item">
-                    <div className="gauge-label-row mono-label">
-                      <span>PACKET DUPLEX STABILITY</span>
-                      <span className="text-lime">99.98% • TLS 1.3</span>
-                    </div>
-                    <div className="cyber-gauge-track">
-                      <div className="cyber-gauge-bar bar-lime" style={{ width: "99.8%" }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB CONTENT 3: PROJECT BRAIN INTELLIGENCE */}
-            {rightSidebarTab === "brain" && (
-              <div className="brain-pane-body">
-                {/* Active Mode Info Card */}
-                <div className="brain-mode-card">
-                  <div className="brain-mode-header">
-                    <currentActionObj.icon size={15} color="#00FF66" />
-                    <strong>{currentActionObj.label}</strong>
-                  </div>
-                  <p>{currentActionObj.desc}</p>
-                </div>
-
-                {/* Single Smooth Scroll Analysis Output Container */}
-                <div className="brain-analysis-output">
-                  {isInspecting ? (
-                    <div className="brain-inspecting-state">
-                      <RefreshCw size={26} className="spin text-lime" />
-                      <h4>Project Brain is Analyzing...</h4>
-                      <p>Synthesizing code architecture with Groq &amp; RAG vector chunks.</p>
-                    </div>
-                  ) : chatThread.length > 0 ? (
-                    <div className="brain-messages-stream">
-                      {chatThread.map((turn, tIdx) => (
-                        <div key={turn.id || tIdx} className="brain-chat-turn">
-                          <div className="analysis-header-row">
-                            <span className="mono-label turn-title">
-                              <Sparkles size={11} className="text-lime" />
-                              {turn.prompt}
-                              <span className="turn-timestamp">{turn.timestamp}</span>
-                            </span>
-                            <button
-                              type="button"
-                              className="copy-analysis-btn"
-                              onClick={() => handleCopyAnalysis(turn.analysis)}
-                            >
-                              <Copy size={12} />
-                              <span>Copy</span>
-                            </button>
-                          </div>
-
-                          <div className="analysis-content-markdown">
-                            <FormattedAIResponse content={turn.analysis} />
-                          </div>
-
-                          {/* Related RAG Knowledge Chunks */}
-                          {turn.relevantChunks && turn.relevantChunks.length > 0 && (
-                            <div className="related-chunks-section">
-                              <span className="mono-label related-chunks-title">
-                                RELATED REPOSITORY CONTEXT:
-                              </span>
-                              {turn.relevantChunks.map((chunk, i) => (
-                                <div key={i} className="related-chunk-card">
-                                  <div className="chunk-card-top">
-                                    <span className="chunk-file">📄 {chunk.filePath}</span>
-                                    <span className="chunk-score mono-label">
-                                      {Math.round(chunk.score * 100)}% match
-                                    </span>
-                                  </div>
-                                  {chunk.title && <div className="chunk-title">{chunk.title}</div>}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                ) : chatThread.length > 0 ? (
+                  <div className="brain-messages-stream">
+                    {chatThread.map((turn, tIdx) => (
+                      <div key={turn.id || tIdx} className="brain-chat-turn">
+                        <div className="analysis-header-row">
+                          <span className="turn-title">
+                            <Sparkles size={12} color="#c8ff3d" />
+                            {turn.prompt}
+                            <span className="turn-timestamp">{turn.timestamp}</span>
+                          </span>
+                          <button
+                            type="button"
+                            className="copy-analysis-btn"
+                            onClick={() => handleCopyAnalysis(turn.analysis)}
+                          >
+                            <Copy size={12} />
+                            <span>Copy</span>
+                          </button>
                         </div>
-                      ))}
-                    </div>
-                  ) : brainAnalysis ? (
-                    <>
-                      <div className="analysis-header-row">
-                        <span className="mono-label turn-title">
-                          <Sparkles size={11} className="text-lime" />
-                          AI CODE ANALYSIS
-                        </span>
-                        <button
-                          type="button"
-                          className="copy-analysis-btn"
-                          onClick={() => handleCopyAnalysis(brainAnalysis.analysis)}
-                        >
-                          {copiedAnalysis ? <Check size={12} color="#00FF66" /> : <Copy size={12} />}
-                          <span>{copiedAnalysis ? "Copied" : "Copy"}</span>
-                        </button>
-                      </div>
 
-                      {brainAnalysis.error ? (
-                        <div className="analysis-error-box">
-                          <AlertCircle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
-                          <div>
-                            <strong style={{ display: "block", marginBottom: "4px", color: "#fca5a5" }}>
-                              AI Service Notice:
-                            </strong>
-                            <span>{brainAnalysis.error}</span>
-                          </div>
-                        </div>
-                      ) : (
                         <div className="analysis-content-markdown">
-                          <FormattedAIResponse content={brainAnalysis.analysis} />
+                          <FormattedAIResponse content={turn.analysis} />
                         </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="brain-empty-state">
-                      <Sparkles size={24} color="#666" />
-                      <p>Click "Ask Brain" or type a custom prompt to inspect this file's architecture or highlight any code snippet.</p>
-                    </div>
-                  )}
-                </div>
 
-                {/* Interactive Ask Follow-up Bar */}
-                <div className="brain-followup-bar">
-                  <div className="followup-input-wrap">
-                    <input
-                      type="text"
-                      placeholder="Ask follow-up question to Brain..."
-                      value={customPrompt}
-                      onChange={(e) => setCustomPrompt(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && customPrompt.trim()) {
-                          handleInspectCode("explain", undefined, customPrompt.trim());
-                          setCustomPrompt("");
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="followup-send-btn"
-                      onClick={() => {
-                        if (customPrompt.trim()) {
-                          handleInspectCode("explain", undefined, customPrompt.trim());
-                          setCustomPrompt("");
-                        }
-                      }}
-                      disabled={isInspecting || !customPrompt.trim()}
-                      title="Send to Brain"
-                    >
-                      <Send size={13} />
-                    </button>
+                        {/* Related RAG Knowledge Chunks */}
+                        {turn.relevantChunks && turn.relevantChunks.length > 0 && (
+                          <div className="related-chunks-section">
+                            <span className="mono-label related-chunks-title">
+                              RELATED REPOSITORY CONTEXT:
+                            </span>
+                            {turn.relevantChunks.map((chunk, i) => (
+                              <div key={i} className="related-chunk-card">
+                                <div className="chunk-card-top">
+                                  <span className="chunk-file">📄 {chunk.filePath}</span>
+                                  <span className="chunk-score mono-label">
+                                    {Math.round(chunk.score * 100)}% match
+                                  </span>
+                                </div>
+                                {chunk.title && <div className="chunk-title">{chunk.title}</div>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
+                ) : brainAnalysis ? (
+                  <>
+                    <div className="analysis-header-row">
+                      <span className="turn-title">
+                        <Sparkles size={12} color="#c8ff3d" />
+                        AI CODE ANALYSIS
+                      </span>
+                      <button
+                        type="button"
+                        className="copy-analysis-btn"
+                        onClick={() => handleCopyAnalysis(brainAnalysis.analysis)}
+                      >
+                        {copiedAnalysis ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
+                        <span>{copiedAnalysis ? "Copied" : "Copy"}</span>
+                      </button>
+                    </div>
+
+                    {brainAnalysis.error ? (
+                      <div className="analysis-error-box">
+                        <AlertCircle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                        <div>
+                          <strong style={{ display: "block", marginBottom: "4px", color: "#fca5a5" }}>
+                            AI Service Notice:
+                          </strong>
+                          <span>{brainAnalysis.error}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="analysis-content-markdown">
+                        <FormattedAIResponse content={brainAnalysis.analysis} />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="brain-empty-state">
+                    <Sparkles size={24} color="#64748b" />
+                    <p>Click "Ask Brain" or type a prompt below to analyze this file or inspect selected code.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Interactive Ask Follow-up Bar */}
+              <div className="brain-followup-bar">
+                <div className="followup-input-wrap">
+                  <input
+                    type="text"
+                    placeholder="Ask follow-up question to Brain..."
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && customPrompt.trim()) {
+                        handleInspectCode("explain", undefined, customPrompt.trim());
+                        setCustomPrompt("");
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="followup-send-btn"
+                    onClick={() => {
+                      if (customPrompt.trim()) {
+                        handleInspectCode("explain", undefined, customPrompt.trim());
+                        setCustomPrompt("");
+                      }
+                    }}
+                    disabled={isInspecting || !customPrompt.trim()}
+                    title="Send question to Brain"
+                  >
+                    <Send size={13} />
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
