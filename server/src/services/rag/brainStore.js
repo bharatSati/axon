@@ -4,8 +4,17 @@ import { getDBStatus } from "../../db/connection.js";
 import { buildVectorIndex } from "./vectorEngine.js";
 import { getEmbeddingModelInfo } from "./embeddingService.js";
 
-// In-memory cache for sub-millisecond retrieval
+// Bounded in-memory cache (max 2 active workspaces) to protect Render 512MB RAM limit
+const MAX_CACHED_WORKSPACES = 2;
 const memoryCache = new Map();
+
+function setBoundedCache(key, value) {
+  if (memoryCache.size >= MAX_CACHED_WORKSPACES && !memoryCache.has(key)) {
+    const oldestKey = memoryCache.keys().next().value;
+    if (oldestKey) memoryCache.delete(oldestKey);
+  }
+  memoryCache.set(key, value);
+}
 
 /**
  * Save complete brain knowledge base to MongoDB and in-memory cache
@@ -22,7 +31,7 @@ export const saveBrainKnowledgeBase = async (workspaceId, { overview, chunks, in
     vectorDimensions: modelInfo.dimensions
   };
 
-  // 1. Cache in memory for ultra-fast vector / BM25 queries
+  // 1. Cache in memory (bounded to 2 workspaces) for ultra-fast vector / BM25 queries
   const payload = {
     metadata,
     documents,
@@ -30,7 +39,7 @@ export const saveBrainKnowledgeBase = async (workspaceId, { overview, chunks, in
     indexData,
     cachedAt: Date.now()
   };
-  memoryCache.set(workspaceId, payload);
+  setBoundedCache(workspaceId, payload);
 
   // 2. Persist directly to MongoDB BrainKnowledge collection
   try {
@@ -78,7 +87,7 @@ export const loadBrainKnowledgeBase = async (workspaceId) => {
           indexData: doc.indexData,
           cachedAt: Date.now()
         };
-        memoryCache.set(workspaceId, data);
+        setBoundedCache(workspaceId, data);
         return data;
       }
     }

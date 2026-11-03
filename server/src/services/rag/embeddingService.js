@@ -60,8 +60,8 @@ export const generateEmbedding = async (text = "") => {
 
   try {
     const extractor = await getExtractor();
-    // Truncate to maximum sequence length (~512 tokens) to avoid ONNX index errors
-    const inputSample = sanitized.substring(0, 2000);
+    // Truncate to maximum sequence length (~256 tokens) to avoid ONNX index errors and memory bloat
+    const inputSample = sanitized.substring(0, 1000);
     const output = await extractor(inputSample, { pooling: "mean", normalize: true });
 
     // Convert Float32Array to standard JavaScript array of numbers
@@ -75,14 +75,14 @@ export const generateEmbedding = async (text = "") => {
 /**
  * Generates normalized 384-dimensional embeddings for an array of text strings in batches
  */
-export const generateBatchEmbeddings = async (texts = [], { batchSize = 16 } = {}) => {
+export const generateBatchEmbeddings = async (texts = [], { batchSize = 4 } = {}) => {
   if (!texts || texts.length === 0) return [];
 
   const embeddings = [];
 
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
-    const sanitizedBatch = batch.map((t) => (t || "").trim().substring(0, 2000) || "empty");
+    const sanitizedBatch = batch.map((t) => (t || "").trim().substring(0, 1000) || "empty");
 
     try {
       const extractor = await getExtractor();
