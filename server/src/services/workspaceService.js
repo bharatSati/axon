@@ -451,3 +451,55 @@ async function triggerBrainIndexingAsync(workspaceId, repo, userIdOrToken) {
     }
   }
 }
+
+/**
+ * Re-indexes a workspace's connected repository into Project Brain
+ */
+export const reindexWorkspaceBrain = async (workspaceId, userIdOrToken) => {
+  const ws = await getWorkspaceById(workspaceId);
+  if (!ws) {
+    throw new Error("Workspace not found.");
+  }
+  if (!ws.repository || !ws.repository.name) {
+    throw new Error("No repository connected to this workspace.");
+  }
+
+  const updateFields = {
+    updatedAt: new Date().toISOString(),
+    brain: {
+      status: "indexing",
+      message: "Re-indexing Project Brain: Extracting code, documentation, and commits...",
+      stats: {
+        totalFiles: 0,
+        totalChunks: 0,
+        totalCommits: 0,
+        techStack: []
+      }
+    }
+  };
+
+  try {
+    if (getDBStatus().isConnected) {
+      await Workspace.findOneAndUpdate(
+        { id: workspaceId },
+        { $set: updateFields }
+      );
+    }
+  } catch (err) {
+    console.warn("MongoDB reindex update notice:", err.message);
+  }
+
+  const memWs = memoryWorkspaces.find((w) => w.id === workspaceId);
+  if (memWs) {
+    Object.assign(memWs, updateFields);
+  }
+
+  // Kick off indexing in background
+  triggerBrainIndexingAsync(workspaceId, ws.repository, userIdOrToken);
+
+  return {
+    success: true,
+    message: `Re-indexing initiated for ${ws.repository.fullName || ws.repository.name}.`,
+    workspace: { ...ws, ...updateFields }
+  };
+};

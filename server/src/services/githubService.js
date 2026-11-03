@@ -1,10 +1,4 @@
 import { getUserGitHubToken } from "../controllers/authController.js";
-import path from "path";
-import fs from "fs/promises";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(__dirname, "../../..");
 
 const GITHUB_API = "https://api.github.com";
 
@@ -25,7 +19,7 @@ const mapRepoObject = (r) => ({
   updatedAt: r.updated_at
 });
 
-// Helper to make authenticated GitHub requests
+// Helper to make authenticated GitHub requests with automatic fallback on expired/invalid token
 const fetchFromGitHub = async (endpoint, token) => {
   const headers = {
     Accept: "application/vnd.github.v3+json",
@@ -38,7 +32,28 @@ const fetchFromGitHub = async (endpoint, token) => {
 
   const res = await fetch(`${GITHUB_API}${endpoint}`, { headers });
   if (!res.ok) {
+    // If token is invalid or expired (401), retry unauthenticated for public repositories
+    if (res.status === 401 && token) {
+      console.warn(`[GitHub API] Token expired or invalid (401) on ${endpoint}. Retrying unauthenticated...`);
+      const unauthHeaders = {
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "Axon-Intelligent-Workspace"
+      };
+      const retryRes = await fetch(`${GITHUB_API}${endpoint}`, { headers: unauthHeaders });
+      if (retryRes.ok) {
+        return retryRes.json();
+      }
+      const retryError = await retryRes.text();
+      if (retryRes.status === 403 && retryError.includes("rate limit")) {
+        throw new Error(`GitHub API rate limit exceeded (403). Please log in with GitHub again to refresh your personal access token.`);
+      }
+      throw new Error(`GitHub API Error [${retryRes.status}]: ${retryError}`);
+    }
+
     const errorText = await res.text();
+    if (res.status === 403 && errorText.includes("rate limit")) {
+      throw new Error(`GitHub API rate limit exceeded (403). Please log in with GitHub again to refresh your personal access token.`);
+    }
     throw new Error(`GitHub API Error [${res.status}]: ${errorText}`);
   }
   return res.json();
@@ -163,33 +178,76 @@ export const fetchRepositoryData = async (userIdOrToken, owner, repoName, defaul
     }
 
     // 3. Fetch Git Trees (Recursive)
-    const branchToUse = repoContext.metadata.defaultBranch || defaultBranch;
+    let branchToUse = repoContext.metadata.defaultBranch || defaultBranch || "main";
     let treeData = null;
     try {
       treeData = await fetchFromGitHub(`/repos/${owner}/${repoName}/git/trees/${branchToUse}?recursive=1`, token);
-      repoContext.tree = (treeData.tree || [])
-        .filter((item) => item.type === "blob")
-        .map((item) => ({ path: item.path, size: item.size, sha: item.sha }));
     } catch (e) {
-      console.warn("Could not fetch recursive git tree:", e.message);
+      console.warn(`Could not fetch git tree for branch ${branchToUse}:`, e.message);
+      // Fallback try alternate common branch name (master <-> main)
+      const altBranch = branchToUse === "main" ? "master" : "main";
+      try {
+        treeData = await fetchFromGitHub(`/repos/${owner}/${repoName}/git/trees/${altBranch}?recursive=1`, token);
+        branchToUse = altBranch;
+        repoContext.metadata.defaultBranch = altBranch;
+      } catch (altErr) {
+        console.warn(`Could not fetch alternate branch tree ${altBranch}:`, altErr.message);
+      }
     }
 
-    // 4. Identify & Fetch High-Signal Engineering Files
+    if (treeData && Array.isArray(treeData.tree)) {
+      repoContext.tree = treeData.tree
+        .filter((item) => item.type === "blob")
+        .map((item) => ({ path: item.path, size: item.size, sha: item.sha }));
+    }
+
+    // 4. Identify & Fetch High-Signal Engineering Files in Parallel Batches
     const highSignalPaths = selectHighSignalFiles(repoContext.tree);
-    for (const filePath of highSignalPaths.slice(0, 40)) {
-      try {
-        const fileContentData = await fetchFromGitHub(`/repos/${owner}/${repoName}/contents/${filePath}?ref=${branchToUse}`, token);
-        if (fileContentData && fileContentData.content) {
-          const decodedContent = Buffer.from(fileContentData.content, "base64").toString("utf-8");
-          repoContext.files.push({
-            path: filePath,
-            size: fileContentData.size,
-            content: decodedContent,
-            sha: fileContentData.sha
-          });
+    const pathsToFetch = highSignalPaths.slice(0, 40);
+
+    const BATCH_SIZE = 6;
+    for (let i = 0; i < pathsToFetch.length; i += BATCH_SIZE) {
+      const batch = pathsToFetch.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (filePath) => {
+          // 1. Try fast raw.githubusercontent.com first (zero API quota consumption)
+          try {
+            const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branchToUse}/${filePath}`;
+            const rawRes = await fetch(rawUrl, {
+              headers: { "User-Agent": "Axon-Intelligent-Workspace" }
+            });
+            if (rawRes.ok) {
+              const content = await rawRes.text();
+              return {
+                path: filePath,
+                size: content.length,
+                content,
+                sha: `raw_${filePath.replace(/[^a-zA-Z0-9]/g, "_")}`
+              };
+            }
+          } catch (e) {
+            // continue to REST API fallback
+          }
+
+          // 2. Fallback to GitHub REST API (handles private repos with token)
+          const fileContentData = await fetchFromGitHub(`/repos/${owner}/${repoName}/contents/${filePath}?ref=${branchToUse}`, token);
+          if (fileContentData && fileContentData.content) {
+            const decodedContent = Buffer.from(fileContentData.content, "base64").toString("utf-8");
+            return {
+              path: filePath,
+              size: fileContentData.size || decodedContent.length,
+              content: decodedContent,
+              sha: fileContentData.sha
+            };
+          }
+          return null;
+        })
+      );
+
+      for (const res of results) {
+        if (res.status === "fulfilled" && res.value) {
+          repoContext.files.push(res.value);
         }
-      } catch (err) {
-        console.warn(`Could not fetch file content for ${filePath}:`, err.message);
       }
     }
 
@@ -302,15 +360,14 @@ export const fetchRepositoryData = async (userIdOrToken, owner, repoName, defaul
       // Releases might be empty
     }
 
-    // If files array is empty (e.g. rate limit or sparse repo), supplement with local project structure
-    if (repoContext.files.length === 0) {
-      return getLocalOrSyntheticRepoData(owner, repoName, defaultBranch);
+    if (repoContext.files.length === 0 && repoContext.tree.length === 0) {
+      throw new Error(`Could not access repository tree or files for ${owner}/${repoName}. Ensure the repository exists, is accessible, and has code.`);
     }
 
     return repoContext;
   } catch (err) {
     console.error(`Repository ingestion error for ${owner}/${repoName}:`, err.message);
-    return getLocalOrSyntheticRepoData(owner, repoName, defaultBranch);
+    throw err;
   }
 };
 
@@ -352,83 +409,4 @@ function selectHighSignalFiles(treeList = []) {
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
     .map((item) => item.path);
-}
-
-/**
- * Generates high-fidelity local engineering context based on current workspace
- */
-async function getLocalOrSyntheticRepoData(owner, repoName, defaultBranch) {
-  const repoData = {
-    metadata: {
-      owner,
-      name: repoName,
-      fullName: `${owner}/${repoName}`,
-      defaultBranch,
-      description: "Modular software workspace and distributed client-server platform",
-      stars: 32,
-      forks: 8,
-      fetchedAt: new Date().toISOString()
-    },
-    languages: { JavaScript: 65400, CSS: 24200, HTML: 4300 },
-    tree: [],
-    files: [],
-    commits: [
-      { sha: "7b41e8a", message: "feat: setup Axon client-server architecture with GitHub OAuth", author: owner, date: "2026-10-31T09:00:00Z" },
-      { sha: "3a92f1b", message: "feat: integrate modular Project Brain RAG knowledge base", author: owner, date: "2026-10-31T08:30:00Z" },
-      { sha: "8c12d4e", message: "refactor: decouple frontend and backend API service boundaries", author: owner, date: "2026-10-30T17:20:00Z" },
-      { sha: "5f83b2a", message: "perf: optimize vector cosine similarity search engine with all-MiniLM-L6-v2", author: owner, date: "2026-10-29T14:10:00Z" }
-    ],
-    commitComments: [
-      { id: 101, commitId: "3a92f1b", body: "Architecture note: ensure persistent MongoDB caching for zero-cold-start RAG retrieval.", author: owner, createdAt: "2026-10-31T08:45:00Z" }
-    ],
-    pullRequests: [
-      { number: 1, title: "Implement Multi-Workspace State & GitHub OAuth Repository Ingestion", state: "closed", user: owner, mergedAt: "2026-10-31T09:15:00Z", body: "Introduced strict multi-tenant workspace isolation and token authentication." },
-      { number: 2, title: "Add Project Brain hybrid BM25 and Vector Cosine Indexing", state: "open", user: owner, createdAt: "2026-10-31T09:30:00Z", body: "Upgraded retrieval with dense embeddings and document ingestion (PDF, DOCX, TXT)." }
-    ],
-    pullRequestComments: [
-      { id: 201, pullRequestUrl: "PR #2", body: "Ensure all-MiniLM-L6-v2 runs locally with ONNX Runtime to avoid external API dependencies.", author: owner, createdAt: "2026-10-31T09:40:00Z" }
-    ],
-    discussions: [
-      { number: 10, title: "RAG Pipeline Architectural Specification: Local Embeddings & MongoDB Atlas", body: "Consensus reached to use all-MiniLM-L6-v2 (384d) embedded natively into MongoDB without introducing any third-party vector DB.", state: "closed", author: owner, labels: ["architecture", "rag", "database"] },
-      { number: 11, title: "Multi-Format Document Support (PDF, DOCX, TXT)", body: "Enabled users to ingest PRDs, API schemas, and architecture manuals directly into Project Brain.", state: "open", author: owner, labels: ["feature", "ingestion"] }
-    ],
-    releases: [
-      { id: 1, tagName: "v1.0.0", name: "Axon Intelligence Engine v1.0.0", body: "Initial launch of Axon with 6 specialized studios and persistent Project Brain.", publishedAt: "2026-10-31T12:00:00Z", author: owner }
-    ]
-  };
-
-  // Attempt to read local files from disk (docs, manifests, source code)
-  try {
-    const filesToRead = [
-      { path: "README.md", fullPath: path.resolve(projectRoot, "README.md") },
-      { path: "docs/PROJECT_OVERVIEW.md", fullPath: path.resolve(projectRoot, "docs/PROJECT_OVERVIEW.md") },
-      { path: "docs/ARCHITECTURE.md", fullPath: path.resolve(projectRoot, "docs/ARCHITECTURE.md") },
-      { path: "docs/API_REFERENCE.md", fullPath: path.resolve(projectRoot, "docs/API_REFERENCE.md") },
-      { path: "package.json", fullPath: path.resolve(projectRoot, "package.json") },
-      { path: "server/src/index.js", fullPath: path.resolve(projectRoot, "server/src/index.js") },
-      { path: "server/src/routes/workspace.js", fullPath: path.resolve(projectRoot, "server/src/routes/workspace.js") },
-      { path: "client/src/App.jsx", fullPath: path.resolve(projectRoot, "client/src/App.jsx") },
-      { path: "client/src/components/CommandCenter.jsx", fullPath: path.resolve(projectRoot, "client/src/components/CommandCenter.jsx") },
-      { path: "client/src/components/Bento.jsx", fullPath: path.resolve(projectRoot, "client/src/components/Bento.jsx") }
-    ];
-
-    for (const file of filesToRead) {
-      try {
-        const content = await fs.readFile(file.fullPath, "utf-8");
-        repoData.files.push({
-          path: file.path,
-          size: content.length,
-          content,
-          sha: `sha_${Math.random().toString(36).substring(2, 9)}`
-        });
-        repoData.tree.push({ path: file.path, size: content.length });
-      } catch (e) {
-        // file doesn't exist locally, continue
-      }
-    }
-  } catch (err) {
-    console.warn("Could not load local files into synthetic repo data:", err.message);
-  }
-
-  return repoData;
 }

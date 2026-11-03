@@ -496,6 +496,58 @@ export default function CEODashboard() {
     }
   };
 
+  const handleReindexBrain = async (wsId = activeWorkspaceId) => {
+    if (!wsId) return;
+    try {
+      showNotification("Initiating Project Brain re-indexing...");
+      const res = await fetch(`${API_BASE}/workspaces/${wsId}/brain/reindex`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.workspace) {
+        setWorkspaces((prev) =>
+          prev.map((w) => (w.id === data.workspace.id ? { ...w, ...data.workspace } : w))
+        );
+        showNotification(data.message || "Project Brain re-indexing initiated!");
+      } else {
+        showNotification(data.error || "Failed to trigger re-indexing.");
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification("Failed to trigger re-indexing.");
+    }
+  };
+
+  // Auto-poll workspace indexing status if active workspace is currently indexing
+  useEffect(() => {
+    if (!activeWorkspaceId || activeWorkspace?.brain?.status !== "indexing") return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/workspaces/${activeWorkspaceId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const ws = data.workspace;
+          if (ws && ws.brain?.status !== "indexing") {
+            setWorkspaces((prev) =>
+              prev.map((w) => (w.id === ws.id ? ws : w))
+            );
+          }
+        }
+      } catch (err) {
+        // silent retry
+      }
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [activeWorkspaceId, activeWorkspace?.brain?.status, token]);
+
   // ==========================================
   // 4. PROJECT BRAIN (RAG + GROQ) EXPLORER & DOC INGESTION
   // ==========================================
@@ -1125,6 +1177,7 @@ export default function CEODashboard() {
               onEditWorkspace={openEditWorkspaceModal}
               onDeleteWorkspace={handleDeleteWorkspace}
               onDisconnectRepo={handleDisconnectRepository}
+              onReindexBrain={handleReindexBrain}
               employeeCount={employees.length}
               workspaceCount={workspaces.length}
               roleConfig={roleConfig}

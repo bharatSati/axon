@@ -8,6 +8,7 @@ import {
   deleteWorkspace,
   connectRepository,
   disconnectRepository,
+  reindexBrainHandler,
   getBrainStatusHandler,
   queryBrainHandler,
   askBrainHandler,
@@ -75,6 +76,7 @@ router.delete("/:id/repository", authenticateToken, disconnectRepository);
 
 // Project Brain (RAG Knowledge Base)
 router.get("/:id/brain/status", authenticateToken, getBrainStatusHandler);
+router.post("/:id/brain/reindex", authenticateToken, reindexBrainHandler);
 router.post("/:id/brain/query", authenticateToken, queryBrainHandler);
 router.post("/:id/brain/ask", authenticateToken, askBrainHandler);
 router.get("/:id/brain/chunks", authenticateToken, getBrainKnowledgeChunks);

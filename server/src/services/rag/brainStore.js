@@ -1,4 +1,5 @@
 import { BrainKnowledge } from "../../models/BrainKnowledge.js";
+import { Workspace } from "../../models/Workspace.js";
 import { getDBStatus } from "../../db/connection.js";
 import { buildVectorIndex } from "./vectorEngine.js";
 import { getEmbeddingModelInfo } from "./embeddingService.js";
@@ -183,6 +184,23 @@ export const getBrainStatus = async (workspaceId) => {
   const modelInfo = getEmbeddingModelInfo();
 
   if (!data) {
+    try {
+      if (getDBStatus().isConnected) {
+        const ws = await Workspace.findOne({ id: workspaceId }).lean();
+        if (ws?.brain?.status === "indexing" || ws?.brain?.status === "error") {
+          return {
+            status: ws.brain.status,
+            hasBrain: false,
+            message: ws.brain.message || ws.brain.error || "Project Brain indexing in progress...",
+            stats: ws.brain.stats || { totalFiles: 0, totalChunks: 0, totalCommits: 0, techStack: [] },
+            embeddingEngine: modelInfo
+          };
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+
     return {
       status: "uninitialized",
       hasBrain: false,

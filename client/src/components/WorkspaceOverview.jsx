@@ -145,6 +145,7 @@ export default function WorkspaceOverview({
   onEditWorkspace,
   onDeleteWorkspace,
   onDisconnectRepo,
+  onReindexBrain,
   employeeCount = 0,
   workspaceCount = 0,
   roleConfig
@@ -207,6 +208,18 @@ export default function WorkspaceOverview({
         </div>
 
         <div className="ov-head-actions">
+          {repo && (
+            <button
+              type="button"
+              className="ov-btn ov-btn--quiet"
+              onClick={() => onReindexBrain?.(workspace.id)}
+              disabled={brainStatus === "indexing"}
+              title="Re-index repository into Project Brain"
+            >
+              <RefreshCw size={14} className={brainStatus === "indexing" ? "animate-spin" : ""} />
+              {brainStatus === "indexing" ? "Indexing..." : "Re-index brain"}
+            </button>
+          )}
           <button type="button" className="ov-btn ov-btn--quiet" onClick={() => onEditWorkspace?.(workspace)}>
             <Edit3 size={15} />
             Settings
@@ -240,7 +253,9 @@ export default function WorkspaceOverview({
           <strong className="ov-stat-status">
             <StatusBadge status={brainStatus} />
           </strong>
-          <span className="ov-stat-hint">Retrieval engine status</span>
+          <span className="ov-stat-hint" title={workspace.brain?.error || ""}>
+            {workspace.brain?.error ? workspace.brain.error.slice(0, 40) + "..." : "Retrieval engine status"}
+          </span>
         </div>
       </div>
 

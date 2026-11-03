@@ -132,6 +132,17 @@ export const disconnectRepository = async (req, res) => {
   }
 };
 
+export const reindexBrainHandler = async (req, res) => {
+  try {
+    const workspaceId = req.params.id;
+    const userIdOrToken = req.user?.githubToken || req.user?.id || req.user?.username || null;
+    const result = await workspaceService.reindexWorkspaceBrain(workspaceId, userIdOrToken);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 // ==========================================
 // 3. WORKSPACE-WISE PROJECT BRAIN (RAG)
 // ==========================================
