@@ -31,7 +31,10 @@ const STOP_WORDS = new Set([
 export const tokenizeCodeAware = (text = "") => {
   if (!text) return [];
 
-  const rawTokens = text
+  // Split camelCase boundaries (e.g. handleLinkRedirect -> handle Link Redirect) before lowering
+  const camelSplit = text.replace(/([a-z])([A-Z])/g, "$1 $2");
+
+  const rawTokens = camelSplit
     .toLowerCase()
     .replace(/[^\w\s-]/g, " ")
     .split(/\s+/);
