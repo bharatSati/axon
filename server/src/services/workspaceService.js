@@ -93,17 +93,38 @@ export const listWorkspaces = async (user) => {
     ];
   }
 
-  return userWorkspaces.map((ws) => ({
-    id: ws.id,
-    name: ws.name,
-    description: ws.description,
-    createdAt: ws.createdAt,
-    updatedAt: ws.updatedAt,
-    hasRepository: !!ws.repository,
-    repository: ws.repository || null,
-    brain: ws.brain || { status: "uninitialized" },
-    members: ws.members || []
-  }));
+  return Promise.all(
+    userWorkspaces.map(async (ws) => {
+      let brain = ws.brain || { status: "uninitialized" };
+      if (ws.repository) {
+        try {
+          const liveBrain = await getBrainStatus(ws.id);
+          if (liveBrain.hasBrain) {
+            brain = {
+              status: "ready",
+              lastIndexedAt: liveBrain.lastIndexedAt,
+              stats: liveBrain.stats,
+              overview: liveBrain.overview
+            };
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      return {
+        id: ws.id,
+        name: ws.name,
+        description: ws.description,
+        createdAt: ws.createdAt,
+        updatedAt: ws.updatedAt,
+        hasRepository: !!ws.repository,
+        repository: ws.repository || null,
+        brain,
+        members: ws.members || []
+      };
+    })
+  );
 };
 
 /**
