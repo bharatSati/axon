@@ -10,227 +10,7 @@ import path from "path";
 const GITHUB_API = "https://api.github.com";
 
 /**
- * Standard realistic repository-tailored PRs for immediate exploration
- * if repository currently has no open PRs on GitHub.
- */
-const SAMPLE_PULL_REQUESTS = [
-  {
-    number: 42,
-    title: "feat(auth): migrate to JWT refresh tokens & strict CORS origin validation",
-    state: "open",
-    draft: false,
-    author: {
-      login: "alex-security",
-      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face"
-    },
-    baseBranch: "main",
-    headBranch: "feat/jwt-refresh-rotation",
-    createdAt: new Date(Date.now() - 3600000 * 14).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    additions: 142,
-    deletions: 38,
-    changedFilesCount: 3,
-    body: `### Description
-This PR upgrades our single-token JWT authentication flow to a rotating refresh token architecture with strict CORS origin verification.
-
-### Changes Included:
-- Introduces \`refreshToken\` schema in User model with 7-day expiration.
-- Adds \`/api/auth/refresh\` endpoint with token rotation.
-- Updates \`authenticateToken\` middleware with automatic expiry detection.
-- Replaces wildcard CORS with dynamic whitelist check.`,
-    files: [
-      {
-        filename: "server/src/middleware/auth.js",
-        status: "modified",
-        additions: 48,
-        deletions: 12,
-        patch: `@@ -4,15 +4,42 @@ export const authenticateToken = (req, res, next) => {
-   const authHeader = req.headers["authorization"];
-   const token = (authHeader && authHeader.split(" ")[1]) || req.query.token;
- 
-   if (!token) {
--    return res.status(401).json({ error: "Access denied. Strictly GitHub authentication required." });
-+    return res.status(401).json({ error: "Access denied. Token missing." });
-   }
- 
-   try {
--    const decoded = jwt.verify(token, config.jwtSecret);
-+    // Potential bug: ignoring token expiration check on dev environments
-+    const decoded = jwt.decode(token);
-+    if (process.env.NODE_ENV !== "production") {
-+      req.user = decoded;
-+      return next();
-+    }
-+    const verified = jwt.verify(token, config.jwtSecret);
-     req.user = decoded;
-     next();
-   } catch (err) {
-+    // Missing error differentiation between TokenExpiredError and JsonWebTokenError
-     return res.status(403).json({ error: "Invalid or expired session token." });
-   }
- };`
-      },
-      {
-        filename: "server/src/controllers/authController.js",
-        status: "modified",
-        additions: 64,
-        deletions: 16,
-        patch: `@@ -120,6 +120,38 @@ export const handleGitHubCallback = async (req, res) => {
-   } catch (err) {
-     return res.redirect(\`\${config.clientUrl}?auth_error=\${encodeURIComponent(err.message)}\`);
-   }
-+};
-+
-+export const refreshSessionToken = async (req, res) => {
-+  const { refreshToken } = req.body;
-+  // Potential security vulnerability: Missing rate limiting on refresh endpoint
-+  if (!refreshToken) {
-+    return res.status(400).json({ error: "Refresh token is required" });
-+  }
-+  try {
-+    const user = await User.findOne({ refreshToken });
-+    // Potential race condition: Token rotation does not invalidate old token inside a transaction
-+    if (!user) {
-+      return res.status(403).json({ error: "Invalid refresh token" });
-+    }
-+    const newAccessToken = jwt.sign({ id: user._id, role: user.role }, config.jwtSecret, { expiresIn: "15m" });
-+    const newRefreshToken = crypto.randomBytes(40).toString("hex");
-+    user.refreshToken = newRefreshToken;
-+    await user.save();
-+    res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
-+  } catch (err) {
-+    res.status(500).json({ error: err.message });
-+  }
- };`
-      },
-      {
-        filename: "client/src/context/AuthContext.jsx",
-        status: "modified",
-        additions: 30,
-        deletions: 10,
-        patch: `@@ -45,10 +45,26 @@ export function AuthProvider({ children }) {
-   const [token, setToken] = useState(() => localStorage.getItem("axon_token") || "");
-+  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem("axon_refresh_token") || "");
- 
-+  // Potential issue: Missing automatic silent refresh timer before token expiration
-+  const refreshAuthToken = async () => {
-+    try {
-+      const res = await fetch("http://localhost:4000/api/auth/refresh", {
-+        method: "POST",
-+        headers: { "Content-Type": "application/json" },
-+        body: JSON.stringify({ refreshToken })
-+      });
-+      const data = await res.json();
-+      if (data.accessToken) {
-+        setToken(data.accessToken);
-+        localStorage.setItem("axon_token", data.accessToken);
-+      }
-+    } catch (e) {
-+      console.error("Silent refresh failed", e);
-+    }
-+  };`
-      }
-    ]
-  },
-  {
-    number: 38,
-    title: "perf(cache): add in-memory LRU layer & rate limiter for high-traffic workspace APIs",
-    state: "open",
-    draft: false,
-    author: {
-      login: "sarah-core",
-      avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face"
-    },
-    baseBranch: "main",
-    headBranch: "perf/lru-rate-limit",
-    createdAt: new Date(Date.now() - 3600000 * 36).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-    additions: 95,
-    deletions: 14,
-    changedFilesCount: 2,
-    body: `### Summary
-Adds an in-memory LRU cache to \`getWorkspaceById\` to avoid repetitive MongoDB query hits on high-frequency navigation.
-Also introduces a sliding window rate-limiter for RAG queries.`,
-    files: [
-      {
-        filename: "server/src/services/workspaceService.js",
-        status: "modified",
-        additions: 55,
-        deletions: 8,
-        patch: `@@ -15,10 +15,32 @@ const cache = new Map();
- export const getWorkspaceById = async (id) => {
-+  // Potential Memory Leak: Map cache without max size eviction limit
-+  if (cache.has(id)) {
-+    return cache.get(id);
-+  }
-   const ws = await Workspace.findOne({ id }).lean();
-   if (!ws) return null;
-+  cache.set(id, ws);
-+  // Potential Regression: Workspace update / delete endpoints do not invalidate this cache!
-   return ws;
- };`
-      },
-      {
-        filename: "server/src/routes/workspace.js",
-        status: "modified",
-        additions: 40,
-        deletions: 6,
-        patch: `@@ -40,6 +40,24 @@ router.post("/:id/brain/query", authenticateToken, queryBrainHandler);
-+// Rate limiter middleware
-+const rateLimitMap = new Map();
-+const rateLimiter = (req, res, next) => {
-+  const ip = req.ip;
-+  const count = (rateLimitMap.get(ip) || 0) + 1;
-+  rateLimitMap.set(ip, count);
-+  if (count > 60) {
-+    return res.status(429).json({ error: "Too many RAG queries" });
-+  }
-+  next();
-+};
-+router.use("/:id/brain", rateLimiter);`
-      }
-    ]
-  },
-  {
-    number: 29,
-    title: "refactor(schema): introduce workspace tenant isolation index & compound constraints",
-    state: "closed",
-    draft: false,
-    author: {
-      login: "marcus-db",
-      avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
-    },
-    baseBranch: "main",
-    headBranch: "refactor/tenant-isolation",
-    createdAt: new Date(Date.now() - 3600000 * 72).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    additions: 68,
-    deletions: 22,
-    changedFilesCount: 2,
-    body: `### Overview
-Enforces multi-tenant workspace isolation at the MongoDB indexing level. Adds compound indexes on \`[ownerId, id]\` and drops legacy single-field index.`,
-    files: [
-      {
-        filename: "server/src/models/Workspace.js",
-        status: "modified",
-        additions: 38,
-        deletions: 12,
-        patch: `@@ -44,7 +44,11 @@ const WorkspaceSchema = new mongoose.Schema(
--  id: { type: String, required: true, unique: true, index: true },
--  ownerId: { type: String, default: "default", index: true },
-+  id: { type: String, required: true },
-+  ownerId: { type: String, required: true },
-+  tenantDomain: { type: String, default: "default.axon.dev" }
- );
-+// Breaking Change: Existing documents with null tenantDomain will fail unique validation if sparse is omitted!
-+WorkspaceSchema.index({ ownerId: 1, id: 1 }, { unique: true });`
-      }
-    ]
-  }
-];
-
-/**
-  * Helper to query GitHub REST API with authorization
+ * Helper to query GitHub REST API with authorization
   */
 async function fetchFromGitHub(endpoint, token = null) {
   const headers = {
@@ -259,13 +39,12 @@ export async function getWorkspacePullRequests(workspaceId, { state = "all" } = 
   }
 
   if (!workspace.repository) {
-    // Return sample PRs if workspace has no repo attached
     return {
       success: true,
-      pullRequests: SAMPLE_PULL_REQUESTS,
-      isSample: true,
+      pullRequests: [],
+      isSample: false,
       repository: null,
-      message: "No GitHub repository connected. Displaying Axon architectural sample PRs for analysis."
+      message: "No GitHub repository connected to this workspace."
     };
   }
 
@@ -310,13 +89,13 @@ export async function getWorkspacePullRequests(workspaceId, { state = "all" } = 
     console.warn(`GitHub API notice for PRs of ${owner}/${repoName}:`, err.message);
   }
 
-  // If 0 PRs exist on GitHub or rate limit hit, supplement with realistic sample PRs for this repo
+  // If 0 PRs exist on GitHub or rate limit hit
   return {
     success: true,
-    pullRequests: SAMPLE_PULL_REQUESTS,
-    isSample: true,
+    pullRequests: [],
+    isSample: false,
     repository: workspace.repository,
-    message: `No active pull requests found in GitHub repo ${owner}/${repoName}. Displaying architectural PR previews for immediate code review & regression analysis.`
+    message: `No active pull requests found in GitHub repository ${owner}/${repoName}.`
   };
 }
 
@@ -328,19 +107,6 @@ export async function getPullRequestDetails(workspaceId, prNumber, token = null)
   if (!workspace) throw new Error(`Workspace ${workspaceId} not found`);
 
   const num = parseInt(prNumber, 10);
-
-  // Check sample PRs first
-  const sample = SAMPLE_PULL_REQUESTS.find((p) => p.number === num);
-  if (sample) {
-    const fullDiff = sample.files.map((f) => `diff --git a/${f.filename} b/${f.filename}\n${f.patch}`).join("\n\n");
-    return {
-      success: true,
-      pr: sample,
-      files: sample.files,
-      fullDiff,
-      isSample: true
-    };
-  }
 
   if (!workspace.repository) {
     throw new Error(`Pull request #${prNumber} not found`);

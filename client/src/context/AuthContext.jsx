@@ -120,21 +120,7 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       console.error("Dev login failed:", err);
-      // Fallback local mock if server isn't reachable
-      const mockCEO = {
-        id: "gh_local_ceo",
-        githubId: 8941203,
-        username,
-        name,
-        email,
-        avatar: `https://avatars.githubusercontent.com/${username}`,
-        role: "CEO",
-        title: "Chief Executive Officer",
-        authenticatedWith: "github"
-      };
-      setUser(mockCEO);
-      setIsAuthModalOpen(false);
-      setCurrentView("dashboard");
+      setAuthError("Could not connect to Axon authentication server. Please verify your server connection.");
     }
   };
 

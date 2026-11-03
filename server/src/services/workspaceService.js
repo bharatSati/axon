@@ -1,71 +1,28 @@
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
 import { fetchRepositoryData } from "./githubService.js";
 import { indexWorkspaceRepository } from "./rag/ragQueryService.js";
 import { deleteBrainData, getBrainStatus } from "./rag/brainStore.js";
 import { Workspace } from "../models/Workspace.js";
 import { getDBStatus } from "../db/connection.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const WORKSPACES_FILE = path.resolve(__dirname, "../../data/workspaces.json");
+// In-memory fallback cache only if MongoDB is offline / disconnected
+let memoryWorkspaces = [];
 
-// In-memory workspaces storage loaded dynamically
-let workspaces = [];
-
-// Load persisted workspaces from MongoDB or disk with race-condition guard
-let initPromise = null;
+/**
+ * Initialize / fetch workspaces from MongoDB
+ */
 export const ensureInitialized = async () => {
-  if (!initPromise) {
-    initPromise = (async () => {
-      // 1. Try loading from MongoDB if connected
-      try {
-        if (getDBStatus().isConnected) {
-          const dbWorkspaces = await Workspace.find().lean();
-          if (dbWorkspaces && dbWorkspaces.length > 0) {
-            workspaces = dbWorkspaces.map((w) => ({
-              ...w,
-              id: w.id || w._id.toString()
-            }));
-            await saveWorkspacesToDisk();
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("MongoDB workspace fetch notice:", err.message);
-      }
-
-      // 2. Fallback to local disk file
-      try {
-        const raw = await fs.readFile(WORKSPACES_FILE, "utf-8");
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          workspaces = parsed;
-        }
-      } catch (err) {
-        // no disk file yet
-      }
-    })();
-  }
-  return initPromise;
-};
-
-const saveWorkspacesToDisk = async () => {
-  try {
-    await fs.mkdir(path.dirname(WORKSPACES_FILE), { recursive: true });
-    await fs.writeFile(WORKSPACES_FILE, JSON.stringify(workspaces, null, 2), "utf-8");
-  } catch (err) {
-    console.warn("Could not save workspaces to disk:", err.message);
-  }
-};
-
-const syncWorkspaceToDB = async (ws) => {
   try {
     if (getDBStatus().isConnected) {
-      await Workspace.findOneAndUpdate({ id: ws.id }, ws, { upsert: true, new: true });
+      const dbWorkspaces = await Workspace.find().lean();
+      if (dbWorkspaces && dbWorkspaces.length > 0) {
+        memoryWorkspaces = dbWorkspaces.map((w) => ({
+          ...w,
+          id: w.id || w._id.toString()
+        }));
+      }
     }
   } catch (err) {
-    console.warn("MongoDB sync workspace notice:", err.message);
+    console.warn("MongoDB workspace fetch notice:", err.message);
   }
 };
 
@@ -73,13 +30,31 @@ const syncWorkspaceToDB = async (ws) => {
  * List all workspaces accessible by a user (owner or invited member)
  */
 export const listWorkspaces = async (user) => {
-  await ensureInitialized();
   if (!user) return [];
 
   const userId = user.id || user._id;
   const username = user.username?.toLowerCase();
 
-  const userWorkspaces = workspaces.filter((ws) => {
+  let allWorkspaces = [];
+  try {
+    if (getDBStatus().isConnected) {
+      const dbList = await Workspace.find().sort({ updatedAt: -1 }).lean();
+      if (dbList && dbList.length > 0) {
+        allWorkspaces = dbList.map((w) => ({
+          ...w,
+          id: w.id || w._id.toString()
+        }));
+        memoryWorkspaces = allWorkspaces;
+      }
+    } else {
+      allWorkspaces = memoryWorkspaces;
+    }
+  } catch (err) {
+    console.warn("MongoDB listWorkspaces error:", err.message);
+    allWorkspaces = memoryWorkspaces;
+  }
+
+  const userWorkspaces = allWorkspaces.filter((ws) => {
     // 1. Is workspace owner (matches user id or username)
     if (userId && (ws.ownerId === userId || ws.ownerId === `gh_${userId}`)) return true;
     if (username && ws.ownerId?.toLowerCase() === username) return true;
@@ -96,7 +71,7 @@ export const listWorkspaces = async (user) => {
     return false;
   });
 
-  // If user has zero workspaces, auto-create their personal workspace!
+  // If user has zero workspaces, auto-create their personal workspace in MongoDB!
   if (userWorkspaces.length === 0 && (userId || username)) {
     const ownerIdentifier = userId || `gh_${username}`;
     const personalWs = await createWorkspace(ownerIdentifier, {
@@ -135,8 +110,19 @@ export const listWorkspaces = async (user) => {
  * Get a specific workspace with full details
  */
 export const getWorkspaceById = async (workspaceId, user = null) => {
-  await ensureInitialized();
-  const ws = workspaces.find((w) => w.id === workspaceId);
+  let ws = null;
+  try {
+    if (getDBStatus().isConnected) {
+      ws = await Workspace.findOne({ id: workspaceId }).lean();
+    }
+  } catch (err) {
+    console.warn("MongoDB getWorkspaceById error:", err.message);
+  }
+
+  if (!ws) {
+    ws = memoryWorkspaces.find((w) => w.id === workspaceId);
+  }
+
   if (!ws) return null;
 
   // If user provided, check access permission
@@ -174,10 +160,9 @@ export const getWorkspaceById = async (workspaceId, user = null) => {
 };
 
 /**
- * Create a new workspace
+ * Create a new workspace in MongoDB
  */
 export const createWorkspace = async (ownerId, { name, description = "" }) => {
-  await ensureInitialized();
   if (!name || !name.trim()) {
     throw new Error("Workspace name is required.");
   }
@@ -193,59 +178,85 @@ export const createWorkspace = async (ownerId, { name, description = "" }) => {
     brain: {
       status: "uninitialized",
       message: "Connect a GitHub repository to activate the Project Brain."
-    }
+    },
+    members: []
   };
 
-  workspaces.unshift(newWorkspace);
-  await saveWorkspacesToDisk();
-  await syncWorkspaceToDB(newWorkspace);
+  try {
+    if (getDBStatus().isConnected) {
+      await Workspace.create(newWorkspace);
+    }
+  } catch (err) {
+    console.warn("MongoDB createWorkspace notice:", err.message);
+  }
 
+  memoryWorkspaces.unshift(newWorkspace);
   return newWorkspace;
 };
 
 /**
- * Update a workspace (rename, edit description)
+ * Update a workspace (rename, edit description) in MongoDB
  */
 export const updateWorkspace = async (workspaceId, { name, description }) => {
-  await ensureInitialized();
-  const ws = workspaces.find((w) => w.id === workspaceId);
-  if (!ws) {
+  const updateData = {
+    updatedAt: new Date().toISOString()
+  };
+
+  if (name && name.trim()) {
+    updateData.name = name.trim();
+  }
+  if (description !== undefined) {
+    updateData.description = description.trim();
+  }
+
+  let updated = null;
+  try {
+    if (getDBStatus().isConnected) {
+      updated = await Workspace.findOneAndUpdate(
+        { id: workspaceId },
+        { $set: updateData },
+        { new: true }
+      ).lean();
+    }
+  } catch (err) {
+    console.warn("MongoDB updateWorkspace notice:", err.message);
+  }
+
+  // Update in memory cache
+  const idx = memoryWorkspaces.findIndex((w) => w.id === workspaceId);
+  if (idx !== -1) {
+    memoryWorkspaces[idx] = { ...memoryWorkspaces[idx], ...updateData };
+    if (!updated) updated = memoryWorkspaces[idx];
+  }
+
+  if (!updated) {
     throw new Error("Workspace not found.");
   }
 
-  if (name && name.trim()) {
-    ws.name = name.trim();
-  }
-  if (description !== undefined) {
-    ws.description = description.trim();
-  }
-
-  ws.updatedAt = new Date().toISOString();
-  await saveWorkspacesToDisk();
-  await syncWorkspaceToDB(ws);
-
-  return ws;
+  return updated;
 };
 
 /**
  * Delete a workspace and remove its Project Brain data
  */
 export const deleteWorkspace = async (workspaceId) => {
-  await ensureInitialized();
-  const index = workspaces.findIndex((w) => w.id === workspaceId);
-  if (index === -1) {
-    throw new Error("Workspace not found.");
-  }
-
-  const deleted = workspaces.splice(index, 1)[0];
-  await saveWorkspacesToDisk();
-
+  let deleted = null;
   try {
     if (getDBStatus().isConnected) {
-      await Workspace.deleteOne({ id: workspaceId });
+      deleted = await Workspace.findOneAndDelete({ id: workspaceId }).lean();
     }
   } catch (err) {
     console.warn("MongoDB workspace delete notice:", err.message);
+  }
+
+  const index = memoryWorkspaces.findIndex((w) => w.id === workspaceId);
+  if (index !== -1) {
+    const memoryDeleted = memoryWorkspaces.splice(index, 1)[0];
+    if (!deleted) deleted = memoryDeleted;
+  }
+
+  if (!deleted) {
+    throw new Error("Workspace not found.");
   }
 
   // Delete persistent brain data
@@ -258,12 +269,6 @@ export const deleteWorkspace = async (workspaceId) => {
  * Connect a GitHub repository to a workspace and initialize its Project Brain
  */
 export const connectRepositoryToWorkspace = async (workspaceId, repoData, userIdOrToken) => {
-  await ensureInitialized();
-  const ws = workspaces.find((w) => w.id === workspaceId);
-  if (!ws) {
-    throw new Error("Workspace not found.");
-  }
-
   const { name, owner, defaultBranch = "main", fullName, description, visibility, htmlUrl, stars, language } = repoData;
 
   const connectedRepo = {
@@ -280,16 +285,37 @@ export const connectRepositoryToWorkspace = async (workspaceId, repoData, userId
     connectedAt: new Date().toISOString()
   };
 
-  // Associate repository with workspace
-  ws.repository = connectedRepo;
-  ws.updatedAt = new Date().toISOString();
-  ws.brain = {
-    status: "indexing",
-    message: "Initializing Project Brain: Extracting code, documentation, and commits..."
+  const updateFields = {
+    repository: connectedRepo,
+    updatedAt: new Date().toISOString(),
+    brain: {
+      status: "indexing",
+      message: "Initializing Project Brain: Extracting code, documentation, and commits..."
+    }
   };
 
-  await saveWorkspacesToDisk();
-  await syncWorkspaceToDB(ws);
+  let ws = null;
+  try {
+    if (getDBStatus().isConnected) {
+      ws = await Workspace.findOneAndUpdate(
+        { id: workspaceId },
+        { $set: updateFields },
+        { new: true }
+      ).lean();
+    }
+  } catch (err) {
+    console.warn("MongoDB connectRepository notice:", err.message);
+  }
+
+  const memWs = memoryWorkspaces.find((w) => w.id === workspaceId);
+  if (memWs) {
+    Object.assign(memWs, updateFields);
+    if (!ws) ws = memWs;
+  }
+
+  if (!ws) {
+    throw new Error("Workspace not found.");
+  }
 
   // Trigger Asynchronous Project Brain indexing via RAG
   triggerBrainIndexingAsync(workspaceId, connectedRepo, userIdOrToken);
@@ -301,27 +327,43 @@ export const connectRepositoryToWorkspace = async (workspaceId, repoData, userId
  * Disconnect repository from a workspace
  */
 export const disconnectRepositoryFromWorkspace = async (workspaceId) => {
-  await ensureInitialized();
-  const ws = workspaces.find((w) => w.id === workspaceId);
+  const updateFields = {
+    repository: null,
+    updatedAt: new Date().toISOString(),
+    brain: {
+      status: "uninitialized",
+      message: "Repository disconnected. Project Brain is inactive."
+    }
+  };
+
+  let ws = null;
+  try {
+    if (getDBStatus().isConnected) {
+      ws = await Workspace.findOneAndUpdate(
+        { id: workspaceId },
+        { $set: updateFields },
+        { new: true }
+      ).lean();
+    }
+  } catch (err) {
+    console.warn("MongoDB disconnectRepository notice:", err.message);
+  }
+
+  const memWs = memoryWorkspaces.find((w) => w.id === workspaceId);
+  if (memWs) {
+    Object.assign(memWs, updateFields);
+    if (!ws) ws = memWs;
+  }
+
   if (!ws) {
     throw new Error("Workspace not found.");
   }
 
-  const previousRepo = ws.repository;
-  ws.repository = null;
-  ws.brain = {
-    status: "uninitialized",
-    message: "Repository disconnected. Project Brain is inactive."
-  };
-  ws.updatedAt = new Date().toISOString();
-
-  await saveWorkspacesToDisk();
-  await syncWorkspaceToDB(ws);
   await deleteBrainData(workspaceId);
 
   return {
     success: true,
-    message: `Disconnected ${previousRepo?.name || "repository"} from workspace.`,
+    message: "Disconnected repository from workspace.",
     workspace: ws
   };
 };
@@ -340,29 +382,51 @@ async function triggerBrainIndexingAsync(workspaceId, repo, userIdOrToken) {
 
     const indexResult = await indexWorkspaceRepository(workspaceId, repoContext);
 
-    // Update workspace state
-    const ws = workspaces.find((w) => w.id === workspaceId);
-    if (ws) {
-      ws.brain = {
-        status: "ready",
-        lastIndexedAt: new Date().toISOString(),
-        durationMs: indexResult.durationMs,
-        stats: indexResult.stats,
-        overview: indexResult.metadata
-      };
-      await saveWorkspacesToDisk();
-      await syncWorkspaceToDB(ws);
+    // Update workspace state in MongoDB
+    const brainData = {
+      status: "ready",
+      lastIndexedAt: new Date().toISOString(),
+      durationMs: indexResult.durationMs,
+      stats: indexResult.stats,
+      overview: indexResult.metadata
+    };
+
+    try {
+      if (getDBStatus().isConnected) {
+        await Workspace.findOneAndUpdate(
+          { id: workspaceId },
+          { $set: { brain: brainData, updatedAt: new Date().toISOString() } }
+        );
+      }
+    } catch (dbErr) {
+      console.warn("MongoDB indexing status sync notice:", dbErr.message);
+    }
+
+    const memWs = memoryWorkspaces.find((w) => w.id === workspaceId);
+    if (memWs) {
+      memWs.brain = brainData;
     }
   } catch (err) {
     console.error(`Failed to index brain for workspace ${workspaceId}:`, err);
-    const ws = workspaces.find((w) => w.id === workspaceId);
-    if (ws) {
-      ws.brain = {
-        status: "error",
-        error: err.message || "Failed to index repository into Project Brain"
-      };
-      await saveWorkspacesToDisk();
-      await syncWorkspaceToDB(ws);
+    const errorBrain = {
+      status: "error",
+      error: err.message || "Failed to index repository into Project Brain"
+    };
+
+    try {
+      if (getDBStatus().isConnected) {
+        await Workspace.findOneAndUpdate(
+          { id: workspaceId },
+          { $set: { brain: errorBrain, updatedAt: new Date().toISOString() } }
+        );
+      }
+    } catch (dbErr) {
+      console.warn("MongoDB error status sync notice:", dbErr.message);
+    }
+
+    const memWs = memoryWorkspaces.find((w) => w.id === workspaceId);
+    if (memWs) {
+      memWs.brain = errorBrain;
     }
   }
 }

@@ -46,19 +46,19 @@ export default function PaymentModal({
   const [copied, setCopied] = useState(false);
 
   // Card form state
-  const [cardNumber, setCardNumber] = useState("4111 1111 1111 1111");
-  const [cardExpiry, setCardExpiry] = useState("12/32");
-  const [cardCvv, setCardCvv] = useState("123");
-  const [cardHolder, setCardHolder] = useState("Axon Engineer");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
 
   // UPI form state
-  const [upiId, setUpiId] = useState("success@razorpay");
+  const [upiId, setUpiId] = useState("");
 
   // Netbanking bank
   const [selectedBank, setSelectedBank] = useState("HDFC");
 
   // OTP state
-  const [otpDigits, setOtpDigits] = useState(["1", "2", "3", "4", "5", "6"]);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [otpTimer, setOtpTimer] = useState(24);
 
   // Sync state when modal opens
@@ -73,13 +73,13 @@ export default function PaymentModal({
       setOtpTimer(24);
 
       if (user) {
-        setCustomerName(user.name || user.username || "Bharat Sati");
-        setCustomerEmail(user.email || `${user.username || "bharat"}@axon.sh`);
-        setCardHolder(user.name || "Bharat Sati");
+        setCustomerName(user.name || user.username || "");
+        setCustomerEmail(user.email || "");
+        setCardHolder(user.name || "");
       } else {
-        setCustomerName("Axon Engineer");
-        setCustomerEmail("engineer@axon.sh");
-        setCardHolder("Axon Engineer");
+        setCustomerName("");
+        setCustomerEmail("");
+        setCardHolder("");
       }
     }
   }, [isOpen, initialPlan, initialAnnual, user]);
@@ -351,15 +351,15 @@ Date: ${new Date(verifiedPayment.createdAt).toLocaleString()}
                           <span className="card-chip" />
                           <span className="card-brand">VISA TEST</span>
                         </div>
-                        <div className="card-digits">{cardNumber}</div>
+                        <div className="card-digits">{cardNumber || "•••• •••• •••• ••••"}</div>
                         <div className="card-bottom">
                           <div>
                             <small>CARD HOLDER</small>
-                            <span>{cardHolder}</span>
+                            <span>{cardHolder || "NAME ON CARD"}</span>
                           </div>
                           <div>
                             <small>EXPIRES</small>
-                            <span>{cardExpiry}</span>
+                            <span>{cardExpiry || "MM/YY"}</span>
                           </div>
                           <div>
                             <small>CVV</small>

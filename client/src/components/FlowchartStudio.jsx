@@ -221,10 +221,11 @@ export default function FlowchartStudio({ workspace, token }) {
   useEffect(() => {
     if (!workspace?.id) return;
     loadPresets();
-    // Default initial flowchart
-    handleGenerateFlowchart(
-      "Show complete authentication flow from GitHub login to JWT token generation, role extraction, and authenticateToken middleware verification."
-    );
+    // Initial architecture flowchart based on active workspace repository
+    const initialPrompt = workspace?.repository?.name
+      ? `Show complete system architecture, request routing, controllers, and data models for ${workspace.repository.name}.`
+      : "Show complete application architecture, API gateway routing, and data flow.";
+    handleGenerateFlowchart(initialPrompt);
   }, [workspace?.id]);
 
   const loadPresets = async () => {

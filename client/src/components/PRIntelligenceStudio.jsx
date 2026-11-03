@@ -403,12 +403,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
             </div>
           </div>
 
-          {isSample && (
-            <div className="pr-sample-notice mono-label">
-              <Info size={11} color="#f59e0b" />
-              <span>Architectural Sample PRs Active</span>
-            </div>
-          )}
+
 
           <div className="pr-list-scroll">
             {loadingPrs ? (

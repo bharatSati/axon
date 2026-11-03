@@ -323,42 +323,42 @@ function deriveTitleFromPrompt(prompt = "") {
 export function getPresetFlowcharts() {
   return [
     {
-      id: "auth-jwt",
-      title: "GitHub OAuth & JWT Authentication Flow",
-      description: "Complete auth handshake from GitHub authorization callback to JWT issuance and role verification.",
-      prompt: "Show complete authentication flow from GitHub OAuth login to JWT token generation, role extraction, and authenticateToken middleware verification.",
-      icon: "Shield",
-      color: "#c084fc"
-    },
-    {
-      id: "rag-engine",
-      title: "Project Brain Hybrid RAG Retrieval Engine",
-      description: "Multi-stage retrieval using BM25 lexical inverted index and Vector Cosine distance synthesis.",
-      prompt: "Show how Project Brain hybrid RAG query pipeline works: query parsing, BM25 inverted index lexical search, Vector Cosine similarity calculation, ranking, and Groq 120B context injection.",
-      icon: "Cpu",
-      color: "#c8ff3d"
-    },
-    {
-      id: "redirect-lifecycle",
-      title: "High-Speed URL Redirect & Analytics Stream",
-      description: "Sub-millisecond link resolution, password protection verification, and real-time click tracking payload.",
-      prompt: "Show URL redirection request lifecycle from client incoming short link request, password validation, rate limit check, click payload geo enrichment, MongoDB update, and HTTP 302 redirect.",
-      icon: "Zap",
-      color: "#38bdf8"
-    },
-    {
       id: "system-architecture",
-      title: "Axon Full-Stack Modular System Architecture",
-      description: "Decoupled React client, Three.js spatial background, Express API gateway, MongoDB store, and Groq LLM.",
-      prompt: "Show the complete Axon system architecture: Vite React client, Three.js 60fps canvas, API Gateway routes, Workspace controllers, MongoDB database, and Groq 120B Project Brain.",
+      title: "System Architecture & End-to-End Request Flow",
+      description: "Complete trace of incoming client requests through router, controllers, services, and database.",
+      prompt: "Show the complete application architecture and request lifecycle: client presentation layer, routing gateway, controllers, business services, database persistence, and external integrations.",
       icon: "Layers",
       color: "#10b981"
     },
     {
-      id: "time-machine",
-      title: "Time Machine Commit Evolution Pipeline",
-      description: "Deep git history extraction, un-shallowing cache, architectural milestone detection, and version diffing.",
-      prompt: "Show Time Machine architectural pipeline: workspace repository cache un-shallow fetch, commit timeline parser, architectural milestone categorization, and Groq 120B version diff comparison engine.",
+      id: "auth-jwt",
+      title: "Authentication & Authorization Flow",
+      description: "Handshake, token verification, session lifecycle, and permission boundary checks.",
+      prompt: "Show authentication and authorization lifecycle: user login, token generation, security middleware validation, role-based access control, and protected route access.",
+      icon: "Shield",
+      color: "#c084fc"
+    },
+    {
+      id: "api-endpoints",
+      title: "API Gateway & Endpoint Routing Flow",
+      description: "RESTful route mapping, input validation, error handling, and response payloads.",
+      prompt: "Show API route architecture: incoming HTTP request, validation middleware, controller invocation, service business logic, and structured JSON responses.",
+      icon: "Zap",
+      color: "#38bdf8"
+    },
+    {
+      id: "data-persistence",
+      title: "Data Persistence & Schema Relationship Flow",
+      description: "Data models, foreign references, indexing strategy, and read/write access patterns.",
+      prompt: "Show the database schema structure, entity relationships, collections/tables, indexing, and transactional read/write data access patterns.",
+      icon: "Cpu",
+      color: "#c8ff3d"
+    },
+    {
+      id: "state-management",
+      title: "Component Hierarchy & State Flow",
+      description: "Frontend view composition, context providers, reactive state updates, and side effects.",
+      prompt: "Show frontend component hierarchy, UI state management, context providers, custom hooks, and dynamic data binding.",
       icon: "History",
       color: "#f59e0b"
     }

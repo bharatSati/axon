@@ -145,15 +145,7 @@ export async function getWorkspaceAnalytics(workspaceId, userToken = null) {
     }
   }
 
-  // 1d. Synthetic fallback if empty
-  if (!commits.length) {
-    commits = [
-      { sha: "7b41e8a", author: owner, message: `feat: initial architecture for ${repoName}`, date: new Date(Date.now() - 86400000 * 7).toISOString() },
-      { sha: "3a92f1b", author: owner, message: "feat: setup project brain vector indexing & RAG", date: new Date(Date.now() - 86400000 * 5).toISOString() },
-      { sha: "8c12d4e", author: owner, message: "refactor: decouple API controllers and modular models", date: new Date(Date.now() - 86400000 * 3).toISOString() },
-      { sha: "5f83b2a", author: owner, message: "perf: optimize state synchronization & websocket listeners", date: new Date(Date.now() - 86400000 * 1).toISOString() }
-    ];
-  }
+
 
   // 2. Gather Pull Requests
   let pullRequests = [];
@@ -198,40 +190,7 @@ export async function getWorkspaceAnalytics(workspaceId, userToken = null) {
     }
   }
 
-  // 2c. Fallback sample PRs if none
-  if (!pullRequests.length) {
-    pullRequests = [
-      {
-        number: 42,
-        title: "feat(auth): migrate to JWT refresh tokens & strict CORS validation",
-        state: "merged",
-        author: owner,
-        createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
-        mergedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-        commentsCount: 5,
-        url: `https://github.com/${owner}/${repoName}/pull/42`
-      },
-      {
-        number: 45,
-        title: "perf(indexing): dense vector embedding batching with all-MiniLM-L6-v2",
-        state: "merged",
-        author: owner,
-        createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-        mergedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-        commentsCount: 3,
-        url: `https://github.com/${owner}/${repoName}/pull/45`
-      },
-      {
-        number: 48,
-        title: "feat(analytics): full organization and repository telemetry dashboard",
-        state: "open",
-        author: owner,
-        createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-        commentsCount: 2,
-        url: `https://github.com/${owner}/${repoName}/pull/48`
-      }
-    ];
-  }
+
 
   // 3. Gather Discussions and Issues
   let discussionsAndIssues = [];
@@ -279,39 +238,6 @@ export async function getWorkspaceAnalytics(workspaceId, userToken = null) {
     }
   }
 
-  // 3c. Fallback issues if empty
-  if (!discussionsAndIssues.length) {
-    discussionsAndIssues = [
-      {
-        number: 10,
-        title: "RAG Pipeline Architectural Specification: Local Embeddings & MongoDB Atlas",
-        state: "closed",
-        author: owner,
-        labels: ["architecture", "rag", "database"],
-        commentsCount: 6,
-        createdAt: new Date(Date.now() - 86400000 * 8).toISOString()
-      },
-      {
-        number: 12,
-        title: "Multi-Format Document Support: PDF, DOCX, TXT Parsing Ingestion",
-        state: "closed",
-        author: owner,
-        labels: ["enhancement", "parser"],
-        commentsCount: 4,
-        createdAt: new Date(Date.now() - 86400000 * 4).toISOString()
-      },
-      {
-        number: 15,
-        title: "Sliding Window Rate-Limiting & Model Fallback Chain for High Concurrent Queries",
-        state: "open",
-        author: owner,
-        labels: ["reliability", "groq"],
-        commentsCount: 3,
-        createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
-      }
-    ];
-  }
-
   // 4. Codebase Scale & Languages
   let languagesRaw = brainData?.overview?.languages || {};
   if (!Object.keys(languagesRaw).length && token) {
@@ -321,16 +247,13 @@ export async function getWorkspaceAnalytics(workspaceId, userToken = null) {
       // ignore
     }
   }
-  if (!Object.keys(languagesRaw).length) {
-    languagesRaw = { JavaScript: 68400, CSS: 26100, HTML: 5200, JSON: 3800 };
-  }
 
-  const totalLanguageBytes = Object.values(languagesRaw).reduce((a, b) => a + Number(b), 0) || 1;
+  const totalLanguageBytes = Object.values(languagesRaw).reduce((a, b) => a + Number(b), 0) || 0;
   const languagesList = Object.entries(languagesRaw)
     .map(([lang, bytes]) => ({
       name: lang,
       bytes: Number(bytes),
-      percentage: Math.max(1, Math.round((Number(bytes) / totalLanguageBytes) * 100)),
+      percentage: totalLanguageBytes > 0 ? Math.max(1, Math.round((Number(bytes) / totalLanguageBytes) * 100)) : 0,
       color: LANGUAGE_COLORS[lang] || "#c8ff3d"
     }))
     .sort((a, b) => b.bytes - a.bytes);
@@ -366,46 +289,47 @@ export async function getWorkspaceAnalytics(workspaceId, userToken = null) {
     }
   }
 
-  const totalLayerItems = Object.values(layerCounts).reduce((a, b) => a + b, 0) || 10;
+  const totalLayerItems = Object.values(layerCounts).reduce((a, b) => a + b, 0);
+  const calcPct = (cnt) => totalLayerItems > 0 ? Math.round((cnt / totalLayerItems) * 100) : 0;
   const architectureLayers = [
     {
       id: "frontend",
       layer: "Frontend & UI Experience",
-      count: layerCounts.frontend || 24,
-      percentage: Math.round(((layerCounts.frontend || 24) / (totalLayerItems || 50)) * 100),
-      tech: "React 19, Vite, Tailwind/CSS, Lucide, Motion",
+      count: layerCounts.frontend,
+      percentage: calcPct(layerCounts.frontend),
+      tech: "Client UI Components, Pages & Styling",
       color: "#c8ff3d"
     },
     {
       id: "backend",
       layer: "Backend Services & API Layer",
-      count: layerCounts.backend || 16,
-      percentage: Math.round(((layerCounts.backend || 16) / (totalLayerItems || 50)) * 100),
-      tech: "Node.js, Express, REST Controllers, JWT Auth",
+      count: layerCounts.backend,
+      percentage: calcPct(layerCounts.backend),
+      tech: "Server Routes, Middleware & Controllers",
       color: "#a3e635"
     },
     {
       id: "aiRag",
       layer: "AI & RAG Vector Engine",
-      count: layerCounts.aiRag || 8,
-      percentage: Math.round(((layerCounts.aiRag || 8) / (totalLayerItems || 50)) * 100),
-      tech: "Local ONNX all-MiniLM-L6-v2 (384d), Groq Fallback Chain, BM25",
+      count: layerCounts.aiRag,
+      percentage: calcPct(layerCounts.aiRag),
+      tech: "Vector Index, Embeddings & LLM Retrieval",
       color: "#38bdf8"
     },
     {
       id: "dataDb",
       layer: "Persistence & Data Models",
-      count: layerCounts.dataDb || 6,
-      percentage: Math.round(((layerCounts.dataDb || 6) / (totalLayerItems || 50)) * 100),
-      tech: "MongoDB Atlas, Mongoose Schemas, In-Memory LRU Cache",
+      count: layerCounts.dataDb,
+      percentage: calcPct(layerCounts.dataDb),
+      tech: "Database Schemas & Storage Layer",
       color: "#818cf8"
     },
     {
       id: "documentation",
       layer: "Documentation & Technical Specs",
-      count: layerCounts.documentation || 12,
-      percentage: Math.round(((layerCounts.documentation || 12) / (totalLayerItems || 50)) * 100),
-      tech: "Markdown Specs, Architecture Briefs, Ingested PRDs",
+      count: layerCounts.documentation,
+      percentage: calcPct(layerCounts.documentation),
+      tech: "Markdown Documentation & Architecture Briefs",
       color: "#fbbf24"
     }
   ];
@@ -487,27 +411,40 @@ export async function getWorkspaceAnalytics(workspaceId, userToken = null) {
   const totalIssues = discussionsAndIssues.length;
   const issueResolutionRate = totalIssues > 0 ? Math.round((resolvedIssues.length / totalIssues) * 100) : 100;
 
-  // 10. Estimated Lines of Code (LOC)
-  const totalFiles = brainData?.overview?.totalFiles || 42;
-  const estimatedLOC = Math.round(totalLanguageBytes / 28) || 3500;
+  // 10. Estimated Lines of Code (LOC) and Files
+  const totalFiles = brainData?.overview?.totalFiles || (brainData?.chunks ? new Set(brainData.chunks.map(c => c.filePath)).size : 0);
+  const estimatedLOC = totalLanguageBytes > 0 ? Math.round(totalLanguageBytes / 28) : (totalFiles * 65);
+
+  // Dynamic Commit Velocity Trend
+  const recentCommits = commitCadence.slice(4).reduce((s, b) => s + b.count, 0);
+  const olderCommits = commitCadence.slice(0, 4).reduce((s, b) => s + b.count, 0);
+  let commitVelocityTrend = "+0% this week";
+  if (olderCommits > 0) {
+    const diff = Math.round(((recentCommits - olderCommits) / olderCommits) * 100);
+    commitVelocityTrend = `${diff >= 0 ? "+" : ""}${diff}% this week`;
+  } else if (recentCommits > 0) {
+    commitVelocityTrend = `+${recentCommits} commits this week`;
+  }
 
   // 11. Health Grade Calculation
-  let score = 88;
-  if (prMergeRate >= 75) score += 4;
-  if (issueResolutionRate >= 65) score += 3;
-  if (commits.length >= 10) score += 3;
-  if (contributors.length >= 2) score += 2;
-  score = Math.min(98, Math.max(72, score));
+  let score = 75;
+  if (prMergeRate >= 75) score += 5;
+  if (issueResolutionRate >= 65) score += 5;
+  if (commits.length >= 10) score += 5;
+  if (commits.length >= 25) score += 5;
+  if (contributors.length >= 2) score += 4;
+  if (totalFiles >= 10) score += 4;
+  score = Math.min(98, Math.max(65, score));
 
   let grade = "A+";
   let gradeLabel = "Optimal Momentum & High Engineering Velocity";
-  if (score < 80) {
+  if (score < 75) {
     grade = "B";
-    gradeLabel = "Moderate Activity • PR Review Acceleration Recommended";
-  } else if (score < 87) {
+    gradeLabel = "Initial Repository State • Ongoing Setup & Activity";
+  } else if (score < 82) {
     grade = "B+";
-    gradeLabel = "Solid Progress • Maintain Consistent Release Cadence";
-  } else if (score < 93) {
+    gradeLabel = "Moderate Momentum • Continuous Delivery Recommended";
+  } else if (score < 90) {
     grade = "A";
     gradeLabel = "High Momentum • Well-Coordinated Team Delivery";
   }
@@ -541,7 +478,7 @@ export async function getWorkspaceAnalytics(workspaceId, userToken = null) {
     },
     kpis: {
       totalCommits: commits.length,
-      commitVelocityTrend: "+24% this week",
+      commitVelocityTrend,
       totalPRs,
       openPRsCount: openPRs.length,
       mergedPRsCount: mergedPRs.length,
@@ -553,7 +490,7 @@ export async function getWorkspaceAnalytics(workspaceId, userToken = null) {
       issueResolutionRate,
       totalSourceFiles: totalFiles,
       estimatedLOC,
-      totalChunks: brainData?.chunks?.length || 75,
+      totalChunks: brainData?.chunks?.length || 0,
       totalContributors: contributors.length
     },
     timeSeries: {

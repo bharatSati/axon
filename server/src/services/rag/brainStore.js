@@ -1,31 +1,15 @@
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
 import { BrainKnowledge } from "../../models/BrainKnowledge.js";
 import { getDBStatus } from "../../db/connection.js";
 import { buildVectorIndex } from "./vectorEngine.js";
 import { getEmbeddingModelInfo } from "./embeddingService.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BRAINS_DIR = path.resolve(__dirname, "../../../data/brains");
-
 // In-memory cache for sub-millisecond retrieval
 const memoryCache = new Map();
 
 /**
- * Ensure the directory for a workspace brain exists
- */
-const getWorkspaceBrainDir = async (workspaceId) => {
-  const dir = path.join(BRAINS_DIR, workspaceId);
-  await fs.mkdir(dir, { recursive: true });
-  return dir;
-};
-
-/**
- * Save complete brain knowledge base to MongoDB, disk and in-memory cache
+ * Save complete brain knowledge base to MongoDB and in-memory cache
  */
 export const saveBrainKnowledgeBase = async (workspaceId, { overview, chunks, indexData, documents = [] }) => {
-  const dir = await getWorkspaceBrainDir(workspaceId);
   const modelInfo = getEmbeddingModelInfo();
 
   const metadata = {
@@ -37,17 +21,7 @@ export const saveBrainKnowledgeBase = async (workspaceId, { overview, chunks, in
     vectorDimensions: modelInfo.dimensions
   };
 
-  // 1. Write backup files to local disk
-  try {
-    await fs.writeFile(path.join(dir, "metadata.json"), JSON.stringify(metadata, null, 2), "utf-8");
-    await fs.writeFile(path.join(dir, "documents.json"), JSON.stringify(documents, null, 2), "utf-8");
-    await fs.writeFile(path.join(dir, "chunks.json"), JSON.stringify(chunks, null, 2), "utf-8");
-    await fs.writeFile(path.join(dir, "index.json"), JSON.stringify(indexData), "utf-8");
-  } catch (err) {
-    console.warn("[BrainStore] Disk write notice:", err.message);
-  }
-
-  // 2. Cache in memory
+  // 1. Cache in memory for ultra-fast vector / BM25 queries
   const payload = {
     metadata,
     documents,
@@ -57,7 +31,7 @@ export const saveBrainKnowledgeBase = async (workspaceId, { overview, chunks, in
   };
   memoryCache.set(workspaceId, payload);
 
-  // 3. Persist to existing MongoDB collection
+  // 2. Persist directly to MongoDB BrainKnowledge collection
   try {
     if (getDBStatus().isConnected) {
       await BrainKnowledge.findOneAndUpdate(
@@ -84,14 +58,14 @@ export const saveBrainKnowledgeBase = async (workspaceId, { overview, chunks, in
 };
 
 /**
- * Load brain knowledge base from memory cache, MongoDB, or disk
+ * Load brain knowledge base from memory cache or MongoDB
  */
 export const loadBrainKnowledgeBase = async (workspaceId) => {
   if (memoryCache.has(workspaceId)) {
     return memoryCache.get(workspaceId);
   }
 
-  // Try MongoDB first
+  // Load from MongoDB
   try {
     if (getDBStatus().isConnected) {
       const doc = await BrainKnowledge.findOne({ workspaceId }).lean();
@@ -111,32 +85,7 @@ export const loadBrainKnowledgeBase = async (workspaceId) => {
     console.warn("[BrainStore] Could not load brain from MongoDB:", err.message);
   }
 
-  // Fallback to local disk
-  const dir = path.join(BRAINS_DIR, workspaceId);
-  try {
-    const metaRaw = await fs.readFile(path.join(dir, "metadata.json"), "utf-8");
-    const chunksRaw = await fs.readFile(path.join(dir, "chunks.json"), "utf-8");
-    const indexRaw = await fs.readFile(path.join(dir, "index.json"), "utf-8");
-
-    let documents = [];
-    try {
-      const docsRaw = await fs.readFile(path.join(dir, "documents.json"), "utf-8");
-      documents = JSON.parse(docsRaw);
-    } catch (e) {
-      // optional
-    }
-
-    const metadata = JSON.parse(metaRaw);
-    const chunks = JSON.parse(chunksRaw);
-    const indexData = JSON.parse(indexRaw);
-
-    const data = { metadata, documents, chunks, indexData, cachedAt: Date.now() };
-    memoryCache.set(workspaceId, data);
-    return data;
-  } catch (err) {
-    // Brain doesn't exist yet for this workspace
-    return null;
-  }
+  return null;
 };
 
 /**
@@ -181,7 +130,7 @@ export const addDocumentToBrain = async (workspaceId, documentMeta, newChunks = 
   // Rebuild the Inverted Index over all combined chunks
   const updatedIndexData = buildVectorIndex(combinedChunks);
 
-  // Save to MongoDB and disk
+  // Save to MongoDB and in-memory cache
   await saveBrainKnowledgeBase(workspaceId, {
     overview: {
       ...brainData.metadata,
@@ -245,25 +194,25 @@ export const getBrainStatus = async (workspaceId) => {
   return {
     status: "ready",
     hasBrain: true,
-    lastIndexedAt: data.metadata.lastIndexedAt,
+    lastIndexedAt: data.metadata?.lastIndexedAt,
     embeddingEngine: modelInfo,
     documents: data.documents || [],
     stats: {
-      totalFiles: data.metadata.totalFiles || 0,
+      totalFiles: data.metadata?.totalFiles || 0,
       totalDocuments: (data.documents || []).length,
       totalChunks: data.chunks?.length || 0,
-      totalCommits: data.metadata.totalCommits || 0,
-      totalPRs: data.metadata.totalPRs || 0,
-      totalDiscussions: data.metadata.totalDiscussions || 0,
-      techStack: data.metadata.techStack || [],
-      languages: data.metadata.languages || {}
+      totalCommits: data.metadata?.totalCommits || 0,
+      totalPRs: data.metadata?.totalPRs || 0,
+      totalDiscussions: data.metadata?.totalDiscussions || 0,
+      techStack: data.metadata?.techStack || [],
+      languages: data.metadata?.languages || {}
     },
     overview: data.metadata
   };
 };
 
 /**
- * Delete brain data for a workspace (memory, MongoDB, disk)
+ * Delete brain data for a workspace (memory & MongoDB)
  */
 export const deleteBrainData = async (workspaceId) => {
   memoryCache.delete(workspaceId);
@@ -274,12 +223,5 @@ export const deleteBrainData = async (workspaceId) => {
     }
   } catch (e) {
     console.warn("[BrainStore] MongoDB delete notice:", e.message);
-  }
-
-  const dir = path.join(BRAINS_DIR, workspaceId);
-  try {
-    await fs.rm(dir, { recursive: true, force: true });
-  } catch (e) {
-    // Ignore if not present
   }
 };

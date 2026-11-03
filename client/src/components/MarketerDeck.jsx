@@ -88,18 +88,19 @@ const TONES = [
   { id: "authoritative", label: "Authoritative B2B", icon: "💼" }
 ];
 
-const FEATURE_TOPICS = [
-  "Axon Core Modular Architecture & High-Performance Micro-Services",
-  "Project Brain Real-Time RAG Engine & Vector Retrieval Synthesis",
-  "Zero-Config GitHub Repository Ingestion & Code Graph Extraction",
-  "Executive Multi-Role Dashboard with RBAC & Instant Role Switching",
-  "Sub-Millisecond Three.js Spatial Atmosphere & 60FPS WebGL UI",
-  "Instant Groq 120B AI Code Analysis, Security Audit & Bug Detection"
-];
-
 export default function MarketerDeck({ workspace, token }) {
+  const repoName = workspace?.repository?.name || workspace?.name || "Repository";
+  const repoDesc = workspace?.repository?.description || workspace?.description || "";
+  const featureTopics = [
+    repoDesc ? `${repoName}: ${repoDesc}` : `${repoName} Full Platform Architecture & Overview`,
+    "Core Capabilities & Developer Experience",
+    "Performance, Latency & Scalability Highlights",
+    "Security Architecture & Infrastructure Boundaries",
+    "Product Release, Feature Highlights & Roadmap"
+  ];
+
   const [activeChannel, setActiveChannel] = useState("twitter");
-  const [selectedTopic, setSelectedTopic] = useState(FEATURE_TOPICS[0]);
+  const [selectedTopic, setSelectedTopic] = useState(featureTopics[0]);
   const [activeAudience, setActiveAudience] = useState("developers");
   const [activeTone, setActiveTone] = useState("hyped");
   const [customPrompt, setCustomPrompt] = useState("");
@@ -107,6 +108,8 @@ export default function MarketerDeck({ workspace, token }) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showSources, setShowSources] = useState(false);
+
+  const currentTopic = selectedTopic || featureTopics[0];
 
   const handleGenerateCampaign = async (overrideChannel) => {
     if (!workspace?.id) return;
@@ -202,12 +205,12 @@ export default function MarketerDeck({ workspace, token }) {
           <div className="analytics-health-card">
             <div className="health-grade-circle" style={{ borderColor: "#c8ff3d" }}>
               <span className="health-grade-text" style={{ color: "#c8ff3d", fontSize: "15px" }}>
-                96
+                {deckOutput?.deck ? "94" : "—"}
               </span>
             </div>
             <div className="health-meta">
               <div className="health-score-val" style={{ color: "#c8ff3d" }}>
-                VIRAL SYNC
+                {deckOutput?.deck ? "RESONANCE HIGH" : "STANDBY"}
               </div>
               <div className="health-label">Growth Resonance Score</div>
             </div>
@@ -328,11 +331,11 @@ export default function MarketerDeck({ workspace, token }) {
             <span>CODEBASE FEATURE ANCHOR:</span>
           </label>
           <select
-            value={selectedTopic}
+            value={currentTopic}
             onChange={(e) => setSelectedTopic(e.target.value)}
             className="growth-select"
           >
-            {FEATURE_TOPICS.map((topic) => (
+            {featureTopics.map((topic) => (
               <option key={topic} value={topic}>
                 {topic}
               </option>
