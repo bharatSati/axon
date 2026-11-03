@@ -321,7 +321,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
           <div className="kpi-top">
             <span className="kpi-title">ACTIVE REVIEW QUEUE</span>
             <div className="kpi-icon-wrap">
-              <Clock size={16} color="#38bdf8" />
+              <Clock size={16} />
             </div>
           </div>
           <div className="kpi-number" style={{ color: "#38bdf8" }}>
@@ -337,7 +337,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
           <div className="kpi-top">
             <span className="kpi-title">MERGED &amp; SHIPPED</span>
             <div className="kpi-icon-wrap">
-              <CheckCircle2 size={16} color="#c8ff3d" />
+              <CheckCircle2 size={16} />
             </div>
           </div>
           <div className="kpi-number" style={{ color: "#c8ff3d" }}>
@@ -353,7 +353,7 @@ export default function PRIntelligenceStudio({ workspace, token }) {
           <div className="kpi-top">
             <span className="kpi-title">SECURITY ISSUES</span>
             <div className="kpi-icon-wrap">
-              <ShieldAlert size={16} color={criticalCount > 0 ? "#ef4444" : "#c8ff3d"} />
+              <ShieldAlert size={16} />
             </div>
           </div>
           <div className="kpi-number" style={{ color: criticalCount > 0 ? "#ef4444" : "#c8ff3d" }}>

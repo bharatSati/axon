@@ -11,6 +11,7 @@ import "./styles/dashboard.css";
 import "./styles/responsive.css";
 import "./styles/three.css";
 import "./styles/ceo-dashboard.css";
+import "./styles/dashboard-ui.css";
 import { AuthProvider } from "./context/AuthContext";
 import App from "./App";
 

@@ -1,24 +1,11 @@
 [
   {
-    "id": "ws_1793459141266_dtdf",
-    "ownerId": "gh_279609904",
-    "name": "AnshumanVerma-04's Workspace",
+    "id": "ws_1793692587662_9n56",
+    "ownerId": "gh_dev_1793692587269",
+    "name": "Bharat Sati's Workspace",
     "description": "Personal workspace for intelligent engineering & Project Brain",
-    "createdAt": "2026-10-31T15:05:41.266Z",
-    "updatedAt": "2026-10-31T15:05:41.266Z",
-    "repository": null,
-    "brain": {
-      "status": "uninitialized",
-      "message": "Connect a GitHub repository to activate the Project Brain."
-    }
-  },
-  {
-    "id": "ws_1793459140760_lh3u",
-    "ownerId": "gh_305568045",
-    "name": "satya10-x's Workspace",
-    "description": "Personal workspace for intelligent engineering & Project Brain",
-    "createdAt": "2026-10-31T15:05:40.760Z",
-    "updatedAt": "2026-10-31T15:05:40.760Z",
+    "createdAt": "2026-11-03T07:56:27.662Z",
+    "updatedAt": "2026-11-03T07:56:27.662Z",
     "repository": null,
     "brain": {
       "status": "uninitialized",
@@ -42,7 +29,7 @@
     "createdAt": "2026-10-31T06:10:06.963Z",
     "description": "Main software platform workspace with modular client-server architecture",
     "name": "Axon Core Platform",
-    "ownerId": "gh_203698456",
+    "ownerId": "gh_dev_1793692587269",
     "repository": {
       "id": 92837101,
       "name": "saas-landing",
@@ -89,7 +76,7 @@
     "createdAt": "2026-10-31T06:26:00.809Z",
     "description": "",
     "name": "codeforge",
-    "ownerId": "gh_203698456",
+    "ownerId": "gh_dev_1793692587269",
     "repository": {
       "id": 1423518256,
       "name": "blankSpace---LinkPulse",
@@ -104,5 +91,294 @@
       "connectedAt": "2026-10-31T06:38:09.031Z"
     },
     "updatedAt": "2026-10-31T06:38:11.347Z"
+  },
+  {
+    "_id": "6ae603c47f7d5e6e4c16756f",
+    "id": "ws_1793459140760_lh3u",
+    "__v": 0,
+    "brain": {
+      "status": "ready",
+      "lastIndexedAt": "2026-10-31T15:09:55.085Z",
+      "durationMs": 3128,
+      "stats": {
+        "totalFiles": 5,
+        "totalChunks": 95,
+        "totalCommits": 10,
+        "techStack": [
+          "Python"
+        ]
+      },
+      "overview": {
+        "repoName": "python-string-toolkit",
+        "repoFullName": "satya10-x/python-string-toolkit",
+        "defaultBranch": "main",
+        "description": "Python String Toolkit assignment for implementing the alternate_case(text) function.",
+        "techStack": [
+          "Python"
+        ],
+        "entryPoints": [
+          "src/index.js"
+        ],
+        "languages": {
+          "Python": 16
+        },
+        "totalFiles": 5,
+        "totalChunks": 95,
+        "totalCommits": 10,
+        "workspaceId": "ws_1793459140760_lh3u",
+        "lastIndexedAt": "2026-10-31T15:09:52.786Z",
+        "status": "ready"
+      }
+    },
+    "createdAt": "2026-10-31T15:05:40.763Z",
+    "description": "Personal workspace for intelligent engineering & Project Brain",
+    "members": [],
+    "name": "satya10-x's Workspace",
+    "ownerId": "gh_dev_1793692587269",
+    "repository": {
+      "id": 1429962507,
+      "name": "python-string-toolkit",
+      "fullName": "satya10-x/python-string-toolkit",
+      "owner": "satya10-x",
+      "description": "Python String Toolkit assignment for implementing the alternate_case(text) function.",
+      "defaultBranch": "main",
+      "visibility": "public",
+      "stars": 0,
+      "language": "Unknown",
+      "htmlUrl": "https://github.com/satya10-x/python-string-toolkit",
+      "connectedAt": "2026-10-31T15:09:41.214Z"
+    },
+    "updatedAt": "2026-10-31T15:09:55.086Z"
+  },
+  {
+    "_id": "6ae603c57f7d5e6e4c167570",
+    "id": "ws_1793459141266_dtdf",
+    "__v": 0,
+    "brain": {
+      "status": "ready",
+      "lastIndexedAt": "2026-10-31T17:31:13.336Z",
+      "durationMs": 1505,
+      "stats": {
+        "totalFiles": 10,
+        "totalChunks": 75,
+        "totalCommits": 4,
+        "techStack": [
+          "JavaScript",
+          "CSS",
+          "HTML"
+        ]
+      },
+      "overview": {
+        "repoName": "axon-beta",
+        "repoFullName": "AnshumanVerma-04/axon-beta",
+        "defaultBranch": "main",
+        "description": "Modular software workspace and distributed client-server platform",
+        "techStack": [
+          "JavaScript",
+          "CSS",
+          "HTML"
+        ],
+        "entryPoints": [
+          "client/src/App.jsx",
+          "server/src/index.js",
+          "src/index.js",
+          "src/App.jsx",
+          "index.js"
+        ],
+        "languages": {
+          "JavaScript": 65400,
+          "CSS": 24200,
+          "HTML": 4300
+        },
+        "totalFiles": 10,
+        "totalChunks": 75,
+        "totalCommits": 4,
+        "workspaceId": "ws_1793459141266_dtdf",
+        "lastIndexedAt": "2026-10-31T17:31:11.940Z",
+        "status": "ready"
+      }
+    },
+    "createdAt": "2026-10-31T15:05:41.268Z",
+    "description": "Personal workspace for intelligent engineering & Project Brain",
+    "members": [],
+    "name": "AnshumanVerma-04's Workspace",
+    "ownerId": "gh_dev_1793692587269",
+    "repository": {
+      "id": 1440431309,
+      "name": "axon-beta",
+      "fullName": "AnshumanVerma-04/axon-beta",
+      "owner": "AnshumanVerma-04",
+      "description": "No description provided",
+      "defaultBranch": "main",
+      "visibility": "public",
+      "stars": 0,
+      "language": "Unknown",
+      "htmlUrl": "https://github.com/AnshumanVerma-04/axon-beta",
+      "connectedAt": "2026-10-31T17:31:09.199Z"
+    },
+    "updatedAt": "2026-10-31T17:31:13.337Z"
+  },
+  {
+    "_id": "6ae644207f7d5e6e4c167e99",
+    "id": "ws_1793475616732_5tym",
+    "__v": 0,
+    "brain": {
+      "status": "indexing",
+      "message": "Initializing Project Brain: Extracting code, documentation, and commits...",
+      "stats": {
+        "totalFiles": 0,
+        "totalChunks": 0,
+        "totalCommits": 0,
+        "techStack": []
+      }
+    },
+    "createdAt": "2026-10-31T19:40:16.733Z",
+    "description": "Personal workspace for intelligent engineering & Project Brain",
+    "members": [],
+    "name": "Mayank Joshi's Workspace",
+    "ownerId": "gh_dev_1793692587269",
+    "repository": {
+      "id": 1357409687,
+      "name": "ShortURL",
+      "fullName": "mqyankjoshi/ShortURL",
+      "owner": "mqyankjoshi",
+      "description": "a Node.js/Express + MongoDB app that shortens URLs, redirects visitors to the original link, and tracks click analytics.",
+      "defaultBranch": "master",
+      "visibility": "public",
+      "stars": 0,
+      "language": "EJS",
+      "htmlUrl": "https://github.com/mqyankjoshi/ShortURL",
+      "connectedAt": "2026-11-01T04:38:06.470Z"
+    },
+    "updatedAt": "2026-11-01T04:38:06.471Z"
+  },
+  {
+    "_id": "6ae687617f7d5e6e4c168038",
+    "id": "ws_1793492833504_4dbc",
+    "__v": 0,
+    "brain": {
+      "status": "ready",
+      "lastIndexedAt": "2026-11-01T00:34:17.201Z",
+      "durationMs": 8044,
+      "stats": {
+        "totalFiles": 10,
+        "totalChunks": 78,
+        "totalCommits": 4,
+        "techStack": [
+          "JavaScript",
+          "CSS",
+          "HTML"
+        ]
+      },
+      "overview": {
+        "repoName": "Spoon-Knife",
+        "repoFullName": "octocat/Spoon-Knife",
+        "defaultBranch": "master",
+        "description": "Modular software workspace and distributed client-server platform",
+        "techStack": [
+          "JavaScript",
+          "CSS",
+          "HTML"
+        ],
+        "entryPoints": [
+          "client/src/App.jsx",
+          "server/src/index.js",
+          "src/index.js",
+          "src/App.jsx",
+          "index.js"
+        ],
+        "languages": {
+          "JavaScript": 65400,
+          "CSS": 24200,
+          "HTML": 4300
+        },
+        "totalFiles": 10,
+        "totalChunks": 78,
+        "totalCommits": 4,
+        "totalPRs": 2,
+        "totalDiscussions": 2,
+        "totalReleases": 1,
+        "workspaceId": "ws_1793492833504_4dbc",
+        "lastIndexedAt": "2026-11-01T00:34:15.001Z",
+        "status": "ready",
+        "embeddingModel": "Xenova/all-MiniLM-L6-v2",
+        "vectorDimensions": 384
+      }
+    },
+    "createdAt": "2026-11-01T00:27:13.505Z",
+    "description": "Personal workspace for intelligent engineering & Project Brain",
+    "members": [],
+    "name": "Bharat Sati's Workspace",
+    "ownerId": "gh_dev_1793692587269",
+    "repository": {
+      "id": 1793493245107,
+      "name": "Spoon-Knife",
+      "fullName": "octocat/Spoon-Knife",
+      "owner": "octocat",
+      "description": "This repo is for demonstration purposes only.",
+      "defaultBranch": "master",
+      "visibility": "public",
+      "stars": 0,
+      "language": "HTML",
+      "htmlUrl": "https://github.com/octocat/Spoon-Knife",
+      "connectedAt": "2026-11-01T00:34:05.107Z"
+    },
+    "updatedAt": "2026-11-01T00:34:17.202Z"
+  },
+  {
+    "_id": "6ae6c0087f7d5e6e4c169065",
+    "id": "ws_1793507336419_a52r",
+    "__v": 0,
+    "brain": {
+      "status": "indexing",
+      "message": "Initializing Project Brain: Extracting code, documentation, and commits...",
+      "stats": {
+        "totalFiles": 0,
+        "totalChunks": 0,
+        "totalCommits": 0,
+        "techStack": []
+      }
+    },
+    "createdAt": "2026-11-01T04:28:56.423Z",
+    "description": "",
+    "members": [],
+    "name": "axon",
+    "ownerId": "gh_dev_1793692587269",
+    "repository": {
+      "id": 1371118676,
+      "name": "Johar",
+      "fullName": "satya10-x/Johar",
+      "owner": "satya10-x",
+      "description": "Social media application for Jharkhand people",
+      "defaultBranch": "main",
+      "visibility": "public",
+      "stars": 0,
+      "language": "JavaScript",
+      "htmlUrl": "https://github.com/satya10-x/Johar",
+      "connectedAt": "2026-11-01T04:30:22.529Z"
+    },
+    "updatedAt": "2026-11-01T04:30:22.531Z"
+  },
+  {
+    "_id": "6ae764657f7d5e6e4c16d929",
+    "id": "ws_1793549413386_a7hd",
+    "__v": 0,
+    "brain": {
+      "status": "uninitialized",
+      "message": "Connect a GitHub repository to activate the Project Brain.",
+      "stats": {
+        "totalFiles": 0,
+        "totalChunks": 0,
+        "totalCommits": 0,
+        "techStack": []
+      }
+    },
+    "createdAt": "2026-11-01T16:10:13.388Z",
+    "description": "",
+    "members": [],
+    "name": "dsjhfs",
+    "ownerId": "gh_dev_1793692587269",
+    "repository": null,
+    "updatedAt": "2026-11-01T16:10:13.388Z"
   }
 ]

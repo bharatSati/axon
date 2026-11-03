@@ -233,7 +233,7 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
       <div className="invite-modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="modal-head">
-          <div className="mono-label modal-kicker" style={{ color: "#c8ff3d" }}>
+          <div className="mono-label modal-kicker">
             <Github size={14} />
             <span>INVITE GITHUB USER TO WORKSPACE</span>
           </div>
@@ -245,7 +245,7 @@ export default function InviteMemberModal({ isOpen, onClose, workspace, token, o
         {/* Modal Body */}
         <div className="invite-modal-body">
           <div className="requirements-note mono-label">
-            <Shield size={14} color="#c8ff3d" />
+            <Shield size={14} />
             <span>Strict Policy: Only developers who have signed into Axon with GitHub can be invited or added (required for email dispatch).</span>
           </div>
 

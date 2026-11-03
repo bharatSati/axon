@@ -127,7 +127,7 @@ export default function AcceptInviteModal() {
       <div className="accept-invite-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-head">
-          <div className="mono-label modal-kicker" style={{ color: "#c8ff3d" }}>
+          <div className="mono-label modal-kicker">
             <Sparkles size={14} />
             <span>AXON WORKSPACE INVITATION</span>
           </div>
@@ -170,7 +170,7 @@ export default function AcceptInviteModal() {
             <div className="invite-details-box">
               {/* Workspace Badge */}
               <div className="workspace-invite-badge">
-                <Building size={20} color="#c8ff3d" />
+                <Building size={20} />
                 <div>
                   <span className="mono-label subhead">WORKSPACE</span>
                   <h3 className="ws-name">{inviteData.workspaceName}</h3>

@@ -299,7 +299,7 @@ export default function MarketerDeck({ workspace, token }) {
                 key={ch.id}
                 type="button"
                 className={`growth-channel-tab ${isActive ? "active" : ""}`}
-                style={{ "--accent-ch": ch.color }}
+                style={{ "--accent-ch": "#c8ff3d" }}
                 onClick={() => {
                   setActiveChannel(ch.id);
                   if (deckOutput && !loading) {
@@ -308,11 +308,11 @@ export default function MarketerDeck({ workspace, token }) {
                 }}
               >
                 <div className="channel-tab-head">
-                  <Icon size={18} style={{ color: isActive ? ch.color : "#999" }} />
+                  <Icon size={18} style={{ color: isActive ? "#c8ff3d" : "#8b9089" }} />
                   <span className="channel-tab-title">{ch.label}</span>
                 </div>
                 <div className="channel-tab-sub">{ch.subtitle}</div>
-                {isActive && <div className="channel-tab-indicator" style={{ background: ch.color }} />}
+                {isActive && <div className="channel-tab-indicator" style={{ background: "#c8ff3d" }} />}
               </button>
             );
           })}
@@ -324,7 +324,7 @@ export default function MarketerDeck({ workspace, token }) {
         {/* Topic Anchor */}
         <div className="config-block topic-block">
           <label className="mono-label">
-            <Target size={12} color="#f59e0b" />
+            <Target size={12} />
             <span>CODEBASE FEATURE ANCHOR:</span>
           </label>
           <select
@@ -343,7 +343,7 @@ export default function MarketerDeck({ workspace, token }) {
         {/* Audience Selector */}
         <div className="config-block">
           <label className="mono-label">
-            <Sliders size={12} color="#38bdf8" />
+            <Sliders size={12} />
             <span>TARGET AUDIENCE:</span>
           </label>
           <div className="pill-selector">
@@ -354,7 +354,6 @@ export default function MarketerDeck({ workspace, token }) {
                 className={`pill-btn ${activeAudience === aud.id ? "active" : ""}`}
                 onClick={() => setActiveAudience(aud.id)}
               >
-                <span>{aud.icon}</span>
                 <span>{aud.label}</span>
               </button>
             ))}
@@ -364,7 +363,7 @@ export default function MarketerDeck({ workspace, token }) {
         {/* Tone Selector */}
         <div className="config-block">
           <label className="mono-label">
-            <Flame size={12} color="#f97316" />
+            <Flame size={12} />
             <span>TONE OF VOICE:</span>
           </label>
           <div className="pill-selector">
@@ -375,7 +374,6 @@ export default function MarketerDeck({ workspace, token }) {
                 className={`pill-btn ${activeTone === t.id ? "active tone-active" : ""}`}
                 onClick={() => setActiveTone(t.id)}
               >
-                <span>{t.icon}</span>
                 <span>{t.label}</span>
               </button>
             ))}
@@ -554,7 +552,7 @@ export default function MarketerDeck({ workspace, token }) {
         ) : (
           <div className="growth-empty-state">
             <div className="empty-icon-halo">
-              <Megaphone size={40} color="#f59e0b" />
+              <Megaphone size={40} />
             </div>
             <h3>Axon Growth Engine Ready</h3>
             <p>

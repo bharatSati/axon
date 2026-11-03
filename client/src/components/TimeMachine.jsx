@@ -1319,7 +1319,7 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
         <div className="tm-ask-view">
           {/* Question Input Card */}
           <div className="tm-ask-input-card">
-            <div className="mono-label kicker-pill" style={{ color: "#c8ff3d" }}>
+            <div className="mono-label kicker-pill">
               <Sparkles size={12} />
               <span>PROJECT BRAIN HISTORICAL QUERY</span>
             </div>

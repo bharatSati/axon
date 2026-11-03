@@ -172,7 +172,7 @@ export default function ConnectRepoModal({
         {currentRepo && (
           <div className="current-repo-banner">
             <div className="current-repo-info">
-              <span className="mono-label kicker-pill" style={{ color: "#c8ff3d" }}>
+              <span className="mono-label kicker-pill">
                 CURRENTLY CONNECTED REPOSITORY
               </span>
               <div className="current-repo-title">

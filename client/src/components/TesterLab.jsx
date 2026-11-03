@@ -127,7 +127,7 @@ export default function TesterLab({ workspace, token }) {
           <div className="kpi-top">
             <span className="kpi-title">TEST COVERAGE</span>
             <div className="kpi-icon-wrap">
-              <ShieldCheck size={16} color="#c8ff3d" />
+              <ShieldCheck size={16} />
             </div>
           </div>
           <div className="kpi-number">94.6%</div>
@@ -141,7 +141,7 @@ export default function TesterLab({ workspace, token }) {
           <div className="kpi-top">
             <span className="kpi-title">BOUNDARY MATRICES</span>
             <div className="kpi-icon-wrap">
-              <TestTube size={16} color="#38bdf8" />
+              <TestTube size={16} />
             </div>
           </div>
           <div className="kpi-number" style={{ color: "#38bdf8" }}>18 Cases</div>
@@ -155,7 +155,7 @@ export default function TesterLab({ workspace, token }) {
           <div className="kpi-top">
             <span className="kpi-title">REGRESSION RISK</span>
             <div className="kpi-icon-wrap">
-              <ShieldAlert size={16} color="#c8ff3d" />
+              <ShieldAlert size={16} />
             </div>
           </div>
           <div className="kpi-number" style={{ color: "#c8ff3d" }}>LOW</div>
@@ -169,7 +169,7 @@ export default function TesterLab({ workspace, token }) {
           <div className="kpi-top">
             <span className="kpi-title">SUITE RUNTIME</span>
             <div className="kpi-icon-wrap">
-              <Clock size={16} color="#fbbf24" />
+              <Clock size={16} />
             </div>
           </div>
           <div className="kpi-number" style={{ color: "#fbbf24" }}>420 ms</div>
@@ -208,7 +208,7 @@ export default function TesterLab({ workspace, token }) {
       <div className="role-deck-output-box">
         {loading ? (
           <div className="deck-loading-state">
-            <RefreshCw size={28} className="spin" color="#10b981" />
+            <RefreshCw size={28} className="spin" />
             <h3>Analyzing Code Architecture &amp; Boundary Conditions...</h3>
             <p>Evaluating schema validation, async error boundaries, and integration failure points.</p>
           </div>
@@ -216,13 +216,13 @@ export default function TesterLab({ workspace, token }) {
           <>
             <div className="deck-output-head">
               <div className="deck-output-title">
-                <CheckCircle2 size={16} color="#10b981" />
+                <CheckCircle2 size={16} />
                 <span className="mono-label" style={{ color: "#fff" }}>
                   QA VERIFICATION STRATEGY: {selectedModule}
                 </span>
               </div>
               <button type="button" className="copy-btn" onClick={handleCopy}>
-                {copied ? <Check size={13} color="#c8ff3d" /> : <Copy size={13} />}
+                {copied ? <Check size={13} /> : <Copy size={13} />}
                 <span>{copied ? "Copied" : "Copy Suite"}</span>
               </button>
             </div>
@@ -237,7 +237,7 @@ export default function TesterLab({ workspace, token }) {
           </>
         ) : (
           <div className="deck-empty-state">
-            <TestTube size={36} color="#10b981" />
+            <TestTube size={36} />
             <h3>QA Test Lab Ready</h3>
             <p>
               Select a target module and click "Generate QA Strategy" to synthesize test suites
