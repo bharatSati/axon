@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   GitPullRequest,
   CheckCircle2,
@@ -27,9 +27,11 @@ import {
   ChevronUp,
   FileDiff,
   Eye,
-  Clock
+  Clock,
+  Maximize2
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
+import ResponseTheater from "./ResponseTheater";
 import { API_BASE } from "../config/api.js";
 
 export default function PRIntelligenceStudio({ workspace, token }) {
@@ -63,6 +65,10 @@ export default function PRIntelligenceStudio({ workspace, token }) {
 
   // Copy code feedback
   const [copiedId, setCopiedId] = useState(null);
+
+  // Big-screen report reader
+  const [theaterOpen, setTheaterOpen] = useState(false);
+  const theaterOriginRef = useRef(null);
 
   // 1. Fetch Pull Requests on Mount
   useEffect(() => {
@@ -231,6 +237,62 @@ export default function PRIntelligenceStudio({ workspace, token }) {
   const isBlocked = decision.includes("BLOCKED") || decision.includes("DO NOT MERGE");
   const isMinorFixes = decision.includes("MINOR");
   const isReady = decision.includes("READY");
+
+  const theaterReport = useMemo(() => {
+    if (!analysisReport) return "";
+    const report = analysisReport;
+    const lines = [];
+
+    lines.push(`## Executive verdict`);
+    lines.push(`Merge recommendation: ${report.finalAssessment?.mergeRecommendation || "ANALYZING"} · confidence ${report.finalAssessment?.confidenceScore || 88}%.`);
+    if (report.finalAssessment?.executiveVerdict) lines.push(report.finalAssessment.executiveVerdict);
+    if (report.finalAssessment?.disclaimer) lines.push(`_${report.finalAssessment.disclaimer}_`);
+
+    if (report.explanation) {
+      lines.push("## What changed");
+      if (report.explanation.summary) lines.push(report.explanation.summary);
+      lines.push("## Why it changed");
+      if (report.explanation.intentAndWhy) lines.push(report.explanation.intentAndWhy);
+      lines.push("## Architecture fit");
+      if (report.explanation.architectureFit) lines.push(report.explanation.architectureFit);
+      if (report.explanation.newFunctionality?.length) {
+        lines.push("## New functionality");
+        report.explanation.newFunctionality.forEach((item) => lines.push(`- ${item}`));
+      }
+      if (report.explanation.affectedModules?.length) {
+        lines.push("## Affected modules");
+        report.explanation.affectedModules.forEach((item) =>
+          lines.push(`- [${item.layer}] ${item.description}`)
+        );
+      }
+    }
+
+    if (report.codeReview?.issues?.length) {
+      lines.push("## Code review findings");
+      report.codeReview.issues.forEach((issue) => {
+        lines.push(`### ${issue.severity || "Note"}: ${issue.title || issue.category || "Finding"}`);
+        if (issue.description) lines.push(issue.description);
+        if (issue.filePath) lines.push(`File: \`${issue.filePath}${issue.lineNumber ? `:${issue.lineNumber}` : ""}\``);
+        if (issue.suggestedFix) lines.push(`Suggested fix: ${issue.suggestedFix}`);
+      });
+    }
+
+    if (report.regressionAnalysis) {
+      lines.push("## Regression & breaking risk");
+      lines.push(`Risk level: ${report.regressionAnalysis.riskLevel || "unknown"}.`);
+      if (report.regressionAnalysis.breakingChanges?.length) {
+        report.regressionAnalysis.breakingChanges.forEach((item) =>
+          lines.push(`- ${typeof item === "string" ? item : item.description || JSON.stringify(item)}`)
+        );
+      }
+      if (report.regressionAnalysis.mitigationSteps?.length) {
+        lines.push("## Mitigation steps");
+        report.regressionAnalysis.mitigationSteps.forEach((item) => lines.push(`- ${item}`));
+      }
+    }
+
+    return lines.join("\n");
+  }, [analysisReport]);
 
   return (
     <div className="pr-intelligence-studio" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -519,6 +581,19 @@ export default function PRIntelligenceStudio({ workspace, token }) {
                 </div>
 
                 <div className="pr-details-actions">
+                  {analysisReport && (
+                    <button
+                      type="button"
+                      className="theater-trigger-btn"
+                      onClick={(event) => {
+                        theaterOriginRef.current = event.currentTarget;
+                        setTheaterOpen(true);
+                      }}
+                    >
+                      <Maximize2 size={13} />
+                      <span>Open full report</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="pr-reanalyze-btn mono-label"
@@ -1172,6 +1247,17 @@ export default function PRIntelligenceStudio({ workspace, token }) {
           </div>
         </div>
       )}
+
+      <ResponseTheater
+        open={theaterOpen}
+        onClose={() => setTheaterOpen(false)}
+        originRef={theaterOriginRef}
+        title={selectedPr ? `PR #${selectedPr.number} · ${selectedPr.title || "AI report"}` : "AI pull request report"}
+        kicker="PR INTELLIGENCE · FULL REPORT"
+        badge={decision}
+        icon={GitPullRequest}
+        content={theaterReport}
+      />
     </div>
   );
 }

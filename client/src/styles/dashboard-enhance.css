@@ -1651,6 +1651,227 @@ html.dashboard-active .atmosphere {
 
 .focus-stage__body > * {
   max-width: 100%;
+  animation: focusContentIn 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes focusContentIn {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Maximised prompt studio inside the focus stage */
+.focus-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  height: 100%;
+  align-content: stretch;
+}
+
+.focus-composer__main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.focus-composer__preview {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 0%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  background: #070909;
+}
+
+.focus-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.focus-preview-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid rgba(200, 255, 61, 0.2);
+  border-radius: 5px;
+  background: rgba(200, 255, 61, 0.06);
+  color: #c8ff3d;
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.focus-preview-head button:hover {
+  background: rgba(200, 255, 61, 0.13);
+}
+
+.focus-preview-body {
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow-y: auto;
+  padding: 14px 16px;
+  overscroll-behavior: contain;
+}
+
+.focus-preview-body .focus-response-empty {
+  min-height: 110px;
+}
+
+.focus-composer__rail {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  align-self: start;
+}
+
+.focus-rail-card {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse 120% 80% at 100% 0%, rgba(200, 255, 61, 0.04), transparent 62%),
+    rgba(255, 255, 255, 0.018);
+}
+
+.focus-rail-card strong {
+  display: block;
+  margin: 7px 0 2px;
+  overflow: hidden;
+  color: #f1f3ee;
+  font-size: 14.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-rail-card code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #7fffd9;
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+
+.focus-rail-card p {
+  margin: 8px 0 10px;
+  color: #8d938a;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.focus-rail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.focus-rail-meta span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #9ba197;
+  font-family: var(--mono);
+  font-size: 9.5px;
+}
+
+.focus-rail-modes {
+  display: flex;
+  gap: 6px;
+}
+
+.focus-rail-modes span {
+  flex: 1;
+  padding: 5px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  color: #6d726b;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  text-align: center;
+  transition: all 0.18s ease;
+}
+
+.focus-rail-modes span.is-active {
+  border-color: rgba(200, 255, 61, 0.3);
+  background: rgba(200, 255, 61, 0.08);
+  color: #c8ff3d;
+}
+
+.focus-rail-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.focus-rail-recent button {
+  display: -webkit-box;
+  padding: 7px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #b7bcb4;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.focus-rail-recent button:hover {
+  border-color: rgba(200, 255, 61, 0.25);
+  color: #f1f3ee;
+}
+
+.focus-composer__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.focus-composer__intro p {
+  max-width: 780px;
+  margin: 0;
+  color: #9ba197;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.focus-composer .prompt-composer {
+  width: 100%;
+}
+
+.focus-composer .pc-preset-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.focus-composer .pc-template-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.focus-composer .pc-preset-copy strong {
+  white-space: normal;
+}
+
+.focus-composer .pc-custom textarea {
+  min-height: 150px;
+  font-size: 15px;
+  line-height: 1.65;
 }
 
 .focus-stage__footer {
@@ -1867,9 +2088,64 @@ html.dashboard-active .atmosphere {
 /* ------------------------------------------------------------
    9. RESPONSIVE
    ------------------------------------------------------------ */
+@media (min-width: 901px) and (max-width: 1360px) {
+  /* Tighten the rails before the centre editor becomes unusable. */
+  .studio-workarea:not(.is-maximized) {
+    grid-template-columns: 220px minmax(0, 1fr) 320px;
+  }
+}
+
+@media (max-width: 1540px) {
+  /* The full IDE telemetry + scope chip only fits once the editor pane
+     is comfortably wide. Keep the essentials when it is not. */
+  .editor-status-bar {
+    gap: 6px;
+    padding: 6px 10px;
+  }
+
+  .editor-status-left .status-separator,
+  .editor-status-left .status-item:not(.lang-badge):not(.highlighted-status) {
+    display: none;
+  }
+
+  .font-size-controls .font-label {
+    display: none;
+  }
+
+  .editor-status-right {
+    gap: 5px;
+  }
+
+  .editor-status-right .focus-btn span {
+    display: none;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  /* Below this width the brain rail squeezes the editor under ~380px.
+     The editor composer can still ask the brain, so trade the rail for
+     a readable work surface. The 900px stack keeps the brain below the
+     editor, so only collapse it while the three-pane grid is in play. */
+  .studio-workarea:not(.is-maximized) {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .studio-brain-pane {
+    display: none;
+  }
+}
+
 @media (max-width: 1200px) {
   .focus-stage {
     width: 96vw;
+  }
+
+  .focus-composer .pc-preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .focus-composer {
+    grid-template-columns: minmax(0, 1fr) 250px;
   }
 
   .code-stage .code-viewer-container {
@@ -1915,6 +2191,30 @@ html.dashboard-active .atmosphere {
     grid-template-columns: 1fr;
   }
 
+  .focus-composer .pc-preset-grid,
+  .focus-composer .pc-template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-composer {
+    grid-template-columns: 1fr;
+    height: auto;
+    align-content: start;
+  }
+
+  .focus-composer__main {
+    height: auto;
+  }
+
+  .focus-composer__preview {
+    min-height: 260px;
+  }
+
+  .focus-composer__rail {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .code-minimap {
     display: none;
   }
@@ -1937,5 +2237,9 @@ html.dashboard-active .atmosphere {
   .focus-stage,
   .code-viewer-container {
     scroll-behavior: auto;
+  }
+
+  .focus-stage__body > * {
+    animation: none !important;
   }
 }

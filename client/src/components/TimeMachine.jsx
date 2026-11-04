@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   History,
   Clock,
@@ -30,9 +30,11 @@ import {
   X,
   MessageSquare,
   Send,
-  HelpCircle
+  HelpCircle,
+  Maximize2
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
+import ResponseTheater from "./ResponseTheater";
 import { API_BASE } from "../config/api.js";
 
 export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
@@ -78,6 +80,17 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
   // General feedback
   const [copiedSha, setCopiedSha] = useState(null);
   const [errorNotice, setErrorNotice] = useState(null);
+
+  // Big-screen response reader
+  const [theaterData, setTheaterData] = useState(null);
+  const [theaterOpen, setTheaterOpen] = useState(false);
+  const theaterOriginRef = useRef(null);
+
+  const openResponseTheater = (event, data) => {
+    theaterOriginRef.current = event?.currentTarget || null;
+    setTheaterData(data);
+    setTheaterOpen(true);
+  };
 
   // 1. Initial Load: Fetch Commits Timeline
   useEffect(() => {
@@ -744,6 +757,20 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
                           <span>
                             AI ANALYSIS GROUNDED IN COMMIT DIFF &amp; PROJECT BRAIN RAG CONTEXT
                           </span>
+                          <button
+                            type="button"
+                            className="theater-trigger-btn"
+                            onClick={(event) =>
+                              openResponseTheater(event, {
+                                title: `Commit ${snapshot.commit.shortSha} · AI breakdown`,
+                                badge: snapshot.commit.shortSha,
+                                content: currentCommitExplanation.explanation
+                              })
+                            }
+                          >
+                            <Maximize2 size={12} />
+                            <span>Theater</span>
+                          </button>
                         </div>
                         <FormattedAIResponse content={currentCommitExplanation.explanation} />
 
@@ -945,6 +972,22 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
                             <div className="qa-q-header mono-label">
                               <span>QUESTION</span>
                               <strong>{qa.question}</strong>
+                              {!qa.loading && qa.answer && (
+                                <button
+                                  type="button"
+                                  className="theater-trigger-btn"
+                                  onClick={(event) =>
+                                    openResponseTheater(event, {
+                                      title: qa.question,
+                                      badge: snapshot?.commit?.shortSha || "Commit Q&A",
+                                      content: qa.answer
+                                    })
+                                  }
+                                >
+                                  <Maximize2 size={12} />
+                                  <span>Theater</span>
+                                </button>
+                              )}
                             </div>
                             <div className="qa-a-body">
                               {qa.loading ? (
@@ -1222,9 +1265,25 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
                         <Sparkles size={12} color="#c8ff3d" />
                         <span>AI ARCHITECTURAL EVOLUTION EXPLANATION (GROQ 120B)</span>
                       </div>
-                      <span className="mono-label" style={{ fontSize: "11px", color: "#888" }}>
-                        {compareResult.base.shortSha} ➔ {compareResult.target.shortSha}
-                      </span>
+                      <div className="ai-diff-head-right">
+                        <span className="mono-label" style={{ fontSize: "11px", color: "#888" }}>
+                          {compareResult.base.shortSha} ➔ {compareResult.target.shortSha}
+                        </span>
+                        <button
+                          type="button"
+                          className="theater-trigger-btn"
+                          onClick={(event) =>
+                            openResponseTheater(event, {
+                              title: "Architectural evolution · AI diff summary",
+                              badge: `${compareResult.base.shortSha} → ${compareResult.target.shortSha}`,
+                              content: compareResult.aiSummary
+                            })
+                          }
+                        >
+                          <Maximize2 size={12} />
+                          <span>Theater</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="ai-diff-body">
@@ -1380,6 +1439,22 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
                 <div className="qa-q-row">
                   <div className="q-badge mono-label">QUESTION</div>
                   <h4>{item.question}</h4>
+                  {!item.loading && item.answer && (
+                    <button
+                      type="button"
+                      className="theater-trigger-btn"
+                      onClick={(event) =>
+                        openResponseTheater(event, {
+                          title: item.question,
+                          badge: "Historical intelligence",
+                          content: item.answer
+                        })
+                      }
+                    >
+                      <Maximize2 size={12} />
+                      <span>Theater</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="qa-a-row">
@@ -1454,6 +1529,17 @@ export default function TimeMachine({ workspace, token, onSwitchPerspective }) {
           </div>
         </div>
       )}
+
+      <ResponseTheater
+        open={theaterOpen}
+        onClose={() => setTheaterOpen(false)}
+        originRef={theaterOriginRef}
+        title={theaterData?.title || "Historical intelligence"}
+        kicker="TIME MACHINE · DEEP READ"
+        badge={theaterData?.badge || "Commit archive"}
+        icon={History}
+        content={theaterData?.content}
+      />
     </div>
   );
 }

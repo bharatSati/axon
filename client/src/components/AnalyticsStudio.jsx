@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Activity,
   BarChart3,
@@ -25,9 +25,11 @@ import {
   FolderGit2,
   Database,
   Terminal,
-  BookOpen
+  BookOpen,
+  Maximize2
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
+import ResponseTheater from "./ResponseTheater";
 import { API_BASE } from "../config/api.js";
 
 export default function AnalyticsStudio({ workspace, token, onOpenConnectRepo }) {
@@ -42,6 +44,8 @@ export default function AnalyticsStudio({ workspace, token, onOpenConnectRepo })
   // AI Diagnostic State
   const [diagnosticLoading, setDiagnosticLoading] = useState(false);
   const [diagnosticData, setDiagnosticData] = useState(null);
+  const [theaterOpen, setTheaterOpen] = useState(false);
+  const theaterOriginRef = useRef(null);
 
   // Filters
   const [prFilter, setPrFilter] = useState("all"); // "all" | "merged" | "open"
@@ -536,14 +540,28 @@ export default function AnalyticsStudio({ workspace, token, onOpenConnectRepo })
                       </span>
                     )}
                   </div>
-                  <button
-                    className="btn-regenerate"
-                    onClick={handleGenerateDiagnostic}
-                    disabled={diagnosticLoading}
-                  >
-                    <RefreshCw size={13} />
-                    Regenerate Diagnostic
-                  </button>
+                  <div className="deck-output-actions">
+                    <button
+                      type="button"
+                      className="theater-trigger-btn"
+                      onClick={(event) => {
+                        theaterOriginRef.current = event.currentTarget;
+                        setTheaterOpen(true);
+                      }}
+                      title="Open the diagnostic in the big-screen theater"
+                    >
+                      <Maximize2 size={13} />
+                      <span>Theater</span>
+                    </button>
+                    <button
+                      className="btn-regenerate"
+                      onClick={handleGenerateDiagnostic}
+                      disabled={diagnosticLoading}
+                    >
+                      <RefreshCw size={13} />
+                      Regenerate Diagnostic
+                    </button>
+                  </div>
                 </div>
                 <div className="diagnostic-report-content">
                   <FormattedAIResponse content={diagnosticData.summary} />
@@ -803,6 +821,21 @@ export default function AnalyticsStudio({ workspace, token, onOpenConnectRepo })
           </div>
         )}
       </div>
+
+      <ResponseTheater
+        open={theaterOpen}
+        onClose={() => setTheaterOpen(false)}
+        originRef={theaterOriginRef}
+        title="AXON Principal Engineering Diagnostic"
+        kicker="ANALYTICS STUDIO · DEEP READ"
+        badge={
+          diagnosticData?.generatedAt
+            ? new Date(diagnosticData.generatedAt).toLocaleDateString()
+            : "AI diagnostic"
+        }
+        icon={Activity}
+        content={diagnosticData?.summary}
+      />
     </div>
   );
 }

@@ -7,7 +7,9 @@ import {
   ChevronRight,
   Maximize2,
   Check,
-  Layers
+  Layers,
+  ScanText,
+  FileCode2
 } from "lucide-react";
 
 export const DEFAULT_PROMPT_TEMPLATES = [
@@ -71,6 +73,9 @@ export default function PromptComposer({
   disabled = false,
   contextLabel = "Current file",
   snippet = "",
+  snippetMeta = "",
+  scope = "file",
+  onScopeChange,
   onClearSnippet,
   onExpand,
   compact = false,
@@ -85,6 +90,7 @@ export default function PromptComposer({
 
   const promptText =
     mode === "template" ? template : mode === "custom" ? customPrompt : "";
+  const previewPrompt = promptText.trim();
 
   const canRun = !disabled && !loading && (mode === "preset" ? !!activeAction : promptText.trim().length > 0);
 
@@ -93,9 +99,12 @@ export default function PromptComposer({
     onRun?.({
       mode,
       action: mode === "preset" ? activeAction?.id || "explain" : "custom",
-      prompt: mode === "preset" ? "" : promptText.trim()
+      prompt: mode === "preset" ? "" : promptText.trim(),
+      scope: snippet ? scope : "file"
     });
   };
+
+  const effectiveScope = snippet ? scope : "file";
 
   return (
     <div
@@ -135,7 +144,7 @@ export default function PromptComposer({
           {snippet ? (
             <span className="pc-snippet-pill">
               <Check size={11} />
-              {snippet.length} chars selected
+              {snippetMeta || `${snippet.length} chars selected`}
               {onClearSnippet && (
                 <button type="button" onClick={onClearSnippet} title="Clear selection">
                   ×
@@ -151,6 +160,40 @@ export default function PromptComposer({
           )}
         </div>
       </div>
+
+      {onScopeChange && (
+        <div className={`pc-scope-row ${snippet ? "has-snippet" : ""}`}>
+          <span className="pc-scope-label">
+            <ScanText size={12} />
+            Answer scope
+          </span>
+          <div className="pc-scope-switch" role="group" aria-label="Answer scope">
+            <button
+              type="button"
+              className={effectiveScope === "selection" ? "is-active" : ""}
+              disabled={!snippet}
+              onClick={() => snippet && onScopeChange("selection")}
+              title={snippet ? "Analyze only your selected code" : "Select code in the editor first"}
+            >
+              <ScanText size={12} />
+              <span>{snippetMeta ? `Selection · ${snippetMeta}` : "Selected code"}</span>
+            </button>
+            <button
+              type="button"
+              className={effectiveScope === "file" ? "is-active" : ""}
+              onClick={() => onScopeChange("file")}
+            >
+              <FileCode2 size={12} />
+              <span>Whole file</span>
+            </button>
+          </div>
+          <span className="pc-scope-note">
+            {effectiveScope === "selection"
+              ? "The answer will be grounded only in your highlight."
+              : "The answer will use the entire active file."}
+          </span>
+        </div>
+      )}
 
       <div className="pc-surface">
         {mode === "preset" && (
@@ -206,12 +249,23 @@ export default function PromptComposer({
               value={customPrompt}
               onChange={(event) => onCustomPromptChange?.(event.target.value)}
               rows={compact ? 2 : 3}
+              maxLength={2000}
               placeholder="Write a precise question about this code… e.g. “Why does this hook re-render on every keystroke, and how would you fix it?”"
             />
             <span className="pc-char-count">{customPrompt.length} / 2000</span>
           </div>
         )}
       </div>
+
+      {!compact && previewPrompt && mode !== "custom" && (
+        <div className="pc-prompt-preview">
+          <span className="pc-preview-label">
+            <Sparkles size={11} />
+            Prompt preview
+          </span>
+          <p>{previewPrompt}</p>
+        </div>
+      )}
 
       <div className="pc-footer">
         <div className="pc-footer-note">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Sparkles,
   TrendingUp,
@@ -24,9 +24,11 @@ import {
   FolderGit2,
   Clock,
   Layers,
-  Award
+  Award,
+  Maximize2
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
+import ResponseTheater from "./ResponseTheater";
 import { API_BASE } from "../config/api.js";
 
 const CHANNELS = [
@@ -108,6 +110,13 @@ export default function MarketerDeck({ workspace, token }) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showSources, setShowSources] = useState(false);
+  const [theaterOpen, setTheaterOpen] = useState(false);
+  const theaterOriginRef = useRef(null);
+
+  const openTheater = (event) => {
+    theaterOriginRef.current = event?.currentTarget || null;
+    setTheaterOpen(true);
+  };
 
   const currentTopic = selectedTopic || featureTopics[0];
 
@@ -477,6 +486,16 @@ export default function MarketerDeck({ workspace, token }) {
                 <button
                   type="button"
                   className="growth-action-btn"
+                  onClick={openTheater}
+                  title="Open campaign in the big-screen theater"
+                >
+                  <Maximize2 size={14} />
+                  <span>Theater</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="growth-action-btn"
                   onClick={handleCopy}
                   title="Copy Campaign Copy"
                 >
@@ -584,6 +603,18 @@ export default function MarketerDeck({ workspace, token }) {
           </div>
         )}
       </div>
+
+      <ResponseTheater
+        open={theaterOpen}
+        onClose={() => setTheaterOpen(false)}
+        originRef={theaterOriginRef}
+        title={`${currentChannelMeta.label} · ${activeAudience}`}
+        kicker="MARKETER DECK · FULL CAMPAIGN"
+        badge={`${activeTone} tone`}
+        icon={Megaphone}
+        content={deckOutput?.deck}
+        error={deckOutput?.error}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   TestTube,
@@ -15,9 +15,11 @@ import {
   FolderGit2,
   ShieldCheck,
   Clock,
-  Sparkles
+  Sparkles,
+  Maximize2
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
+import ResponseTheater from "./ResponseTheater";
 import { API_BASE } from "../config/api.js";
 
 const TARGET_MODULES = [
@@ -34,6 +36,13 @@ export default function TesterLab({ workspace, token }) {
   const [testPlan, setTestPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [theaterOpen, setTheaterOpen] = useState(false);
+  const theaterOriginRef = useRef(null);
+
+  const openTheater = (event) => {
+    theaterOriginRef.current = event?.currentTarget || null;
+    setTheaterOpen(true);
+  };
 
   const handleGeneratePlan = async () => {
     if (!workspace?.id) return;
@@ -227,10 +236,16 @@ export default function TesterLab({ workspace, token }) {
                   QA VERIFICATION STRATEGY: {selectedModule}
                 </span>
               </div>
-              <button type="button" className="copy-btn" onClick={handleCopy}>
-                {copied ? <Check size={13} /> : <Copy size={13} />}
-                <span>{copied ? "Copied" : "Copy Suite"}</span>
-              </button>
+              <div className="deck-output-actions">
+                <button type="button" className="theater-trigger-btn" onClick={openTheater}>
+                  <Maximize2 size={13} />
+                  <span>Theater</span>
+                </button>
+                <button type="button" className="copy-btn" onClick={handleCopy}>
+                  {copied ? <Check size={13} /> : <Copy size={13} />}
+                  <span>{copied ? "Copied" : "Copy Suite"}</span>
+                </button>
+              </div>
             </div>
 
             {testPlan.error ? (
@@ -260,6 +275,18 @@ export default function TesterLab({ workspace, token }) {
           </div>
         )}
       </div>
+
+      <ResponseTheater
+        open={theaterOpen}
+        onClose={() => setTheaterOpen(false)}
+        originRef={theaterOriginRef}
+        title={`QA strategy · ${selectedModule}`}
+        kicker="TESTER QA LAB · FULL PLAN"
+        badge="Groq · Llama 3.3"
+        icon={TestTube}
+        content={testPlan?.plan}
+        error={testPlan?.error}
+      />
     </div>
   );
 }

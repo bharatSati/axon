@@ -29,7 +29,13 @@ import {
   Terminal,
   ScanLine,
   Gauge,
-  FileCode2
+  FileCode2,
+  Folder,
+  FolderOpen,
+  ScanText,
+  MousePointer2,
+  MessageSquarePlus,
+  MonitorPlay
 } from "lucide-react";
 import gsap from "gsap";
 import FormattedAIResponse from "./FormattedAIResponse";
@@ -41,11 +47,11 @@ import PRIntelligenceStudio from "./PRIntelligenceStudio";
 import { API_BASE } from "../config/api.js";
 
 const BRAIN_ACTIONS = [
-  { id: "explain", label: "Architecture & Data Flow", icon: Sparkles, desc: "Deep architectural role, inputs, outputs, and design pattern analysis" },
-  { id: "dependencies", label: "Dependencies & Callers", icon: Layers, desc: "Inspect internal modules, downstream callers, and external packages" },
-  { id: "security", label: "Security & Edge Cases", icon: ShieldAlert, desc: "Identify vulnerability risks, sanitization gaps, and failure modes" },
-  { id: "optimize", label: "Performance & Latency", icon: Zap, desc: "Algorithmic complexity, memory footprint, and optimization tips" },
-  { id: "tests", label: "Unit Tests & Mocks", icon: TestTube, desc: "Comprehensive Jest/Vitest unit tests with realistic edge cases" }
+  { id: "explain", label: "Architecture & Data Flow", short: "Explain", icon: Sparkles, desc: "Deep architectural role, inputs, outputs, and design pattern analysis" },
+  { id: "dependencies", label: "Dependencies & Callers", short: "Depend", icon: Layers, desc: "Inspect internal modules, downstream callers, and external packages" },
+  { id: "security", label: "Security & Edge Cases", short: "Security", icon: ShieldAlert, desc: "Identify vulnerability risks, sanitization gaps, and failure modes" },
+  { id: "optimize", label: "Performance & Latency", short: "Optimize", icon: Zap, desc: "Algorithmic complexity, memory footprint, and optimization tips" },
+  { id: "tests", label: "Unit Tests & Mocks", short: "Tests", icon: TestTube, desc: "Comprehensive Jest/Vitest unit tests with realistic edge cases" }
 ];
 
 const getLanguageColor = (lang) => {
@@ -160,10 +166,20 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   // Floating Selection Action HUD
   const [showSelectionHud, setShowSelectionHud] = useState(false);
   const [hudCoords, setHudCoords] = useState({ top: 0, left: 0 });
+  const [selectionRange, setSelectionRange] = useState(null);
+  const [selectionPrompt, setSelectionPrompt] = useState("");
+  const [askScope, setAskScope] = useState("file"); // "selection" | "file"
+  const [autoTheater, setAutoTheater] = useState(true);
+  const [collapsedFolders, setCollapsedFolders] = useState({});
 
   const codeViewerRef = useRef(null);
+  const codeStageRef = useRef(null);
   const findInputRef = useRef(null);
   const editorPaneRef = useRef(null);
+  const selectionPromptRef = useRef(null);
+  const turnIdRef = useRef(0);
+  const autoAnalyzedFileRef = useRef("");
+  const brainRequestRef = useRef(false);
 
   // Global Keyboard Shortcuts (Cmd+F / Ctrl+F for Find, Esc to close)
   useEffect(() => {
@@ -309,19 +325,95 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     }
   };
 
-  // Run Brain inspection when triggered (with custom prompt or preset action)
-  const handleInspectCode = async (overrideAction, overrideSnippet, overridePrompt) => {
-    if (!activeFile && !overrideSnippet) return;
-    const actionToRun = overrideAction || selectedAction;
-    const promptToUse = overridePrompt !== undefined ? overridePrompt : customPrompt;
-    const codeToAnalyze = overrideSnippet !== undefined ? overrideSnippet : (selectedSnippet || activeFile?.content);
+  // Resolve the exact line range of a live DOM text selection.
+  const getSelectionLineRange = (selection) => {
+    try {
+      if (!selection || selection.rangeCount === 0) return null;
+      const range = selection.getRangeAt(0);
+      const startNode =
+        range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
+      const endNode =
+        range.endContainer.nodeType === 3 ? range.endContainer.parentElement : range.endContainer;
+      const startRow = startNode?.closest?.(".code-line-row");
+      const endRow = endNode?.closest?.(".code-line-row");
+      if (!startRow || !endRow) return null;
+      const start = Number(startRow.dataset.line);
+      const end = Number(endRow.dataset.line);
+      if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+      return { start: Math.min(start, end), end: Math.max(start, end) };
+    } catch {
+      return null;
+    }
+  };
 
-    const promptLabel = promptToUse ? promptToUse : (BRAIN_ACTIONS.find((a) => a.id === actionToRun)?.label || actionToRun);
+  const formatRange = (range) => {
+    if (!range) return "";
+    return range.start === range.end ? `L${range.start}` : `L${range.start}–L${range.end}`;
+  };
+
+  const clearSelection = () => {
+    setSelectedSnippet("");
+    setSelectionRange(null);
+    setShowSelectionHud(false);
+    setSelectionPrompt("");
+    setAskScope("file");
+    window.getSelection()?.removeAllRanges();
+  };
+
+  // Single entry point for every Project Brain request. It records the exact
+  // answer scope (selection vs whole file) so the UI can always tell the user
+  // what the response was actually grounded in.
+  const runBrain = async ({
+    action = selectedAction,
+    scope = askScope,
+    code,
+    prompt = "",
+    openTheater = false
+  } = {}) => {
+    if (!activeFile && !code) return;
+    if (brainRequestRef.current) return;
+    const fileContent = activeFile?.content || "";
+    const requestedSelection = scope === "selection" ? (code !== undefined ? code : selectedSnippet) : "";
+    const selectedCode = requestedSelection && requestedSelection.trim() ? requestedSelection.trim() : "";
+    const codeToAnalyze = selectedCode || fileContent;
+    if (!codeToAnalyze) return;
+    const submittedCode = codeToAnalyze.slice(0, 5000);
+
+    const resolvedScope = selectedCode ? "selection" : "file";
+    const range = resolvedScope === "selection" ? selectionRange : null;
+    const promptToUse = prompt.trim();
+    const baseLabel =
+      promptToUse || BRAIN_ACTIONS.find((entry) => entry.id === action)?.label || action;
+    const promptLabel =
+      baseLabel.length > 92 ? `${baseLabel.slice(0, 89).trimEnd()}…` : baseLabel;
+    const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const turnId = ++turnIdRef.current;
+
+    brainRequestRef.current = true;
+    setIsInspecting(true);
+    setShowSelectionHud(false);
+    setSelectionPrompt("");
+    setChatThread((prev) => [
+      ...prev,
+      {
+        id: turnId,
+        prompt: promptLabel,
+        analysis: null,
+        action,
+        scope: resolvedScope,
+        lineRange: range,
+        charCount: submittedCode.length,
+        filePath: activeFile?.path || "",
+        relevantChunks: [],
+        timestamp,
+        pending: true
+      }
+    ]);
+    setFocusTurnId(turnId);
+    setFocusKind("analysis");
+    if (openTheater) setFocusOpen(true);
 
     try {
-      setIsInspecting(true);
-      setShowSelectionHud(false);
-
       const res = await fetch(`${API_BASE}/workspaces/${workspace.id}/brain/inspect-code`, {
         method: "POST",
         headers: {
@@ -330,8 +422,8 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
         },
         body: JSON.stringify({
           filePath: activeFile?.path,
-          codeSnippet: codeToAnalyze?.slice(0, 5000),
-          action: actionToRun,
+          codeSnippet: submittedCode,
+          action,
           customPrompt: promptToUse || ""
         })
       });
@@ -339,46 +431,64 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
       if (res.ok) {
         const data = await res.json();
         setBrainAnalysis(data);
-
-        // Add to conversation thread
-        setChatThread((prev) => [
-          ...prev,
-          {
-            id: Date.now(),
-            prompt: promptLabel,
-            analysis: data.analysis,
-            action: actionToRun,
-            relevantChunks: data.relevantChunks || [],
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-          }
-        ]);
+        setChatThread((prev) =>
+          prev.map((turn) =>
+            turn.id === turnId
+              ? {
+                  ...turn,
+                  analysis: data.analysis,
+                  relevantChunks: data.relevantChunks || [],
+                  pending: false,
+                  error: null
+                }
+              : turn
+          )
+        );
       } else {
-        const err = await res.json();
-        setBrainAnalysis({
-          error: err.error || "Failed to inspect code with Project Brain."
-        });
+        const err = await res.json().catch(() => ({}));
+        const message = err.error || "Failed to inspect code with Project Brain.";
+        setBrainAnalysis({ error: message });
+        setChatThread((prev) =>
+          prev.map((turn) =>
+            turn.id === turnId ? { ...turn, pending: false, error: message } : turn
+          )
+        );
       }
     } catch (err) {
       console.error("Inspect code error:", err);
-      setBrainAnalysis({ error: "Network error connecting to Project Brain." });
+      const message = "Network error connecting to Project Brain.";
+      setBrainAnalysis({ error: message });
+      setChatThread((prev) =>
+        prev.map((turn) => (turn.id === turnId ? { ...turn, pending: false, error: message } : turn))
+      );
     } finally {
+      brainRequestRef.current = false;
       setIsInspecting(false);
     }
   };
 
-  // Inspect on initial file load
+  // Inspect the active file on first load without hijacking the screen.
   useEffect(() => {
-    if (activeFile && activeFile.content && !brainAnalysis && chatThread.length === 0) {
-      handleInspectCode("explain", activeFile.content.slice(0, 2000), "");
-    }
-  }, [activeFile?.content]);
+    if (!activeFile?.content || chatThread.length > 0) return;
+    const fileKey = activeFile.path || "active-file";
+    if (autoAnalyzedFileRef.current === fileKey) return;
+    autoAnalyzedFileRef.current = fileKey;
+    runBrain({ action: "explain", scope: "file", openTheater: false });
+  }, [activeFile?.content, activeFile?.path, chatThread.length]);
 
   // Single, unambiguous prompt contract: preset OR template OR custom — never mixed.
-  const handleComposerRun = ({ mode, action, prompt }) => {
+  const handleComposerRun = ({ mode, action, prompt, scope }) => {
     if (mode === "preset") setSelectedAction(action);
     if (mode === "template") setPromptTemplate(prompt);
     if (mode === "custom") setCustomPrompt(prompt);
-    handleInspectCode(action, undefined, mode === "preset" ? "" : prompt);
+    const resolvedScope = scope || askScope;
+    setAskScope(resolvedScope);
+    runBrain({
+      action,
+      scope: resolvedScope,
+      prompt: mode === "preset" ? "" : prompt,
+      openTheater: autoTheater && !focusOpen
+    });
   };
 
   const openFocusStage = (kind, turnId, event) => {
@@ -397,10 +507,45 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
 
   const handleFocusAsk = () => {
     if (!followupPrompt.trim() || isInspecting) return;
-    handleInspectCode("custom", undefined, followupPrompt.trim());
+    runBrain({ action: "custom", scope: askScope, prompt: followupPrompt.trim(), openTheater: false });
     setFollowupPrompt("");
-    setFocusTurnId(null);
-    setFocusKind("analysis");
+  };
+
+  const openComposerForSelection = (event) => {
+    setAskScope("selection");
+    setShowSelectionHud(false);
+    openFocusStage("composer", null, event);
+  };
+
+  const runSelectionAction = (actionId, event) => {
+    if (event?.currentTarget) focusOriginRef.current = event.currentTarget;
+    runBrain({
+      action: actionId,
+      scope: "selection",
+      code: selectedSnippet,
+      openTheater: autoTheater
+    });
+  };
+
+  const runSelectionPrompt = () => {
+    if (!selectionPrompt.trim() || isInspecting) return;
+    runBrain({
+      action: "custom",
+      scope: "selection",
+      code: selectedSnippet,
+      prompt: selectionPrompt.trim(),
+      openTheater: autoTheater
+    });
+  };
+
+  const askWholeFile = () => {
+    setAskScope("file");
+    runBrain({
+      action: selectionPrompt.trim() ? "custom" : selectedAction,
+      scope: "file",
+      prompt: selectionPrompt.trim(),
+      openTheater: autoTheater
+    });
   };
 
   const handleEditorScroll = (event) => {
@@ -449,8 +594,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   // Handle open tab
   const handleOpenFile = (path) => {
     setSelectedFilePath(path);
-    setSelectedSnippet("");
-    setShowSelectionHud(false);
+    clearSelection();
     setActiveLine(null);
     if (!activeTabFiles.includes(path)) {
       setActiveTabFiles((prev) => [...prev, path]);
@@ -509,18 +653,42 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     return true;
   });
 
+  // Group files by their directory so the explorer reads like a real IDE tree.
+  const fileGroups = useMemo(() => {
+    const groups = new Map();
+    filteredFiles.forEach((file) => {
+      const parts = file.path.split("/");
+      const group = parts.length > 1 ? parts.slice(0, -1).join("/") : "";
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push(file);
+    });
+    return Array.from(groups.entries()).sort(([a], [b]) => {
+      if (!a) return -1;
+      if (!b) return 1;
+      return a.localeCompare(b);
+    });
+  }, [filteredFiles]);
+
+  const toggleFolder = (group) => {
+    setCollapsedFolders((prev) => ({ ...prev, [group]: !prev[group] }));
+  };
+
   // Handle user selecting text in the code viewer & spawn Floating AI HUD
   const handleCodeMouseUp = (e) => {
     const selection = window.getSelection();
     const text = selection ? selection.toString().trim() : "";
-    if (text && text.length > 5) {
+    if (text && text.length > 1) {
+      const range = getSelectionLineRange(selection);
       setSelectedSnippet(text);
-      const rect = codeViewerRef.current?.getBoundingClientRect();
-      if (rect) {
+      setSelectionRange(range);
+      setAskScope("selection");
+      const stageRect = codeStageRef.current?.getBoundingClientRect();
+      if (stageRect) {
+        const maxLeft = Math.max(12, stageRect.width - 470);
         setShowSelectionHud(true);
         setHudCoords({
-          top: Math.max(10, e.clientY - rect.top - 46),
-          left: Math.min(rect.width - 320, Math.max(20, e.clientX - rect.left - 120))
+          top: Math.max(12, Math.min(e.clientY - stageRect.top - 40, stageRect.height - 320)),
+          left: Math.max(12, Math.min(e.clientX - stageRect.left - 210, maxLeft))
         });
       }
     } else {
@@ -556,6 +724,13 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
         }
       : BRAIN_ACTIONS.find((a) => a.id === (lastTurn?.action || selectedAction)) || BRAIN_ACTIONS[0];
   const hasRepo = !!workspace?.repository;
+  const selectionLineLabel = selectionRange
+    ? formatRange(selectionRange)
+    : selectedSnippet
+      ? `${selectedSnippet.split("\n").length} lines`
+      : "";
+  const activeScopeLabel = askScope === "selection" && selectedSnippet ? "Selected code" : "Whole file";
+  const latestTurnForHeader = chatThread.length ? chatThread[chatThread.length - 1] : null;
 
   // Empty State: No Repository Connected
   if (!hasRepo) {
@@ -667,6 +842,32 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
             <span>Sync</span>
           </button>
 
+          <span className="studio-action-divider" aria-hidden="true" />
+
+          {/* Auto-open response theater */}
+          <button
+            type="button"
+            className={`studio-action-btn ${autoTheater ? "is-active" : ""}`}
+            onClick={() => setAutoTheater((value) => !value)}
+            title="Automatically open AI answers in the big-screen theater"
+          >
+            <MonitorPlay size={13} />
+            <span>Auto theater</span>
+          </button>
+
+          {/* Re-open latest answer in the theater */}
+          {latestTurnForHeader?.analysis && (
+            <button
+              type="button"
+              className="studio-action-btn studio-action-btn--primary"
+              onClick={(event) => openFocusStage("analysis", latestTurnForHeader.id, event)}
+              title="Open the latest AI answer in the big-screen theater"
+            >
+              <Sparkles size={13} />
+              <span>Latest answer</span>
+            </button>
+          )}
+
           {/* Focus Mode Toggle */}
           <button
             type="button"
@@ -761,38 +962,62 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               ) : filteredFiles.length === 0 ? (
                 <div className="filetree-empty">No matching files found.</div>
               ) : (
-                filteredFiles.map((file) => {
-                  const isSelected = file.path === selectedFilePath;
-                  const isDoc = file.language === "markdown";
-                  const isJs = file.language === "javascript" || file.language === "typescript";
+                fileGroups.map(([group, groupFiles]) => {
+                  const isRoot = !group;
+                  const collapsed = !isRoot && collapsedFolders[group];
 
                   return (
-                    <button
-                      type="button"
-                      key={file.path}
-                      className={`filetree-item ${isSelected ? "is-selected" : ""}`}
-                      onClick={() => handleOpenFile(file.path)}
-                      title={file.path}
-                    >
-                      <div className="filetree-item-top">
-                        <span className="file-icon">
-                          {isDoc ? (
-                            <FileText size={13} color="#94a3b8" />
-                          ) : isJs ? (
-                            <FileCode size={13} color="#c8ff3d" />
-                          ) : (
-                            <Code2 size={13} color="#38bdf8" />
-                          )}
-                        </span>
-                        <span className="file-name">{file.name}</span>
-                        {file.size > 0 && (
-                          <span className="file-size mono-label">
-                            {file.size > 1024 ? `${(file.size / 1024).toFixed(1)}k` : `${file.size}b`}
-                          </span>
-                        )}
-                      </div>
-                      <span className="file-path-sub mono-label">{file.path}</span>
-                    </button>
+                    <div key={group || "__root"} className="filetree-group">
+                      {!isRoot && (
+                        <button
+                          type="button"
+                          className={`filetree-group-head ${collapsed ? "is-collapsed" : ""}`}
+                          onClick={() => toggleFolder(group)}
+                          title={collapsed ? `Expand ${group}` : `Collapse ${group}`}
+                        >
+                          <ChevronDown size={13} className="filetree-chevron" />
+                          {collapsed ? <Folder size={13} /> : <FolderOpen size={13} />}
+                          <span className="filetree-group-name">{group}</span>
+                          <span className="filetree-group-count">{groupFiles.length}</span>
+                        </button>
+                      )}
+
+                      {!collapsed &&
+                        groupFiles.map((file) => {
+                          const isSelected = file.path === selectedFilePath;
+                          const isDoc = file.language === "markdown";
+                          const isJs = file.language === "javascript" || file.language === "typescript";
+
+                          return (
+                            <button
+                              type="button"
+                              key={file.path}
+                              className={`filetree-item ${isSelected ? "is-selected" : ""}`}
+                              onClick={() => handleOpenFile(file.path)}
+                              title={file.path}
+                            >
+                              <div className="filetree-item-top">
+                                <span className="file-icon">
+                                  {isDoc ? (
+                                    <FileText size={14} color="#94a3b8" />
+                                  ) : isJs ? (
+                                    <FileCode size={14} color="#c8ff3d" />
+                                  ) : (
+                                    <Code2 size={14} color="#38bdf8" />
+                                  )}
+                                </span>
+                                <span className="file-name">{file.name}</span>
+                                {file.size > 0 && (
+                                  <span className="file-size mono-label">
+                                    {file.size > 1024 ? `${(file.size / 1024).toFixed(1)}k` : `${file.size}b`}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="file-path-sub mono-label">{file.path}</span>
+                            </button>
+                          );
+                        })}
+                    </div>
                   );
                 })
               )}
@@ -846,6 +1071,12 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               </div>
 
               <div className="editor-actions-strip">
+                {selectedSnippet && (
+                  <span className="editor-selection-chip" title="Project Brain will use this selection by default">
+                    <ScanText size={12} />
+                    {selectionLineLabel || `${selectedSnippet.length} chars`}
+                  </span>
+                )}
                 <button
                   type="button"
                   className={`subbar-btn ${findOpen ? "is-active" : ""}`}
@@ -862,7 +1093,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                   title="Copy code or selected snippet"
                 >
                   {copiedCode ? <Check size={13} color="#c8ff3d" /> : <Copy size={13} />}
-                  <span>{copiedCode ? "Copied" : selectedSnippet ? "Copy Snippet" : "Copy"}</span>
+                  <span>{copiedCode ? "Copied" : "Copy"}</span>
                 </button>
                 <button
                   type="button"
@@ -944,10 +1175,10 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               loading={isInspecting || loadingFileContent}
               contextLabel={activeFile ? activeFile.name : "No file"}
               snippet={selectedSnippet}
-              onClearSnippet={() => {
-                setSelectedSnippet("");
-                setShowSelectionHud(false);
-              }}
+              snippetMeta={selectionLineLabel}
+              scope={askScope}
+              onScopeChange={setAskScope}
+              onClearSnippet={clearSelection}
               onExpand={(event) => openFocusStage("composer", null, event)}
               compact
               runLabel="Ask Brain"
@@ -956,7 +1187,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
             {/* ============================================================
                 EXPANDED CODE VIEWER VIEWPORT (HIGH READABILITY)
                 ============================================================ */}
-            <div className={`code-stage ${isMaximized ? "is-cinematic" : ""}`}>
+            <div className={`code-stage ${isMaximized ? "is-cinematic" : ""}`} ref={codeStageRef}>
               <div
                 className="code-viewer-container"
                 ref={codeViewerRef}
@@ -973,61 +1204,6 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               >
                 <span className="code-viewer-aura" aria-hidden="true" />
                 <span className="code-viewer-scanline" aria-hidden="true" />
-
-                {/* Floating Selection AI HUD Pill */}
-                {showSelectionHud && selectedSnippet && (
-                  <div
-                    className="floating-selection-hud"
-                    style={{ top: `${hudCoords.top}px`, left: `${hudCoords.left}px` }}
-                  >
-                    <span className="hud-badge">
-                      <Sparkles size={11} color="#c8ff3d" />
-                      {selectedSnippet.length}c
-                    </span>
-                    <button
-                      type="button"
-                      className="hud-action-btn"
-                      onClick={() => handleInspectCode("explain", selectedSnippet, "")}
-                    >
-                      Explain
-                    </button>
-                    <button
-                      type="button"
-                      className="hud-action-btn"
-                      onClick={() => handleInspectCode("optimize", selectedSnippet, "")}
-                    >
-                      Optimize
-                    </button>
-                    <button
-                      type="button"
-                      className="hud-action-btn"
-                      onClick={() => handleInspectCode("security", selectedSnippet, "")}
-                    >
-                      Security
-                    </button>
-                    <button
-                      type="button"
-                      className="hud-action-btn"
-                      onClick={() => handleInspectCode("tests", selectedSnippet, "")}
-                    >
-                      Tests
-                    </button>
-                    <button
-                      type="button"
-                      className="hud-action-btn"
-                      onClick={handleCopyCode}
-                    >
-                      <Copy size={11} />
-                    </button>
-                    <button
-                      type="button"
-                      className="hud-close-btn"
-                      onClick={() => setShowSelectionHud(false)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                )}
 
                 {loadingFileContent ? (
                   <div className="code-editor-empty">
@@ -1050,6 +1226,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                           <div
                             key={idx}
                             id={`code-line-${lineNum}`}
+                            data-line={lineNum}
                             className={`code-line-row ${isCurrentActive ? "is-active" : ""} ${isMatch ? "is-match" : ""}`}
                             onClick={() => setActiveLine(lineNum)}
                           >
@@ -1115,6 +1292,110 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                   />
                 </button>
               ) : null}
+
+              {/* ============================================================
+                  FLOATING SELECTION COMMAND CENTER
+                  ============================================================ */}
+              {showSelectionHud && selectedSnippet && (
+                <div
+                  className="selection-hud"
+                  style={{ top: `${hudCoords.top}px`, left: `${hudCoords.left}px` }}
+                  onMouseDown={(event) => {
+                    // Keep the text selection alive when clicking HUD chrome, but
+                    // let form controls receive focus so the custom prompt works.
+                    if (!event.target.closest("input, textarea")) {
+                      event.preventDefault();
+                    }
+                  }}
+                  role="dialog"
+                  aria-label="Selection actions"
+                >
+                  <div className="selection-hud-head">
+                    <span className="selection-hud-kicker">
+                      <MousePointer2 size={13} />
+                      SELECTION COMMAND
+                    </span>
+                    <span className="selection-hud-meta">
+                      {selectionLineLabel ? `${selectionLineLabel} · ` : ""}
+                      {selectedSnippet.length} chars
+                    </span>
+                    <button
+                      type="button"
+                      className="selection-hud-close"
+                      onClick={() => setShowSelectionHud(false)}
+                      title="Dismiss"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+
+                  <div className="selection-hud-preview" title={selectedSnippet}>
+                    <code>{selectedSnippet.replace(/\s+/g, " ").slice(0, 180)}{selectedSnippet.length > 180 ? "…" : ""}</code>
+                  </div>
+
+                  <div className="selection-hud-actions">
+                    {[BRAIN_ACTIONS[0], BRAIN_ACTIONS[4], BRAIN_ACTIONS[2], BRAIN_ACTIONS[3]]
+                      .filter(Boolean)
+                      .map((entry) => {
+                        const Icon = entry.icon;
+                        return (
+                          <button
+                            type="button"
+                            key={entry.id}
+                            className="selection-action-card"
+                            onClick={(event) => runSelectionAction(entry.id, event)}
+                            title={entry.desc}
+                          >
+                            <Icon size={14} />
+                            <span>{entry.short || entry.label.split(" ")[0]}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+
+                  <div className="selection-hud-ask">
+                    <MessageSquarePlus size={14} className="selection-ask-icon" />
+                    <input
+                      ref={selectionPromptRef}
+                      type="text"
+                      value={selectionPrompt}
+                      placeholder="Ask anything about this selection…"
+                      onChange={(event) => setSelectionPrompt(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") runSelectionPrompt();
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="selection-ask-send"
+                      onClick={runSelectionPrompt}
+                      disabled={!selectionPrompt.trim() || isInspecting}
+                    >
+                      {isInspecting ? <RefreshCw size={13} className="spin" /> : <Send size={13} />}
+                      <span>Ask</span>
+                    </button>
+                  </div>
+
+                  <div className="selection-hud-foot">
+                    <button type="button" onClick={(event) => openComposerForSelection(event)}>
+                      <Maximize2 size={12} />
+                      Open in theater
+                    </button>
+                    <button type="button" onClick={askWholeFile} title="Ask about the entire file instead">
+                      <FileCode2 size={12} />
+                      Whole file
+                    </button>
+                    <button type="button" onClick={handleCopyCode}>
+                      {copiedCode ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
+                      {copiedCode ? "Copied" : "Copy"}
+                    </button>
+                    <button type="button" onClick={clearSelection}>
+                      <X size={12} />
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ============================================================
@@ -1149,6 +1430,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                   <>
                     <span className="status-separator">•</span>
                     <span className="status-item highlighted-status">
+                      {selectionLineLabel ? `${selectionLineLabel} · ` : ""}
                       {selectedSnippet.length} chars selected
                     </span>
                   </>
@@ -1156,9 +1438,14 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               </div>
 
               <div className="editor-status-right">
+                <span className={`status-scope-chip ${askScope === "selection" && selectedSnippet ? "is-selection" : ""}`}>
+                  {askScope === "selection" && selectedSnippet ? <ScanText size={11} /> : <FileCode2 size={11} />}
+                  {activeScopeLabel}
+                </span>
+
                 {/* Font Size Adjuster Controls */}
                 <div className="font-size-controls" title="Adjust Code Font Size">
-                  <span style={{ fontSize: "10px", color: "#94a3b8" }}>FONT:</span>
+                  <span className="font-label">FONT</span>
                   <button
                     type="button"
                     className="font-btn"
@@ -1212,6 +1499,10 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                 <span>PROJECT BRAIN</span>
               </div>
               <div className="brain-header-right">
+                <span className={`brain-scope-pill ${askScope === "selection" && selectedSnippet ? "is-selection" : ""}`}>
+                  {askScope === "selection" && selectedSnippet ? <ScanText size={11} /> : <FileCode2 size={11} />}
+                  {activeScopeLabel}
+                </span>
                 <span className="brain-provider-pill">Groq • Llama 3.3</span>
                 {chatThread.length > 0 && (
                   <button
@@ -1220,6 +1511,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                     onClick={() => {
                       setChatThread([]);
                       setBrainAnalysis(null);
+                      setFocusOpen(false);
                     }}
                     title="Clear analysis thread"
                   >
@@ -1241,27 +1533,40 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
 
               {/* Single Smooth Scroll Analysis Output Container */}
               <div className="brain-analysis-output" data-lenis-prevent>
-                {isInspecting ? (
-                  <div className="brain-inspecting-state">
-                    <RefreshCw size={24} className="spin text-lime" />
-                    <h4>Project Brain is Analyzing...</h4>
-                    <p>Synthesizing code architecture and repository context.</p>
-                  </div>
-                ) : chatThread.length > 0 ? (
+                {chatThread.length > 0 ? (
                   <div className="brain-messages-stream">
                     {chatThread.map((turn, tIdx) => (
-                      <div key={turn.id || tIdx} className="brain-chat-turn">
+                      <div
+                        key={turn.id || tIdx}
+                        className={`brain-chat-turn ${turn.pending ? "is-pending" : ""} ${turn.error ? "has-error" : ""}`}
+                      >
                         <div className="analysis-header-row">
-                          <span className="turn-title">
-                            <Sparkles size={12} color="#c8ff3d" />
-                            {turn.prompt}
-                            <span className="turn-timestamp">{turn.timestamp}</span>
-                          </span>
+                          <div className="turn-heading">
+                            <span className="turn-title">
+                              <Sparkles size={13} color="#c8ff3d" />
+                              {turn.prompt}
+                            </span>
+                            <span className="turn-badges">
+                              <span className={`turn-scope-badge turn-scope-badge--${turn.scope || "file"}`}>
+                                {turn.scope === "selection" ? <ScanText size={11} /> : <FileCode2 size={11} />}
+                                {turn.scope === "selection"
+                                  ? `Selected${turn.lineRange ? ` · ${formatRange(turn.lineRange)}` : ""}`
+                                  : "Whole file"}
+                              </span>
+                              {turn.filePath && (
+                                <span className="turn-file-badge" title={turn.filePath}>
+                                  {turn.filePath.split("/").pop()}
+                                </span>
+                              )}
+                              <span className="turn-timestamp">{turn.timestamp}</span>
+                            </span>
+                          </div>
                           <div className="analysis-actions">
                             <button
                               type="button"
                               className="copy-analysis-btn"
                               onClick={() => handleCopyAnalysis(turn.analysis)}
+                              disabled={!turn.analysis}
                             >
                               <Copy size={12} />
                               <span>Copy</span>
@@ -1270,23 +1575,47 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                               type="button"
                               className="expand-analysis-btn"
                               onClick={(event) => openFocusStage("analysis", turn.id, event)}
-                              title="Expand response into focus stage"
+                              title="Open this response in the big-screen theater"
                             >
                               <Maximize2 size={12} />
-                              <span>Expand</span>
+                              <span>{turn.pending ? "Open" : "Theater"}</span>
                             </button>
                           </div>
                         </div>
 
-                        <div className="analysis-content-markdown">
-                          <FormattedAIResponse content={turn.analysis} />
-                        </div>
+                        {turn.pending ? (
+                          <div className="brain-turn-pending">
+                            <RefreshCw size={16} className="spin text-lime" />
+                            <div>
+                              <strong>Project Brain is reading your context…</strong>
+                              <span>
+                                {turn.scope === "selection"
+                                  ? `Grounded in your selection${turn.lineRange ? ` (${formatRange(turn.lineRange)})` : ""}.`
+                                  : "Grounded in the entire active file."}
+                              </span>
+                            </div>
+                          </div>
+                        ) : turn.error ? (
+                          <div className="analysis-error-box">
+                            <AlertCircle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                            <div>
+                              <strong style={{ display: "block", marginBottom: "4px", color: "#fca5a5" }}>
+                                AI Service Notice:
+                              </strong>
+                              <span>{turn.error}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="analysis-content-markdown">
+                            <FormattedAIResponse content={turn.analysis} />
+                          </div>
+                        )}
 
                         {/* Related RAG Knowledge Chunks */}
                         {turn.relevantChunks && turn.relevantChunks.length > 0 && (
                           <div className="related-chunks-section">
                             <span className="mono-label related-chunks-title">
-                              RELATED REPOSITORY CONTEXT:
+                              RELATED REPOSITORY CONTEXT
                             </span>
                             {turn.relevantChunks.map((chunk, i) => (
                               <div key={i} className="related-chunk-card">
@@ -1304,13 +1633,25 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                       </div>
                     ))}
                   </div>
+                ) : isInspecting ? (
+                  <div className="brain-inspecting-state">
+                    <RefreshCw size={24} className="spin text-lime" />
+                    <h4>Project Brain is Analyzing...</h4>
+                    <p>Synthesizing code architecture and repository context.</p>
+                  </div>
                 ) : brainAnalysis ? (
                   <>
                     <div className="analysis-header-row">
-                      <span className="turn-title">
-                        <Sparkles size={12} color="#c8ff3d" />
-                        AI CODE ANALYSIS
-                      </span>
+                      <div className="turn-heading">
+                        <span className="turn-title">
+                          <Sparkles size={13} color="#c8ff3d" />
+                          AI CODE ANALYSIS
+                        </span>
+                        <span className={`turn-scope-badge turn-scope-badge--${askScope === "selection" && selectedSnippet ? "selection" : "file"}`}>
+                          {askScope === "selection" && selectedSnippet ? <ScanText size={11} /> : <FileCode2 size={11} />}
+                          {activeScopeLabel}
+                        </span>
+                      </div>
                       <div className="analysis-actions">
                         <button
                           type="button"
@@ -1324,10 +1665,10 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                           type="button"
                           className="expand-analysis-btn"
                           onClick={(event) => openFocusStage("analysis", null, event)}
-                          title="Expand response into focus stage"
+                          title="Open this response in the big-screen theater"
                         >
                           <Maximize2 size={12} />
-                          <span>Expand</span>
+                          <span>Theater</span>
                         </button>
                       </div>
                     </div>
@@ -1350,24 +1691,40 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                   </>
                 ) : (
                   <div className="brain-empty-state">
-                    <Sparkles size={24} color="#64748b" />
-                    <p>Click "Ask Brain" or type a prompt below to analyze this file or inspect selected code.</p>
+                    <Sparkles size={26} color="#64748b" />
+                    <p>Highlight code in the editor for instant actions, or ask a question below.</p>
+                    <span className="brain-empty-hint">
+                      Responses clearly show whether they used a selection or the whole file.
+                    </span>
                   </div>
                 )}
               </div>
 
               {/* Interactive Ask Follow-up Bar */}
               <div className="brain-followup-bar">
+                <div className="followup-scope-row">
+                  <span className={`followup-scope-dot ${askScope === "selection" && selectedSnippet ? "is-selection" : ""}`} />
+                  <span>Answer scope: <strong>{activeScopeLabel}</strong></span>
+                  {selectedSnippet && (
+                    <button
+                      type="button"
+                      className="followup-scope-switch"
+                      onClick={() => setAskScope((scope) => (scope === "selection" ? "file" : "selection"))}
+                    >
+                      switch to {askScope === "selection" ? "whole file" : "selection"}
+                    </button>
+                  )}
+                </div>
                 <div className="followup-input-wrap">
                   <Terminal size={13} className="followup-terminal-icon" />
                   <input
                     type="text"
-                    placeholder="Ask a follow-up to Project Brain…"
+                    placeholder={`Ask a follow-up about the ${activeScopeLabel.toLowerCase()}…`}
                     value={followupPrompt}
                     onChange={(e) => setFollowupPrompt(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && followupPrompt.trim()) {
-                        handleInspectCode("custom", undefined, followupPrompt.trim());
+                      if (e.key === "Enter" && followupPrompt.trim() && !isInspecting) {
+                        runBrain({ action: "custom", scope: askScope, prompt: followupPrompt.trim() });
                         setFollowupPrompt("");
                       }
                     }}
@@ -1376,8 +1733,8 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                     type="button"
                     className="followup-send-btn"
                     onClick={() => {
-                      if (followupPrompt.trim()) {
-                        handleInspectCode("custom", undefined, followupPrompt.trim());
+                      if (followupPrompt.trim() && !isInspecting) {
+                        runBrain({ action: "custom", scope: askScope, prompt: followupPrompt.trim() });
                         setFollowupPrompt("");
                       }
                     }}
@@ -1400,42 +1757,181 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
         open={focusOpen}
         onClose={() => setFocusOpen(false)}
         originRef={focusOriginRef}
-        icon={focusKind === "code" ? FileCode2 : Sparkles}
-        kicker={focusKind === "code" ? "AXON CODE ENGINE · THEATER" : "PROJECT BRAIN · DEEP READ"}
+        icon={focusKind === "code" ? FileCode2 : focusKind === "composer" ? Terminal : Sparkles}
+        kicker={
+          focusKind === "code"
+            ? "AXON CODE ENGINE · THEATER"
+            : focusKind === "composer"
+              ? "PROJECT BRAIN · PROMPT STUDIO"
+              : "PROJECT BRAIN · DEEP READ"
+        }
         title={
           focusKind === "code"
             ? activeFile?.path || "Repository file"
-            : latestTurn?.prompt || "AI analysis"
+            : focusKind === "composer"
+              ? activeFile
+                ? `Ask about ${activeFile.name}`
+                : "Compose a Brain prompt"
+              : isInspecting
+                ? "Project Brain is thinking…"
+                : latestTurn?.prompt || "AI analysis"
         }
         badge={
           focusKind === "code"
             ? `${activeFile?.language || "text"} · ${activeFile?.linesCount || highlightedLines.length} lines`
-            : latestTurn?.timestamp || "LIVE"
+            : focusKind === "composer"
+              ? `${promptMode === "template" ? "Library" : promptMode === "custom" ? "Custom" : "Preset"} mode`
+              : `${latestTurn?.scope === "selection" ? `Selection${latestTurn.lineRange ? ` · ${formatRange(latestTurn.lineRange)}` : ""}` : "Whole file"} · ${latestTurn?.timestamp || "LIVE"}`
         }
         footer={
-          <div className="focus-ask-bar">
-            <Gauge size={15} className="focus-ask-icon" />
-            <input
-              type="text"
-              value={followupPrompt}
-              onChange={(event) => setFollowupPrompt(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") handleFocusAsk();
-              }}
-              placeholder={
-                focusKind === "code"
-                  ? "Ask Brain about this entire file…"
-                  : "Ask a follow-up about this answer…"
-              }
-            />
-            <button type="button" onClick={handleFocusAsk} disabled={isInspecting || !followupPrompt.trim()}>
-              {isInspecting ? <RefreshCw size={14} className="spin" /> : <Send size={14} />}
-              <span>{isInspecting ? "Thinking" : "Send"}</span>
-            </button>
-          </div>
+          focusKind === "composer" ? null : (
+            <div className="focus-ask-bar">
+              <Gauge size={15} className="focus-ask-icon" />
+              <input
+                type="text"
+                value={followupPrompt}
+                onChange={(event) => setFollowupPrompt(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleFocusAsk();
+                }}
+                placeholder={
+                  focusKind === "code"
+                    ? "Ask Brain about this entire file…"
+                    : "Ask a follow-up about this answer…"
+                }
+              />
+              <button type="button" onClick={handleFocusAsk} disabled={isInspecting || !followupPrompt.trim()}>
+                {isInspecting ? <RefreshCw size={14} className="spin" /> : <Send size={14} />}
+                <span>{isInspecting ? "Thinking" : "Send"}</span>
+              </button>
+            </div>
+          )
         }
       >
-        {focusKind === "code" ? (
+        {focusKind === "composer" ? (
+          <div className="focus-composer">
+            <div className="focus-composer__main">
+              <div className="focus-composer__intro">
+                <span className="mono-label">ONE MODE AT A TIME</span>
+                <p>
+                  Pick a preset, choose a ready-made prompt, or write your own. The mode you choose is exactly
+                  what Project Brain receives — nothing is blended together.
+                </p>
+              </div>
+              <PromptComposer
+                actions={BRAIN_ACTIONS}
+                action={selectedAction}
+                onActionChange={setSelectedAction}
+                mode={promptMode}
+                onModeChange={setPromptMode}
+                customPrompt={customPrompt}
+                onCustomPromptChange={setCustomPrompt}
+                template={promptTemplate}
+                onTemplateChange={setPromptTemplate}
+                onRun={(payload) => {
+                  handleComposerRun(payload);
+                  setFocusKind("analysis");
+                }}
+                loading={isInspecting || loadingFileContent}
+                contextLabel={activeFile ? activeFile.name : "No file"}
+                snippet={selectedSnippet}
+                snippetMeta={selectionLineLabel}
+                scope={askScope}
+                onScopeChange={setAskScope}
+                onClearSnippet={clearSelection}
+                runLabel="Run in theater"
+              />
+
+              <div className="focus-composer__preview">
+                <div className="focus-preview-head">
+                  <span className="mono-label">LATEST ANSWER</span>
+                  {focusAnalysis && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFocusTurnId(lastTurn?.id ?? null);
+                        setFocusKind("analysis");
+                      }}
+                    >
+                      Open full read
+                      <Maximize2 size={12} />
+                    </button>
+                  )}
+                </div>
+                <div className="focus-preview-body" data-lenis-prevent>
+                  {isInspecting ? (
+                    <div className="focus-response-empty">
+                      <RefreshCw size={20} className="spin" />
+                      <p>Reading the file and repository context…</p>
+                    </div>
+                  ) : brainAnalysis?.error && !focusAnalysis ? (
+                    <div className="focus-response-empty">
+                      <AlertCircle size={20} />
+                      <p>{brainAnalysis.error}</p>
+                    </div>
+                  ) : focusAnalysis ? (
+                    <FormattedAIResponse content={focusAnalysis} />
+                  ) : (
+                    <div className="focus-response-empty">
+                      <Sparkles size={20} />
+                      <p>Run a prompt to see the answer preview here.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <aside className="focus-composer__rail">
+              <div className="focus-rail-card">
+                <span className="mono-label">CONTEXT LOCKED</span>
+                <strong>{activeFile?.name || "No file selected"}</strong>
+                <code>{activeFile?.path || "—"}</code>
+                <div className="focus-rail-meta">
+                  <span>{activeFile?.language || "text"}</span>
+                  <span>{activeFile?.linesCount || highlightedLines.length} lines</span>
+                  <span className={askScope === "selection" && selectedSnippet ? "is-scope-selection" : "is-scope-file"}>
+                    {askScope === "selection" && selectedSnippet
+                      ? `selection${selectionLineLabel ? ` · ${selectionLineLabel}` : ""}`
+                      : "whole file"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="focus-rail-card">
+                <span className="mono-label">MODE CONTRACT</span>
+                <p>Only the active mode is sent to Project Brain. Switching tabs never merges prompts.</p>
+                <div className="focus-rail-modes">
+                  <span className={promptMode === "preset" ? "is-active" : ""}>Preset</span>
+                  <span className={promptMode === "template" ? "is-active" : ""}>Library</span>
+                  <span className={promptMode === "custom" ? "is-active" : ""}>Custom</span>
+                </div>
+              </div>
+
+              {chatThread.length > 0 && (
+                <div className="focus-rail-card">
+                  <span className="mono-label">RECENT QUESTIONS</span>
+                  <div className="focus-rail-recent">
+                    {chatThread
+                      .slice(-3)
+                      .reverse()
+                      .map((turn) => (
+                        <button
+                          key={turn.id}
+                          type="button"
+                          onClick={() => {
+                            setFocusTurnId(turn.id);
+                            setFocusKind("analysis");
+                          }}
+                        >
+                          {turn.prompt}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </aside>
+          </div>
+        ) : focusKind === "code" ? (
           <div className="focus-code-viewport" data-lenis-prevent>
             <div className="focus-code-toolbar">
               <span className="mono-label">
@@ -1463,7 +1959,35 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
           </div>
         ) : (
           <div className="focus-response">
-            {focusAnalysis ? (
+            {latestTurn && !isInspecting && (
+              <div className={`focus-scope-banner focus-scope-banner--${latestTurn.scope || "file"}`}>
+                {latestTurn.scope === "selection" ? <ScanText size={14} /> : <FileCode2 size={14} />}
+                <div>
+                  <strong>
+                    {latestTurn.scope === "selection"
+                      ? `Answered from your selection${latestTurn.lineRange ? ` (${formatRange(latestTurn.lineRange)})` : ""}`
+                      : "Answered from the whole file"}
+                  </strong>
+                  <span>
+                    {latestTurn.filePath || activeFile?.path || "Repository file"}
+                    {latestTurn.scope === "selection"
+                      ? ` · ${latestTurn.charCount || selectedSnippet.length} chars used`
+                      : ""}
+                  </span>
+                </div>
+              </div>
+            )}
+            {isInspecting ? (
+              <div className="focus-response-empty">
+                <RefreshCw size={24} className="spin" />
+                <p>Project Brain is reading the file and repository context…</p>
+              </div>
+            ) : brainAnalysis?.error && !focusAnalysis ? (
+              <div className="focus-response-empty">
+                <AlertCircle size={24} />
+                <p>{brainAnalysis.error}</p>
+              </div>
+            ) : focusAnalysis ? (
               <FormattedAIResponse content={focusAnalysis} />
             ) : (
               <div className="focus-response-empty">

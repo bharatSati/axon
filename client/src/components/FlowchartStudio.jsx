@@ -24,6 +24,7 @@ import {
   Palette
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
+import ResponseTheater from "./ResponseTheater";
 import { API_BASE } from "../config/api.js";
 
 // Initialize mermaid for dark cyberpunk theme
@@ -214,6 +215,8 @@ export default function FlowchartStudio({ workspace, token }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [svgRenderError, setSvgRenderError] = useState(null);
   const [showSources, setShowSources] = useState(false);
+  const [theaterOpen, setTheaterOpen] = useState(false);
+  const theaterOriginRef = useRef(null);
 
   const diagramContainerRef = useRef(null);
 
@@ -770,6 +773,19 @@ export default function FlowchartStudio({ workspace, token }) {
             <div className="explanation-head mono-label">
               <Sparkles size={12} color="#c8ff3d" />
               <span>ARCHITECTURAL WALKTHROUGH &amp; PROCESS LOGIC</span>
+              <button
+                type="button"
+                className="theater-trigger-btn"
+                style={{ marginLeft: "auto" }}
+                onClick={(event) => {
+                  theaterOriginRef.current = event.currentTarget;
+                  setTheaterOpen(true);
+                }}
+                title="Open this walkthrough in the big-screen theater"
+              >
+                <Maximize2 size={12} />
+                <span>Theater</span>
+              </button>
             </div>
             <div className="explanation-body">
               <FormattedAIResponse content={flowchartData.explanation} />
@@ -814,6 +830,17 @@ export default function FlowchartStudio({ workspace, token }) {
           </div>
         )}
       </div>
+
+      <ResponseTheater
+        open={theaterOpen}
+        onClose={() => setTheaterOpen(false)}
+        originRef={theaterOriginRef}
+        title={prompt?.trim() || "Architecture walkthrough"}
+        kicker="FLOWCHART STUDIO · DEEP READ"
+        badge="AI walkthrough"
+        icon={GitBranch}
+        content={flowchartData?.explanation}
+      />
     </div>
   );
 }
