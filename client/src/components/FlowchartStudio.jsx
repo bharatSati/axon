@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { lazy, Suspense, useState, useEffect, useRef, useMemo, useCallback } from "react";
 import mermaid from "mermaid";
 import {
   Sparkles,
@@ -9,6 +9,7 @@ import {
   Check,
   Download,
   Maximize2,
+  Minimize,
   ZoomIn,
   ZoomOut,
   RotateCcw,
@@ -21,11 +22,36 @@ import {
   FolderGit2,
   History,
   FileCode,
-  Palette
+  Palette,
+  Search,
+  X,
+  Hand,
+  Grid3x3,
+  Box,
+  Boxes,
+  Crosshair,
+  MousePointer2,
+  Network,
+  Move3d,
+  Play,
+  Pause,
+  Camera,
+  PanelRight,
+  ListTree,
+  Waypoints,
+  ScanSearch,
+  Focus
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
 import ResponseTheater from "./ResponseTheater";
+import {
+  parseMermaidGraph,
+  getConnectedIds,
+  GRAPH_GROUP_COLORS
+} from "./flowchart/graphParser";
 import { API_BASE } from "../config/api.js";
+
+const Flowchart3DScene = lazy(() => import("./three/Flowchart3DScene"));
 
 // Initialize mermaid for dark cyberpunk theme
 mermaid.initialize({
@@ -34,13 +60,18 @@ mermaid.initialize({
   theme: "dark",
   themeVariables: {
     darkMode: true,
-    background: "#080b08",
-    primaryColor: "#1e293b",
-    primaryTextColor: "#f8fafc",
-    primaryBorderColor: "#38bdf8",
-    lineColor: "#64748b",
-    secondaryColor: "#334155",
-    tertiaryColor: "#0f172a",
+    background: "#040604",
+    primaryColor: "#0b1a10",
+    primaryTextColor: "#efffe9",
+    primaryBorderColor: "#c8ff3d",
+    lineColor: "#6f8f78",
+    secondaryColor: "#0f2430",
+    tertiaryColor: "#07100a",
+    mainBkg: "#0b1a10",
+    nodeBorder: "#c8ff3d",
+    clusterBkg: "#061008",
+    clusterBorder: "rgba(200, 255, 61, 0.18)",
+    edgeLabelBackground: "#07100a",
     fontFamily: "Space Grotesk, JetBrains Mono, monospace",
     fontSize: "13px"
   },
@@ -115,26 +146,32 @@ function sanitizeMermaidCode(rawCode, orientation = "TD") {
       }
     }
 
+    // Cylinder shapes already carry their label inside [( )] — moving text
+    // outside the quotes would corrupt them into `["label")]`.
+    const hasCylinderShape = /\[\([^)\n]*\)\]/.test(l);
+
     // Pattern A: Leading emoji or text outside quotes:
     // nodeId[🟦 "Click Login with GitHub"] -> nodeId["🟦 Click Login with GitHub"]
     // Supports shapes: [ ], ( ), { }, ([ ]), [( )], [[ ]], {{ }}, > ]
-    l = l.replace(
-      /(\b[a-zA-Z0-9_-]+)\s*(\[\(|\(\[|\[\[|\{\{|\(|\{|\[|>)\s*([^"\]\)\}\n]+?)\s*"([^"\n]+)"\s*([^\]\)\}\n]*?)(\]\)|\)\]|\]\]|\}\}|\)|\}|\])(:::[\w-]+)?/g,
-      (match, id, open, lead, inner, trail, close, cls) => {
-        const full = [lead.trim(), inner.trim(), trail.trim()].filter(Boolean).join(" ").replace(/"/g, "'");
-        return `${id}${open}"${full}"${close}${cls || ""}`;
-      }
-    );
+    if (!hasCylinderShape) {
+      l = l.replace(
+        /(\b[a-zA-Z0-9_-]+)\s*(\[\(|\(\[|\[\[|\{\{|\(|\{|\[|>)\s*([^"\]\)\}\n]+?)\s*"([^"\n]+)"\s*([^\]\)\}\n]*?)(\]\)|\)\]|\]\]|\}\}|\)|\}|\])(:::[\w-]+)?/g,
+        (match, id, open, lead, inner, trail, close, cls) => {
+          const full = [lead.trim(), inner.trim(), trail.trim()].filter(Boolean).join(" ").replace(/"/g, "'");
+          return `${id}${open}"${full}"${close}${cls || ""}`;
+        }
+      );
 
-    // Pattern B: Trailing text outside quotes:
-    // nodeId["Click Login" 🟦] -> nodeId["Click Login 🟦"]
-    l = l.replace(
-      /(\b[a-zA-Z0-9_-]+)\s*(\[\(|\(\[|\[\[|\{\{|\(|\{|\[|>)\s*"([^"\n]+)"\s*([^"\]\)\}\n]+)(\]\)|\)\]|\]\]|\}\}|\)|\}|\])(:::[\w-]+)?/g,
-      (match, id, open, inner, trail, close, cls) => {
-        const full = [inner.trim(), trail.trim()].filter(Boolean).join(" ").replace(/"/g, "'");
-        return `${id}${open}"${full}"${close}${cls || ""}`;
-      }
-    );
+      // Pattern B: Trailing text outside quotes:
+      // nodeId["Click Login" 🟦] -> nodeId["Click Login 🟦"]
+      l = l.replace(
+        /(\b[a-zA-Z0-9_-]+)\s*(\[\(|\(\[|\[\[|\{\{|\(|\{|\[|>)\s*"([^"\n]+)"\s*([^"\]\)\}\n]+)(\]\)|\)\]|\]\]|\}\}|\)|\}|\])(:::[\w-]+)?/g,
+        (match, id, open, inner, trail, close, cls) => {
+          const full = [inner.trim(), trail.trim()].filter(Boolean).join(" ").replace(/"/g, "'");
+          return `${id}${open}"${full}"${close}${cls || ""}`;
+        }
+      );
+    }
 
     // Pattern C: Unquoted bracket labels containing parentheses, slashes, or colons
     // nodeId[Process (token) / cache:yes] -> nodeId["Process (token) / cache:yes"]
@@ -204,6 +241,109 @@ function sanitizeMermaidCode(rawCode, orientation = "TD") {
   return sanitized;
 }
 
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+function readSvgNodeId(element) {
+  if (!element) return "";
+  const dataId = element.getAttribute("data-id");
+  if (dataId) return dataId;
+
+  const rawId = element.getAttribute("id") || "";
+  const flowchartIndex = rawId.lastIndexOf("flowchart-");
+  const tail =
+    flowchartIndex >= 0
+      ? rawId.slice(flowchartIndex + "flowchart-".length)
+      : rawId;
+  const match = tail.match(/^(.+?)-\d+$/);
+  return match ? match[1] : tail;
+}
+
+function parseSvgEdgeId(rawId, nodeIds) {
+  if (!rawId) return null;
+  const body = String(rawId)
+    .replace(/^L[_-]/, "")
+    .replace(/[_-]\d+$/, "");
+  if (!body) return null;
+
+  for (const nodeId of nodeIds) {
+    if (body.startsWith(`${nodeId}_`) || body.startsWith(`${nodeId}-`)) {
+      const target = body.slice(nodeId.length + 1);
+      if (nodeIds.has(target)) return { from: nodeId, to: target };
+    }
+  }
+
+  const fallback = body.match(/^(.+?)[_-](.+)$/);
+  return fallback ? { from: fallback[1], to: fallback[2] } : null;
+}
+
+/**
+ * True when the browser can paint a WebGL scene. Used to keep the 3D tab from
+ * mounting a Canvas on devices where context creation is unavailable.
+ */
+function supportsWebGL() {
+  if (typeof document === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(
+      window.WebGLRenderingContext &&
+        (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Mermaid renders node labels inside <foreignObject>. Browsers taint a canvas
+ * as soon as an SVG containing foreignObject is drawn into it, which makes
+ * PNG export throw a SecurityError. Swap each HTML label for a plain <text>
+ * node in the cloned SVG so the export stays raster-friendly.
+ */
+function replaceForeignObjectLabels(originalSvg, clonedSvg) {
+  const originals = Array.from(originalSvg.querySelectorAll("foreignObject"));
+  const clones = Array.from(clonedSvg.querySelectorAll("foreignObject"));
+
+  clones.forEach((foreignObject, index) => {
+    const source = originals[index];
+    const sourceLabel =
+      source?.querySelector("span, p, div") || source || foreignObject;
+    const text = (source?.textContent || foreignObject.textContent || "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!text) {
+      foreignObject.remove();
+      return;
+    }
+
+    const style =
+      source && typeof window !== "undefined"
+        ? window.getComputedStyle(sourceLabel)
+        : null;
+    const x = parseFloat(foreignObject.getAttribute("x") || "0");
+    const y = parseFloat(foreignObject.getAttribute("y") || "0");
+    const width = parseFloat(foreignObject.getAttribute("width") || "0") || 120;
+    const height = parseFloat(foreignObject.getAttribute("height") || "0") || 22;
+
+    const textNode = clonedSvg.ownerDocument.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "text"
+    );
+    textNode.setAttribute("x", String(x + width / 2));
+    textNode.setAttribute("y", String(y + height / 2));
+    textNode.setAttribute("text-anchor", "middle");
+    textNode.setAttribute("dominant-baseline", "central");
+    textNode.setAttribute("font-family", style?.fontFamily || "Space Grotesk, sans-serif");
+    textNode.setAttribute("font-size", style?.fontSize || "13px");
+    textNode.setAttribute("font-weight", style?.fontWeight || "500");
+    textNode.setAttribute("fill", style?.color || "#eef8e8");
+    textNode.setAttribute("xml:space", "preserve");
+    textNode.textContent = text;
+
+    foreignObject.parentNode.replaceChild(textNode, foreignObject);
+  });
+}
+
 export default function FlowchartStudio({ workspace, token }) {
   const [prompt, setPrompt] = useState("");
   const [orientation, setOrientation] = useState("TD"); // "TD" | "LR"
@@ -217,8 +357,86 @@ export default function FlowchartStudio({ workspace, token }) {
   const [showSources, setShowSources] = useState(false);
   const [theaterOpen, setTheaterOpen] = useState(false);
   const theaterOriginRef = useRef(null);
+  const [showGrid, setShowGrid] = useState(true);
+  const [animateFlow, setAnimateFlow] = useState(true);
+  const [depthMode, setDepthMode] = useState(false);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showInspector, setShowInspector] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [exportingPng, setExportingPng] = useState(false);
+  const [toast, setToast] = useState("");
 
   const diagramContainerRef = useRef(null);
+  const viewportRef = useRef(null);
+  const viewportCardRef = useRef(null);
+  const panStateRef = useRef(null);
+  const depthRef = useRef(null);
+  const toastTimerRef = useRef(null);
+  const zoomRef = useRef(1);
+  const autoFitKeyRef = useRef("");
+  const mermaidRenderSeqRef = useRef(0);
+  zoomRef.current = zoomLevel;
+
+  const graph = useMemo(
+    () => parseMermaidGraph(flowchartData?.mermaidCode || ""),
+    [flowchartData?.mermaidCode]
+  );
+
+  const selectedNode = useMemo(
+    () => graph.nodes.find((node) => node.id === selectedNodeId) || null,
+    [graph.nodes, selectedNodeId]
+  );
+
+  const connectedIds = useMemo(
+    () => getConnectedIds(selectedNodeId, graph.edges),
+    [selectedNodeId, graph.edges]
+  );
+
+  const connectedEdges = useMemo(() => {
+    if (!selectedNodeId) return [];
+    return graph.edges.filter(
+      (edge) => edge.from === selectedNodeId || edge.to === selectedNodeId
+    );
+  }, [graph.edges, selectedNodeId]);
+
+  const searchMatches = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+    return graph.nodes
+      .filter(
+        (node) =>
+          node.label.toLowerCase().includes(query) ||
+          node.id.toLowerCase().includes(query) ||
+          node.group.toLowerCase().includes(query)
+      )
+      .slice(0, 8);
+  }, [graph.nodes, searchQuery]);
+
+  const groupColors = useMemo(() => {
+    const groups = graph.groups.length ? graph.groups : ["Core"];
+    return new Map(
+      groups.map((group, index) => [
+        group,
+        GRAPH_GROUP_COLORS[index % GRAPH_GROUP_COLORS.length]
+      ])
+    );
+  }, [graph.groups]);
+
+  const flashToast = useCallback((message) => {
+    setToast(message);
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(""), 2400);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    },
+    []
+  );
 
   // 1. Fetch Preset Diagrams on Mount
   useEffect(() => {
@@ -270,6 +488,10 @@ export default function FlowchartStudio({ workspace, token }) {
       const data = await res.json();
       if (res.ok && data.mermaidCode) {
         setFlowchartData(data);
+        setSelectedNodeId(null);
+        setSearchQuery("");
+        setPan({ x: 0, y: 0 });
+        setZoomLevel(1);
         renderMermaidSvg(data.mermaidCode);
       } else {
         setSvgRenderError(data.error || "Failed to generate flowchart diagram.");
@@ -331,17 +553,22 @@ export default function FlowchartStudio({ workspace, token }) {
   // 3. Render Mermaid SVG safely
   const renderMermaidSvg = async (code) => {
     if (!code) return;
+    const renderSeq = ++mermaidRenderSeqRef.current;
     cleanupMermaidArtifacts();
     const cleanCode = sanitizeMermaidCode(code);
 
     try {
       const id = `mermaid-svg-${Date.now()}`;
       const { svg } = await mermaid.render(id, cleanCode);
+      if (renderSeq !== mermaidRenderSeqRef.current) return;
       if (diagramContainerRef.current) {
         diagramContainerRef.current.innerHTML = svg;
       }
       setSvgRenderError(null);
+      window.requestAnimationFrame(() => applySvgDecorations());
+      window.setTimeout(() => handleFitToScreen(), 90);
     } catch (renderErr) {
+      if (renderSeq !== mermaidRenderSeqRef.current) return;
       console.warn("First Mermaid render attempt failed, trying emergency fallback:", renderErr.message);
       cleanupMermaidArtifacts();
 
@@ -349,11 +576,15 @@ export default function FlowchartStudio({ workspace, token }) {
         const fallbackCode = emergencySanitize(cleanCode);
         const fallbackId = `mermaid-fallback-${Date.now()}`;
         const { svg } = await mermaid.render(fallbackId, fallbackCode);
+        if (renderSeq !== mermaidRenderSeqRef.current) return;
         if (diagramContainerRef.current) {
           diagramContainerRef.current.innerHTML = svg;
         }
         setSvgRenderError(null);
+        window.requestAnimationFrame(() => applySvgDecorations());
+        window.setTimeout(() => handleFitToScreen(), 90);
       } catch (fallbackErr) {
+        if (renderSeq !== mermaidRenderSeqRef.current) return;
         console.error("Mermaid fallback render error:", fallbackErr);
         cleanupMermaidArtifacts();
         setSvgRenderError(`Mermaid Syntax Render Error: ${renderErr.message}`);
@@ -368,22 +599,45 @@ export default function FlowchartStudio({ workspace, token }) {
     }
   }, [orientation]);
 
+  // Re-mount the rendered SVG when returning to the 2D stage from 3D or code.
+  useEffect(() => {
+    if (viewMode !== "diagram") return undefined;
+    const timer = window.setTimeout(() => {
+      const container = diagramContainerRef.current;
+      if (!flowchartData?.mermaidCode || !container) return;
+      if (container.querySelector("svg")) return;
+      renderMermaidSvg(flowchartData.mermaidCode);
+    }, 180);
+    return () => window.clearTimeout(timer);
+    // renderMermaidSvg is recreated per render; the guard only needs the mode + code.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, flowchartData?.mermaidCode]);
+
   // 4. Copy Raw Mermaid Code
-  const handleCopyCode = () => {
-    if (flowchartData?.mermaidCode) {
-      navigator.clipboard.writeText(flowchartData.mermaidCode);
+  const handleCopyCode = async () => {
+    if (!flowchartData?.mermaidCode) return;
+    try {
+      await navigator.clipboard.writeText(flowchartData.mermaidCode);
       setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
+      flashToast("Mermaid code copied to clipboard");
+      window.setTimeout(() => setCopiedCode(false), 2000);
+    } catch {
+      flashToast("Clipboard access was blocked by the browser");
     }
   };
 
-  // 5. Export as SVG
+  // 5. Export the rendered diagram as SVG
   const handleExportSvg = () => {
     if (!diagramContainerRef.current) return;
     const svgEl = diagramContainerRef.current.querySelector("svg");
-    if (!svgEl) return;
+    if (!svgEl) {
+      flashToast("No rendered diagram to export yet");
+      return;
+    }
 
-    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const clone = svgEl.cloneNode(true);
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const svgData = new XMLSerializer().serializeToString(clone);
     const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -393,12 +647,391 @@ export default function FlowchartStudio({ workspace, token }) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    flashToast("SVG exported");
+  };
+
+  // 6. Export a high-resolution PNG using the rendered SVG as the source
+  const handleExportPng = async () => {
+    const svgEl = diagramContainerRef.current?.querySelector("svg");
+    if (!svgEl) {
+      flashToast("No rendered diagram to export yet");
+      return;
+    }
+
+    setExportingPng(true);
+    let objectUrl = "";
+    try {
+      const clone = svgEl.cloneNode(true);
+      const box = svgEl.getBBox();
+      const padding = 48;
+      const width = Math.max(Math.ceil(box.width + padding * 2), 760);
+      const height = Math.max(Math.ceil(box.height + padding * 2), 480);
+
+      replaceForeignObjectLabels(svgEl, clone);
+
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("width", String(width));
+      clone.setAttribute("height", String(height));
+      clone.setAttribute(
+        "viewBox",
+        `${box.x - padding} ${box.y - padding} ${width} ${height}`
+      );
+
+      const serialized = new XMLSerializer().serializeToString(clone);
+      objectUrl = URL.createObjectURL(
+        new Blob([serialized], { type: "image/svg+xml;charset=utf-8" })
+      );
+
+      const image = new Image();
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = objectUrl;
+      });
+
+      const scale = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Canvas unavailable");
+
+      context.fillStyle = "#040604";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `axon-flowchart-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      flashToast("PNG exported at 2× resolution");
+    } catch (error) {
+      console.warn("PNG export failed:", error);
+      flashToast("PNG export failed — try the SVG export");
+    } finally {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setExportingPng(false);
+    }
   };
 
   // Zoom handlers
-  const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.2, 2.4));
-  const handleZoomOut = () => setZoomLevel((z) => Math.max(z - 0.2, 0.4));
-  const handleResetZoom = () => setZoomLevel(1);
+  const handleZoomIn = () => setZoomLevel((z) => clamp(Number((z + 0.2).toFixed(2)), 0.4, 2.4));
+  const handleZoomOut = () => setZoomLevel((z) => clamp(Number((z - 0.2).toFixed(2)), 0.4, 2.4));
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handleFitToScreen = useCallback(() => {
+    const svgEl = diagramContainerRef.current?.querySelector("svg");
+    const viewport = viewportRef.current;
+    if (!svgEl || !viewport) {
+      handleResetZoom();
+      return;
+    }
+
+    const viewBox = svgEl.viewBox?.baseVal;
+    const fallbackRect = svgEl.getBoundingClientRect();
+    const width = viewBox?.width || fallbackRect.width / Math.max(zoomRef.current, 0.4);
+    const height = viewBox?.height || fallbackRect.height / Math.max(zoomRef.current, 0.4);
+    if (!width || !height) return;
+
+    const scale = Math.min(
+      (viewport.clientWidth - 80) / width,
+      (viewport.clientHeight - 118) / height,
+      1.7
+    );
+    setZoomLevel(clamp(Number(scale.toFixed(2)), 0.3, 2.4));
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // Fit a freshly generated diagram once so the full topology is visible.
+  useEffect(() => {
+    const code = flowchartData?.mermaidCode;
+    if (!code || viewMode !== "diagram") return undefined;
+    if (autoFitKeyRef.current === code) return undefined;
+    autoFitKeyRef.current = code;
+
+    const timer = window.setTimeout(() => handleFitToScreen(), 260);
+    return () => window.clearTimeout(timer);
+  }, [flowchartData?.mermaidCode, handleFitToScreen, viewMode]);
+
+  // Select + reveal a node in the 2D canvas and inspector
+  const focusNode = useCallback((nodeId) => {
+    if (!nodeId) {
+      setSelectedNodeId(null);
+      return;
+    }
+    setSelectedNodeId(nodeId);
+    setShowInspector(true);
+    window.setTimeout(() => {
+      const container = diagramContainerRef.current;
+      const viewport = viewportRef.current;
+      if (!container || !viewport) return;
+      const target = Array.from(container.querySelectorAll("g.node")).find(
+        (element) => readSvgNodeId(element) === nodeId
+      );
+      if (!target) return;
+
+      const targetRect = target.getBoundingClientRect();
+      const viewRect = viewport.getBoundingClientRect();
+      const deltaX =
+        viewRect.left + viewRect.width / 2 - (targetRect.left + targetRect.width / 2);
+      const deltaY =
+        viewRect.top + viewRect.height / 2 - (targetRect.top + targetRect.height / 2);
+
+      if (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12) {
+        setPan((current) => ({
+          x: current.x + deltaX,
+          y: current.y + deltaY
+        }));
+      }
+    }, 120);
+  }, []);
+
+  // Attach lightweight interaction classes/handlers to Mermaid's SVG output.
+  const applySvgDecorations = useCallback(() => {
+    const container = diagramContainerRef.current;
+    if (!container) return;
+
+    const nodeIds = new Set(graph.nodes.map((node) => node.id));
+    const matchIds = new Set(searchMatches.map((node) => node.id));
+
+    container.querySelectorAll("g.node").forEach((element) => {
+      if (!element.dataset.fcBound) {
+        element.dataset.fcBound = "true";
+        element.setAttribute("role", "button");
+        element.setAttribute("tabindex", "0");
+        element.dataset.fcNodeId = readSvgNodeId(element);
+
+        element.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const nodeId = readSvgNodeId(element);
+          if (nodeId) {
+            setSelectedNodeId(nodeId);
+            setShowInspector(true);
+          }
+        });
+        element.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            const nodeId = readSvgNodeId(element);
+            if (nodeId) {
+              setSelectedNodeId(nodeId);
+              setShowInspector(true);
+            }
+          }
+        });
+      }
+
+      const nodeId = readSvgNodeId(element);
+      element.classList.toggle("is-selected", nodeId === selectedNodeId);
+      element.classList.toggle("is-search-hit", matchIds.has(nodeId));
+      element.classList.toggle(
+        "is-connected",
+        Boolean(selectedNodeId) && nodeId !== selectedNodeId && connectedIds.has(nodeId)
+      );
+      element.classList.toggle(
+        "is-dimmed",
+        Boolean(selectedNodeId) && !connectedIds.has(nodeId)
+      );
+    });
+
+    container.querySelectorAll("path.flowchart-link, path[data-edge]").forEach((element) => {
+      const pair = parseSvgEdgeId(
+        element.getAttribute("data-id") || element.getAttribute("id"),
+        nodeIds
+      );
+      const isActive = Boolean(
+        selectedNodeId &&
+          pair &&
+          (pair.from === selectedNodeId || pair.to === selectedNodeId)
+      );
+      element.classList.toggle("is-active-edge", isActive);
+      element.classList.toggle(
+        "is-dimmed-edge",
+        Boolean(selectedNodeId) && !isActive
+      );
+    });
+
+    container.classList.toggle("is-flowing", animateFlow);
+    container.classList.toggle("has-selection", Boolean(selectedNodeId));
+    container.classList.toggle("has-search", Boolean(searchQuery.trim()));
+  }, [
+    animateFlow,
+    connectedIds,
+    graph.nodes,
+    searchMatches,
+    searchQuery,
+    selectedNodeId
+  ]);
+
+  // 7. Pan + depth-tilt interactions
+  const handleStagePointerDown = (event) => {
+    if (viewMode !== "diagram" || event.button !== 0) return;
+    if (event.target.closest?.("g.node")) return;
+
+    panStateRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      originX: pan.x,
+      originY: pan.y
+    };
+    setIsPanning(true);
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Pointer capture is an enhancement, not a requirement.
+    }
+  };
+
+  const handleStagePointerMove = (event) => {
+    if (panStateRef.current) {
+      const deltaX = event.clientX - panStateRef.current.x;
+      const deltaY = event.clientY - panStateRef.current.y;
+      if (Math.abs(deltaX) + Math.abs(deltaY) > 2) {
+        setPan({
+          x: panStateRef.current.originX + deltaX,
+          y: panStateRef.current.originY + deltaY
+        });
+      }
+    }
+
+    if (!depthMode || !depthRef.current) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5;
+    const y = (event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5;
+    depthRef.current.style.setProperty("--fc-tilt-y", `${(x * 7).toFixed(2)}deg`);
+    depthRef.current.style.setProperty("--fc-tilt-x", `${(-y * 5).toFixed(2)}deg`);
+  };
+
+  const endStagePan = (event) => {
+    panStateRef.current = null;
+    setIsPanning(false);
+    try {
+      event?.currentTarget?.releasePointerCapture?.(event.pointerId);
+    } catch {
+      // Ignore pointer capture cleanup failures.
+    }
+  };
+
+  const resetTilt = () => {
+    if (!depthRef.current) return;
+    depthRef.current.style.setProperty("--fc-tilt-x", "0deg");
+    depthRef.current.style.setProperty("--fc-tilt-y", "0deg");
+  };
+
+  // Ctrl/⌘ + wheel zooms without stealing normal page scroll.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || viewMode !== "diagram") return;
+
+    const handleWheel = (event) => {
+      if (!(event.ctrlKey || event.metaKey || event.altKey)) return;
+      event.preventDefault();
+      setZoomLevel((current) =>
+        clamp(
+          Number((current * (event.deltaY > 0 ? 0.92 : 1.08)).toFixed(2)),
+          0.4,
+          2.4
+        )
+      );
+    };
+
+    viewport.addEventListener("wheel", handleWheel, { passive: false });
+    return () => viewport.removeEventListener("wheel", handleWheel);
+  }, [viewMode]);
+
+  // Fullscreen state
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await viewportCardRef.current?.requestFullscreen?.();
+      }
+    } catch {
+      flashToast("Fullscreen is not available in this browser");
+    }
+  }, [flashToast]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(
+        Boolean(
+          document.fullscreenElement &&
+            viewportCardRef.current?.contains(document.fullscreenElement)
+        )
+      );
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // On tablet-sized viewports the inspector becomes an overlay, so start
+  // with it collapsed and let the toolbar button reveal it on demand.
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1180px)").matches) {
+      setShowInspector(false);
+    }
+  }, []);
+
+  // Apply interaction state whenever the graph or selection changes.
+  useEffect(() => {
+    if (viewMode !== "diagram") return undefined;
+    const frame = window.requestAnimationFrame(() => applySvgDecorations());
+    return () => window.cancelAnimationFrame(frame);
+  }, [applySvgDecorations, flowchartData?.mermaidCode, viewMode]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const tag = event.target?.tagName?.toLowerCase();
+      if (
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        event.target?.isContentEditable ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        handleZoomIn();
+      } else if (event.key === "-" || event.key === "_") {
+        event.preventDefault();
+        handleZoomOut();
+      } else if (event.key === "0") {
+        event.preventDefault();
+        handleResetZoom();
+      } else if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        handleFitToScreen();
+      } else if (event.key.toLowerCase() === "g") {
+        setShowGrid((value) => !value);
+      } else if (event.key.toLowerCase() === "a") {
+        setAnimateFlow((value) => !value);
+      } else if (event.key.toLowerCase() === "i") {
+        setShowInspector((value) => !value);
+      } else if (event.key.toLowerCase() === "3") {
+        setViewMode("3d");
+      } else if (event.key === "Escape") {
+        setSelectedNodeId(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleFitToScreen]);
+
+  const webglAvailable = useMemo(() => supportsWebGL(), []);
 
   return (
     <div className="flowchart-studio-container">
@@ -419,7 +1052,7 @@ export default function FlowchartStudio({ workspace, token }) {
               branch: <code>{workspace?.repository?.defaultBranch || "main"}</code>
             </span>
             <span className="analytics-meta-pill">
-              Mermaid 10.9
+              Mermaid 12
             </span>
             <span className="analytics-meta-pill" style={{ color: "#38bdf8", borderColor: "rgba(56,189,248,0.3)" }}>
               Brain RAG Active
@@ -504,10 +1137,12 @@ export default function FlowchartStudio({ workspace, token }) {
               <Layers size={16} />
             </div>
           </div>
-          <div className="kpi-number">18 Subsystems</div>
+          <div className="kpi-number">
+            {graph.nodes.length ? `${graph.nodes.length} Nodes` : "—"}
+          </div>
           <div className="kpi-sub">
-            <span className="kpi-tag-lime">ACTIVE</span>
-            <span>Microservices &amp; data stores</span>
+            <span className="kpi-tag-lime">{graph.nodes.length ? "PARSED" : "WAITING"}</span>
+            <span>Across {graph.groups.length || 1} subgraph clusters</span>
           </div>
         </div>
 
@@ -518,24 +1153,26 @@ export default function FlowchartStudio({ workspace, token }) {
               <GitBranch size={16} />
             </div>
           </div>
-          <div className="kpi-number">24 Routes</div>
+          <div className="kpi-number">
+            {graph.edges.length ? `${graph.edges.length} Links` : "—"}
+          </div>
           <div className="kpi-sub">
-            <span className="kpi-tag-blue">ROUTED</span>
-            <span>REST, WebSockets &amp; RAG</span>
+            <span className="kpi-tag-blue">DIRECTED</span>
+            <span>Edges mapped by the graph inspector</span>
           </div>
         </div>
 
         <div className="analytics-kpi-card">
           <div className="kpi-top">
-            <span className="kpi-title">SECURITY BOUNDARIES</span>
+            <span className="kpi-title">SYSTEM BOUNDARIES</span>
             <div className="kpi-icon-wrap">
               <Shield size={16} />
             </div>
           </div>
-          <div className="kpi-number">3 Enclaves</div>
+          <div className="kpi-number">{graph.groups.length || 1} Groups</div>
           <div className="kpi-sub">
-            <span className="kpi-tag-lime">ISOLATED</span>
-            <span>Client, Gateway, Brain Engine</span>
+            <span className="kpi-tag-lime">MAPPED</span>
+            <span>Subgraphs become spatial clusters</span>
           </div>
         </div>
 
@@ -546,10 +1183,12 @@ export default function FlowchartStudio({ workspace, token }) {
               <Code2 size={16} />
             </div>
           </div>
-          <div className="kpi-number">100% Sanitized</div>
+          <div className="kpi-number">
+            {svgRenderError ? "Needs Repair" : flowchartData ? "100% Parsed" : "Standby"}
+          </div>
           <div className="kpi-sub">
-            <span className="kpi-tag-blue">AUTO-FIX</span>
-            <span>Mermaid.js engine compliant</span>
+            <span className="kpi-tag-blue">{svgRenderError ? "REPAIR" : "AUTO-FIX"}</span>
+            <span>Mermaid sanitizer + fallback engine</span>
           </div>
         </div>
       </div>
@@ -618,154 +1257,541 @@ export default function FlowchartStudio({ workspace, token }) {
         </button>
       </div>
 
-      {/* Flowchart Canvas & Studio Viewport */}
-      <div className="flowchart-viewport-card">
-        {/* Viewport Control Strip */}
-        <div className="flowchart-controls-strip">
-          <div className="controls-left">
+      {/* Flowchart Canvas & Studio Workbench */}
+      <div
+        className={`flowchart-viewport-card fc-workbench ${isFullscreen ? "is-fullscreen" : ""}`}
+        ref={viewportCardRef}
+      >
+        <div className="fc-workbench-head">
+          <div className="fc-view-tabs" role="group" aria-label="Diagram view">
             <button
               type="button"
-              className={`view-switch-btn ${viewMode === "diagram" ? "is-active" : ""}`}
+              className={viewMode === "diagram" ? "is-active" : ""}
               onClick={() => setViewMode("diagram")}
+              aria-pressed={viewMode === "diagram"}
             >
-              <GitBranch size={13} color="#c8ff3d" />
-              <span>Interactive Diagram</span>
+              <GitBranch size={13} />
+              <span>2D Flow</span>
             </button>
             <button
               type="button"
-              className={`view-switch-btn ${viewMode === "code" ? "is-active" : ""}`}
+              className={viewMode === "3d" ? "is-active" : ""}
+              onClick={() => setViewMode("3d")}
+              aria-pressed={viewMode === "3d"}
+            >
+              <Box size={13} />
+              <span>3D Flow</span>
+              <span className="fc-beta-dot" title="WebGL spatial view" />
+            </button>
+            <button
+              type="button"
+              className={viewMode === "code" ? "is-active" : ""}
               onClick={() => setViewMode("code")}
+              aria-pressed={viewMode === "code"}
             >
-              <Code2 size={13} color="#38bdf8" />
-              <span>Mermaid Code</span>
+              <Code2 size={13} />
+              <span>Mermaid</span>
             </button>
           </div>
 
-          <div className="controls-right">
-            {viewMode === "diagram" && (
-              <div className="zoom-controls mono-label">
-                <button
-                  type="button"
-                  className="zoom-btn"
-                  onClick={handleZoomOut}
-                  title="Zoom Out"
-                >
-                  <ZoomOut size={13} />
-                </button>
-                <span className="zoom-label">{Math.round(zoomLevel * 100)}%</span>
-                <button
-                  type="button"
-                  className="zoom-btn"
-                  onClick={handleZoomIn}
-                  title="Zoom In"
-                >
-                  <ZoomIn size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="zoom-btn"
-                  onClick={handleResetZoom}
-                  title="Reset Zoom"
-                >
-                  <RotateCcw size={13} />
-                </button>
-              </div>
-            )}
-
-            <button
-              type="button"
-              className="flowchart-action-btn mono-label"
-              onClick={handleCopyCode}
-            >
-              {copiedCode ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
-              <span>{copiedCode ? "Copied" : "Copy Mermaid"}</span>
-            </button>
-
-            <button
-              type="button"
-              className="flowchart-action-btn mono-label"
-              onClick={handleExportSvg}
-            >
-              <Download size={12} />
-              <span>Download SVG</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Viewport Content */}
-        <div className="flowchart-canvas-area">
-          {loading ? (
-            <div className="flowchart-loading-state">
-              <div className="loading-halo">
-                <RefreshCw size={36} className="spin" color="#c8ff3d" />
-              </div>
-              <h3>Synthesizing Architecture &amp; Logic into Mermaid Flowchart...</h3>
-              <p>
-                Project Brain is analyzing repository chunks, mapping node dependencies, and
-                applying vibrant cyberpunk color coding with Groq 120B.
-              </p>
-            </div>
-          ) : svgRenderError ? (
-            <div className="flowchart-error-box">
-              <div className="error-box-header">
-                <h4>Diagram Rendering Notice</h4>
-                <div className="error-box-actions">
-                  <button
-                    type="button"
-                    className="error-repair-btn mono-label"
-                    onClick={() => {
-                      if (flowchartData?.mermaidCode) {
-                        renderMermaidSvg(flowchartData.mermaidCode);
-                      }
-                    }}
-                  >
-                    <RefreshCw size={12} />
-                    <span>Auto-Repair &amp; Re-render</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="error-repair-btn mono-label"
-                    onClick={() => setViewMode("code")}
-                  >
-                    <Code2 size={12} />
-                    <span>Inspect Code</span>
-                  </button>
-                </div>
-              </div>
-              <p>{svgRenderError}</p>
-              {flowchartData?.mermaidCode && (
-                <pre className="error-code-preview">
-                  <code>{flowchartData.mermaidCode}</code>
-                </pre>
-              )}
-            </div>
-          ) : viewMode === "diagram" ? (
-            <div className="diagram-scroll-viewport">
-              <div
-                ref={diagramContainerRef}
-                className="mermaid-rendered-svg-wrap"
-                style={{
-                  transform: `scale(${zoomLevel})`,
-                  transformOrigin: "top center",
-                  transition: "transform 0.15s ease"
+          <div className="fc-head-tools">
+            <label className="fc-search">
+              <Search size={13} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && searchMatches[0]) {
+                    focusNode(searchMatches[0].id);
+                  }
+                  if (event.key === "Escape") setSearchQuery("");
                 }}
+                placeholder="Find a node…"
+                aria-label="Search diagram nodes"
               />
-            </div>
-          ) : (
-            <div className="mermaid-code-view">
-              <div className="code-view-head mono-label">
-                <span>VIBRANT MERMAID.JS SYNTAX (COPY-PASTE READY)</span>
-                <button type="button" className="copy-code-inline" onClick={handleCopyCode}>
-                  {copiedCode ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
-                  <span>Copy</span>
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="fc-search-clear"
+                  onClick={() => setSearchQuery("")}
+                  title="Clear search"
+                >
+                  <X size={11} />
                 </button>
-              </div>
-              <pre className="mermaid-pre">
-                <code>{flowchartData?.mermaidCode || "No diagram generated yet."}</code>
-              </pre>
+              )}
+            </label>
+
+            <div className="fc-head-stats" title="Parsed graph statistics">
+              <span>
+                <Network size={12} />
+                {graph.nodes.length} nodes
+              </span>
+              <span>
+                <Waypoints size={12} />
+                {graph.edges.length} links
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className={`fc-icon-btn ${isFullscreen ? "is-active" : ""}`}
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Exit fullscreen" : "Fullscreen workbench"}
+            >
+              {isFullscreen ? <Minimize size={14} /> : <Maximize2 size={14} />}
+            </button>
+          </div>
+
+          {searchQuery.trim() && (
+            <div className="fc-search-panel">
+              {searchMatches.length > 0 ? (
+                searchMatches.map((node) => (
+                  <button
+                    key={node.id}
+                    type="button"
+                    className={selectedNodeId === node.id ? "is-active" : ""}
+                    onClick={() => focusNode(node.id)}
+                  >
+                    <span
+                      className="fc-group-swatch"
+                      style={{ background: groupColors.get(node.group) }}
+                    />
+                    <span className="fc-search-label">{node.label}</span>
+                    <code>{node.id}</code>
+                  </button>
+                ))
+              ) : (
+                <span className="fc-search-empty">
+                  <ScanSearch size={13} />
+                  No nodes match “{searchQuery}”
+                </span>
+              )}
             </div>
           )}
         </div>
+
+        {loading && (
+          <div className="fc-loading-ribbon">
+            <RefreshCw size={13} className="spin" />
+            Project Brain is rebuilding the topology…
+          </div>
+        )}
+
+        <div className={`fc-workbench-body ${showInspector ? "has-inspector" : "no-inspector"}`}>
+          <aside className="fc-toolrail" aria-label="Diagram tools">
+            <button type="button" onClick={handleZoomIn} title="Zoom in (+)">
+              <ZoomIn size={15} />
+            </button>
+            <button type="button" onClick={handleZoomOut} title="Zoom out (−)">
+              <ZoomOut size={15} />
+            </button>
+            <button type="button" onClick={handleFitToScreen} title="Fit to view (F)">
+              <Crosshair size={15} />
+            </button>
+            <button type="button" onClick={handleResetZoom} title="Reset zoom (0)">
+              <RotateCcw size={15} />
+            </button>
+
+            <span className="fc-tool-divider" />
+
+            <button
+              type="button"
+              className={showGrid ? "is-active" : ""}
+              onClick={() => setShowGrid((value) => !value)}
+              title="Toggle engineering grid (G)"
+              aria-pressed={showGrid}
+            >
+              <Grid3x3 size={15} />
+            </button>
+            <button
+              type="button"
+              className={animateFlow ? "is-active" : ""}
+              onClick={() => setAnimateFlow((value) => !value)}
+              title="Animate flow edges (A)"
+              aria-pressed={animateFlow}
+            >
+              {animateFlow ? <Pause size={15} /> : <Play size={15} />}
+            </button>
+            <button
+              type="button"
+              className={depthMode ? "is-active" : ""}
+              onClick={() => setDepthMode((value) => !value)}
+              title="Enable 3D depth tilt"
+              aria-pressed={depthMode}
+            >
+              <Move3d size={15} />
+            </button>
+
+            <span className="fc-tool-divider" />
+
+            <button
+              type="button"
+              className={viewMode === "3d" ? "is-active" : ""}
+              onClick={() => setViewMode("3d")}
+              title="Open 3D architecture view"
+            >
+              <Boxes size={15} />
+            </button>
+            <button
+              type="button"
+              className={showInspector ? "is-active" : ""}
+              onClick={() => setShowInspector((value) => !value)}
+              title="Toggle graph inspector (I)"
+              aria-pressed={showInspector}
+            >
+              <PanelRight size={15} />
+            </button>
+
+            <span className="fc-tool-spacer" />
+
+            <button type="button" onClick={handleCopyCode} title="Copy Mermaid code">
+              {copiedCode ? <Check size={15} /> : <Copy size={15} />}
+            </button>
+            <button type="button" onClick={handleExportSvg} title="Export SVG">
+              <Download size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={handleExportPng}
+              disabled={exportingPng}
+              title="Export PNG at 2×"
+            >
+              {exportingPng ? <RefreshCw size={15} className="spin" /> : <Camera size={15} />}
+            </button>
+          </aside>
+
+          <section className="fc-stage">
+            {viewMode === "diagram" ? (
+              <div
+                className={`fc-canvas-wrap ${showGrid ? "has-grid" : ""} ${
+                  isPanning ? "is-panning" : ""
+                }`}
+              >
+                {loading ? (
+                  <div className="flowchart-loading-state">
+                    <div className="loading-halo">
+                      <RefreshCw size={36} className="spin" color="#c8ff3d" />
+                    </div>
+                    <h3>Synthesizing architecture &amp; logic into a Mermaid flowchart…</h3>
+                    <p>
+                      Project Brain is analyzing repository chunks, mapping node dependencies,
+                      and applying vibrant cyberpunk color coding with Groq 120B.
+                    </p>
+                  </div>
+                ) : svgRenderError ? (
+                  <div className="flowchart-error-box">
+                    <div className="error-box-header">
+                      <h4>Diagram Rendering Notice</h4>
+                      <div className="error-box-actions">
+                        <button
+                          type="button"
+                          className="error-repair-btn mono-label"
+                          onClick={() => {
+                            if (flowchartData?.mermaidCode) {
+                              renderMermaidSvg(flowchartData.mermaidCode);
+                            }
+                          }}
+                        >
+                          <RefreshCw size={12} />
+                          <span>Auto-Repair &amp; Re-render</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="error-repair-btn mono-label"
+                          onClick={() => setViewMode("code")}
+                        >
+                          <Code2 size={12} />
+                          <span>Inspect Code</span>
+                        </button>
+                      </div>
+                    </div>
+                    <p>{svgRenderError}</p>
+                    {flowchartData?.mermaidCode && (
+                      <pre className="error-code-preview">
+                        <code>{flowchartData.mermaidCode}</code>
+                      </pre>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    ref={viewportRef}
+                    className="diagram-scroll-viewport fc-diagram-viewport"
+                    onPointerDown={handleStagePointerDown}
+                    onPointerMove={handleStagePointerMove}
+                    onPointerUp={endStagePan}
+                    onPointerCancel={endStagePan}
+                    onPointerLeave={resetTilt}
+                    onDoubleClick={handleFitToScreen}
+                  >
+                    <div
+                      ref={depthRef}
+                      className={`fc-2d-tilt ${depthMode ? "is-depth" : ""}`}
+                    >
+                      <div
+                        ref={diagramContainerRef}
+                        className="mermaid-rendered-svg-wrap"
+                        style={{
+                          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel})`
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!loading && !svgRenderError && (
+                  <>
+                    <div className="fc-canvas-watermark">
+                      <span className="fc-live-dot" />
+                      LIVE TOPOLOGY
+                      <span className="fc-watermark-sep">/</span>
+                      {orientation === "TD" ? "TOP → BOTTOM" : "LEFT → RIGHT"}
+                    </div>
+
+                    <div className="fc-zoom-hud">
+                      <button type="button" onClick={handleZoomOut} title="Zoom out">
+                        <ZoomOut size={13} />
+                      </button>
+                      <span>{Math.round(zoomLevel * 100)}%</span>
+                      <button type="button" onClick={handleZoomIn} title="Zoom in">
+                        <ZoomIn size={13} />
+                      </button>
+                      <span className="fc-hud-divider" />
+                      <button type="button" onClick={handleFitToScreen} title="Fit to view">
+                        <Crosshair size={13} />
+                      </button>
+                    </div>
+
+                    <div className="fc-pan-hint">
+                      <Hand size={12} />
+                      Drag to pan · Ctrl + scroll to zoom
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : viewMode === "3d" ? (
+              <div className="fc-3d-stage">
+                {webglAvailable ? (
+                  <Suspense
+                    fallback={
+                      <div className="fc3d-loading">
+                        <RefreshCw size={24} className="spin" />
+                        <span>Loading spatial engine…</span>
+                      </div>
+                    }
+                  >
+                    <Flowchart3DScene
+                      nodes={graph.nodes}
+                      edges={graph.edges}
+                      groups={graph.groups}
+                      selectedId={selectedNodeId}
+                      onSelect={(nodeId) => {
+                        setSelectedNodeId(nodeId);
+                        if (nodeId) setShowInspector(true);
+                      }}
+                    />
+                  </Suspense>
+                ) : (
+                  <div className="fc3d-empty">
+                    <Box size={30} />
+                    <p>WebGL is unavailable in this browser.</p>
+                    <span>Switch to the 2D Flow view to keep exploring the graph.</span>
+                    <button type="button" onClick={() => setViewMode("diagram")}>
+                      Back to 2D Flow
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mermaid-code-view fc-code-stage">
+                <div className="code-view-head mono-label">
+                  <span>VIBRANT MERMAID.JS SYNTAX (COPY-PASTE READY)</span>
+                  <div className="fc-code-actions">
+                    <button
+                      type="button"
+                      className="copy-code-inline"
+                      onClick={handleCopyCode}
+                    >
+                      {copiedCode ? <Check size={12} /> : <Copy size={12} />}
+                      <span>Copy</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="copy-code-inline"
+                      onClick={handleExportSvg}
+                    >
+                      <Download size={12} />
+                      <span>SVG</span>
+                    </button>
+                  </div>
+                </div>
+                <pre className="mermaid-pre">
+                  <code>{flowchartData?.mermaidCode || "No diagram generated yet."}</code>
+                </pre>
+              </div>
+            )}
+          </section>
+
+          {showInspector && (
+            <aside className="fc-inspector" aria-label="Graph inspector">
+              <div className="fc-inspector-head">
+                <span className="mono-label">
+                  <ListTree size={13} />
+                  GRAPH INSPECTOR
+                </span>
+                <button
+                  type="button"
+                  className="fc-icon-btn"
+                  onClick={() => setShowInspector(false)}
+                  title="Hide inspector"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+
+              {selectedNode ? (
+                <div className="fc-node-detail">
+                  <div className="fc-node-title">
+                    <span className={`fc-shape-badge fc-shape-badge--${selectedNode.shape}`}>
+                      {selectedNode.shape}
+                    </span>
+                    <h4>{selectedNode.label}</h4>
+                    <code>{selectedNode.id}</code>
+                  </div>
+
+                  <div className="fc-node-meta">
+                    <span>
+                      <Layers size={12} />
+                      {selectedNode.group}
+                    </span>
+                    <span>
+                      <Waypoints size={12} />
+                      {connectedEdges.length} links
+                    </span>
+                  </div>
+
+                  <div className="fc-node-connections">
+                    <span className="mono-label">CONNECTIONS</span>
+                    {connectedEdges.length > 0 ? (
+                      connectedEdges.map((edge, index) => {
+                        const isOutgoing = edge.from === selectedNode.id;
+                        const otherId = isOutgoing ? edge.to : edge.from;
+                        const otherNode = graph.nodes.find((node) => node.id === otherId);
+                        return (
+                          <button
+                            key={`${otherId}-${index}`}
+                            type="button"
+                            onClick={() => focusNode(otherId)}
+                          >
+                            <span className={`fc-dir fc-dir--${isOutgoing ? "out" : "in"}`}>
+                              {isOutgoing ? "→" : "←"}
+                            </span>
+                            <span className="fc-connection-label">
+                              {otherNode?.label || otherId}
+                            </span>
+                            {edge.label && <code>{edge.label}</code>}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="fc-node-empty">No direct links parsed for this node.</p>
+                    )}
+                  </div>
+
+                  <div className="fc-node-actions">
+                    <button
+                      type="button"
+                      className="fc-primary-btn"
+                      onClick={() => setViewMode("3d")}
+                      disabled={!webglAvailable}
+                      title={webglAvailable ? "Open this graph in 3D" : "WebGL unavailable"}
+                    >
+                      <Box size={13} />
+                      Open in 3D
+                    </button>
+                    <button
+                      type="button"
+                      className="fc-ghost-btn"
+                      onClick={() => setSelectedNodeId(null)}
+                    >
+                      <X size={13} />
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="fc-graph-detail">
+                  <div className="fc-graph-stats">
+                    <div>
+                      <strong>{graph.nodes.length}</strong>
+                      <span>Nodes</span>
+                    </div>
+                    <div>
+                      <strong>{graph.edges.length}</strong>
+                      <span>Links</span>
+                    </div>
+                    <div>
+                      <strong>{graph.groups.length || 1}</strong>
+                      <span>Groups</span>
+                    </div>
+                  </div>
+
+                  <div className="fc-group-list">
+                    <span className="mono-label">SPATIAL GROUPS</span>
+                    {(graph.groups.length ? graph.groups : ["Core"]).map((group) => (
+                      <div key={group} className="fc-group-row">
+                        <span
+                          className="fc-group-swatch"
+                          style={{ background: groupColors.get(group) }}
+                        />
+                        <span>{group}</span>
+                        <strong>
+                          {graph.nodes.filter((node) => node.group === group).length}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="fc-tips">
+                    <span className="mono-label">CANVAS CONTROLS</span>
+                    <p>
+                      <MousePointer2 size={12} />
+                      Click any node to inspect its links
+                    </p>
+                    <p>
+                      <Hand size={12} />
+                      Drag the canvas to pan
+                    </p>
+                    <p>
+                      <ScanSearch size={12} />
+                      Ctrl + scroll to zoom
+                    </p>
+                    <p>
+                      <Box size={12} />
+                      3D Flow renders the same graph spatially
+                    </p>
+                    <div className="fc-shortcuts">
+                      <kbd>F</kbd> fit <kbd>G</kbd> grid <kbd>A</kbd> animate{" "}
+                      <kbd>3</kbd> 3D
+                    </div>
+                  </div>
+                </div>
+              )}
+            </aside>
+          )}
+
+          <button
+            type="button"
+            className={`fc-inspector-fab ${showInspector ? "is-active" : ""}`}
+            onClick={() => setShowInspector((value) => !value)}
+            title="Toggle graph inspector"
+          >
+            <PanelRight size={15} />
+            <span>Inspector</span>
+          </button>
+        </div>
+
+        {toast && <div className="fc-toast">{toast}</div>}
 
         {/* Architectural Walkthrough & Step-by-Step Breakdown */}
         {flowchartData?.explanation && (
