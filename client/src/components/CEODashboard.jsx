@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import gsap from "gsap";
 import {
   Users,
   ShieldCheck,
@@ -51,6 +52,7 @@ import { useAuth } from "../context/AuthContext";
 import ConnectRepoModal from "./ConnectRepoModal";
 import WorkspaceModal from "./WorkspaceModal";
 import Brand from "./Brand";
+import DashboardBackdrop from "./DashboardBackdrop";
 import SectionHeading from "./SectionHeading";
 import Tilt3D from "./Tilt3D";
 import DeveloperStudio from "./DeveloperStudio";
@@ -178,6 +180,7 @@ const ALL_SIDEBAR_ITEMS = [
 
 export default function CEODashboard() {
   const { user, token, logout, setCurrentView } = useAuth();
+  const viewportRef = useRef(null);
 
   // Navigation & Role Perspective State
   const [perspective, setPerspective] = useState("developer"); // "developer" | "ceo" | "tester" | "marketer"
@@ -648,7 +651,7 @@ export default function CEODashboard() {
 
       if (res.ok) {
         const data = await res.json();
-        setBrainAnswer(data);
+        setBrainAnswer({ query: q.trim(), ...data });
       } else {
         const errData = await res.json();
         setBrainAnswer({
@@ -825,8 +828,74 @@ export default function CEODashboard() {
     return "Workspace Command";
   };
 
+  // GSAP-powered studio transitions: panels settle in, KPI cards stagger up.
+  useEffect(() => {
+    if (!viewportRef.current) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+
+    const ctx = gsap.context(() => {
+      const panels = gsap.utils.toArray(".axon-viewport > *");
+      if (panels.length) {
+        gsap.fromTo(
+          panels,
+          { opacity: 0, y: 22, filter: "blur(10px)" },
+          {
+            opacity: 1,
+            y: 0,
+            filter: "blur(0px)",
+            duration: 0.62,
+            ease: "power3.out",
+            clearProps: "filter,transform,opacity"
+          }
+        );
+      }
+
+      const cards = gsap.utils.toArray(
+        ".analytics-kpi-card, .ov-stat, .ov-card, .ws-project-card, .ov-studio, .tm-banner, .flowchart-prompt-box"
+      );
+      if (cards.length) {
+        gsap.fromTo(
+          cards,
+          { opacity: 0, y: 18, scale: 0.985 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.55,
+            stagger: 0.045,
+            delay: 0.08,
+            ease: "power2.out",
+            clearProps: "transform,opacity"
+          }
+        );
+      }
+    }, viewportRef);
+
+    return () => ctx.revert();
+  }, [activeFeatureId, activeWorkspaceId]);
+
+  // One-time chrome entrance for the dashboard shell.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".axon-sidebar",
+        { x: -26, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.7, ease: "expo.out", clearProps: "transform,opacity" }
+      );
+      gsap.fromTo(
+        ".axon-topbar",
+        { y: -16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.65, delay: 0.08, ease: "expo.out", clearProps: "transform,opacity" }
+      );
+    });
+    return () => ctx.revert();
+  }, []);
+
   return (
     <div className="axon-layout">
+      <DashboardBackdrop />
+
       {/* Toast Notification */}
       <AnimatePresence>
         {feedbackMsg && (
@@ -1100,7 +1169,7 @@ export default function CEODashboard() {
         </header>
 
         {/* Viewport for Active Studio / Feature */}
-        <div className="axon-viewport">
+        <div className="axon-viewport" ref={viewportRef}>
           {activeFeatureId === "analytics" && (
             <AnalyticsStudio
               workspace={activeWorkspace}

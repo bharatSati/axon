@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowUpRight,
@@ -19,6 +19,7 @@ import {
   History,
   Layers,
   Lock,
+  Maximize2,
   Megaphone,
   Palette,
   RefreshCw,
@@ -29,9 +30,12 @@ import {
   Trash2,
   Unlink,
   UploadCloud,
-  Users
+  Users,
+  Wand2,
+  PenLine
 } from "lucide-react";
 import FormattedAIResponse from "./FormattedAIResponse";
+import FocusOverlay from "./FocusOverlay";
 
 const STUDIOS = [
   {
@@ -94,6 +98,15 @@ const SUGGESTIONS = [
   "How is state managed?"
 ];
 
+const READY_PROMPTS = [
+  { tag: "Architecture", title: "Map the system architecture", prompt: "Explain the project architecture end to end, including the client, server, data layer and how requests flow." },
+  { tag: "Auth", title: "Trace the authentication flow", prompt: "How does GitHub OAuth authentication work? Walk through token creation, validation and session handling." },
+  { tag: "API", title: "List every exposed route", prompt: "List every API route exposed by the server, with its method, purpose and authentication requirements." },
+  { tag: "State", title: "Explain state management", prompt: "How is state managed across the frontend? Describe context providers, hooks and server data flow." },
+  { tag: "Data", title: "Describe persistence", prompt: "Where and how is workspace data persisted? Explain the storage model, JSON files and Project Brain index." },
+  { tag: "Risk", title: "Find fragile areas", prompt: "Which parts of this repository are most likely to break as it scales? Highlight coupling, missing tests and risky patterns." }
+];
+
 function formatDate(value) {
   if (!value) return "—";
   try {
@@ -151,6 +164,11 @@ export default function WorkspaceOverview({
   roleConfig
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [promptTab, setPromptTab] = useState("custom");
+  const [answerFocusOpen, setAnswerFocusOpen] = useState(false);
+  const [focusQuery, setFocusQuery] = useState("");
+  const answerOriginRef = useRef(null);
+
   if (!workspace) return null;
 
   const repo = workspace.repository;
@@ -167,6 +185,13 @@ export default function WorkspaceOverview({
     if (type === "issue" || type === "discussion") return <Megaphone size={14} />;
     if (type === "document") return <FileText size={14} />;
     return <Code2 size={14} />;
+  };
+
+  const handleFocusAsk = () => {
+    if (!focusQuery.trim() || isBrainSearching) return;
+    setBrainQuery(focusQuery.trim());
+    onAskBrain?.(focusQuery.trim());
+    setFocusQuery("");
   };
 
   return (
@@ -440,67 +465,113 @@ export default function WorkspaceOverview({
 
         {isReady ? (
           <>
-            <div className="ov-filters">
-              <button
-                type="button"
-                className="ov-filter-toggle"
-                onClick={() => setFiltersOpen((open) => !open)}
-              >
-                <Layers size={14} />
-                {FILTERS.find((filter) => filter.id === selectedFilterType)?.label || "All sources"}
-                <ChevronDown size={14} className={filtersOpen ? "is-open" : ""} />
-              </button>
-              <div className={`ov-filter-list ${filtersOpen ? "is-open" : ""}`}>
-                {FILTERS.map((filter) => (
-                  <button
-                    type="button"
-                    key={filter.id}
-                    className={selectedFilterType === filter.id ? "is-active" : ""}
-                    onClick={() => {
-                      setSelectedFilterType(filter.id);
-                      setFiltersOpen(false);
-                    }}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
+            <div className="ov-prompt-topline">
+              <div className="ov-prompt-tabs" role="tablist" aria-label="Brain prompt mode">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={promptTab === "custom"}
+                  className={promptTab === "custom" ? "is-active" : ""}
+                  onClick={() => setPromptTab("custom")}
+                >
+                  <PenLine size={13} />
+                  Ask anything
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={promptTab === "library"}
+                  className={promptTab === "library" ? "is-active" : ""}
+                  onClick={() => setPromptTab("library")}
+                >
+                  <Wand2 size={13} />
+                  Ready-made prompts
+                </button>
+              </div>
+
+              <div className="ov-filters">
+                <button
+                  type="button"
+                  className="ov-filter-toggle"
+                  onClick={() => setFiltersOpen((open) => !open)}
+                >
+                  <Layers size={14} />
+                  {FILTERS.find((filter) => filter.id === selectedFilterType)?.label || "All sources"}
+                  <ChevronDown size={14} className={filtersOpen ? "is-open" : ""} />
+                </button>
+                <div className={`ov-filter-list ${filtersOpen ? "is-open" : ""}`}>
+                  {FILTERS.map((filter) => (
+                    <button
+                      type="button"
+                      key={filter.id}
+                      className={selectedFilterType === filter.id ? "is-active" : ""}
+                      onClick={() => {
+                        setSelectedFilterType(filter.id);
+                        setFiltersOpen(false);
+                      }}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="ov-ask">
-              <input
-                type="text"
-                value={brainQuery}
-                onChange={(event) => setBrainQuery(event.target.value)}
-                onKeyDown={(event) => event.key === "Enter" && onAskBrain?.()}
-                placeholder="Ask about architecture, authentication, routes, data models…"
-              />
-              <button
-                type="button"
-                className="ov-btn ov-btn--primary"
-                onClick={() => onAskBrain?.()}
-                disabled={isBrainSearching || !brainQuery?.trim()}
-              >
-                {isBrainSearching ? <RefreshCw size={15} className="spin" /> : <Send size={15} />}
-                {isBrainSearching ? "Thinking" : "Ask"}
-              </button>
-            </div>
-
-            <div className="ov-suggestions">
-              <span>Try</span>
-              {SUGGESTIONS.map((suggestion) => (
+            {promptTab === "custom" ? (
+              <div className="ov-ask">
+                <input
+                  type="text"
+                  value={brainQuery}
+                  onChange={(event) => setBrainQuery(event.target.value)}
+                  onKeyDown={(event) => event.key === "Enter" && onAskBrain?.()}
+                  placeholder="Ask about architecture, authentication, routes, data models…"
+                />
                 <button
                   type="button"
-                  key={suggestion}
-                  onClick={() => {
-                    setBrainQuery(suggestion);
-                    onAskBrain?.(suggestion);
-                  }}
+                  className="ov-btn ov-btn--primary"
+                  onClick={() => onAskBrain?.()}
+                  disabled={isBrainSearching || !brainQuery?.trim()}
                 >
-                  {suggestion}
+                  {isBrainSearching ? <RefreshCw size={15} className="spin" /> : <Send size={15} />}
+                  {isBrainSearching ? "Thinking" : "Ask"}
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="ov-ready-grid">
+                {READY_PROMPTS.map((item) => (
+                  <button
+                    type="button"
+                    key={item.title}
+                    className="ov-ready-card"
+                    onClick={() => {
+                      onAskBrain?.(item.prompt);
+                    }}
+                  >
+                    <span className="ov-ready-tag">{item.tag}</span>
+                    <strong>{item.title}</strong>
+                    <span className="ov-ready-text">{item.prompt}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {promptTab === "custom" && (
+              <div className="ov-suggestions">
+                <span>Try</span>
+                {SUGGESTIONS.map((suggestion) => (
+                  <button
+                    type="button"
+                    key={suggestion}
+                    onClick={() => {
+                      setBrainQuery(suggestion);
+                      onAskBrain?.(suggestion);
+                    }}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {brainAnswer && (
               <div className="ov-answer">
@@ -512,11 +583,23 @@ export default function WorkspaceOverview({
                       <span>
                         <CheckCircle2 size={14} /> Answer
                       </span>
-                      <span className="ov-answer-provider">
-                        {brainAnswer.provider || "Groq · GPT-OSS 120B"}
-                      </span>
+                      <div className="ov-answer-meta">
+                        <span className="ov-answer-provider">
+                          {brainAnswer.provider || "Groq · GPT-OSS 120B"}
+                        </span>
+                        <button
+                          type="button"
+                          ref={answerOriginRef}
+                          className="ov-answer-expand"
+                          onClick={() => setAnswerFocusOpen(true)}
+                          title="Expand answer into focus stage"
+                        >
+                          <Maximize2 size={12} />
+                          Expand
+                        </button>
+                      </div>
                     </div>
-                    <div className="ov-answer-body">
+                    <div className="ov-answer-body" data-lenis-prevent>
                       <FormattedAIResponse content={brainAnswer.answer} />
                     </div>
 
@@ -615,6 +698,55 @@ export default function WorkspaceOverview({
           })}
         </div>
       </section>
+
+      <FocusOverlay
+        open={answerFocusOpen}
+        onClose={() => setAnswerFocusOpen(false)}
+        originRef={answerOriginRef}
+        icon={Sparkles}
+        kicker="PROJECT BRAIN · DEEP ANSWER"
+        title={brainAnswer?.query || brainQuery || "Repository intelligence"}
+        badge={brainAnswer?.provider || "Groq · GPT-OSS 120B"}
+        footer={
+          <div className="focus-ask-bar">
+            <Sparkles size={15} className="focus-ask-icon" />
+            <input
+              type="text"
+              value={focusQuery}
+              onChange={(event) => setFocusQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleFocusAsk();
+              }}
+              placeholder="Ask a follow-up about this answer…"
+            />
+            <button type="button" onClick={handleFocusAsk} disabled={isBrainSearching || !focusQuery.trim()}>
+              {isBrainSearching ? <RefreshCw size={14} className="spin" /> : <Send size={14} />}
+              <span>{isBrainSearching ? "Thinking" : "Ask"}</span>
+            </button>
+          </div>
+        }
+      >
+        <div className="focus-response">
+          {brainAnswer?.error ? (
+            <p className="ov-answer-error">{brainAnswer.error}</p>
+          ) : (
+            <FormattedAIResponse content={brainAnswer?.answer} />
+          )}
+
+          {brainAnswer?.sources?.length > 0 && (
+            <div className="focus-chunk-list">
+              <span className="mono-label">RETRIEVED SOURCES</span>
+              {brainAnswer.sources.map((source, index) => (
+                <div key={index} className="focus-chunk">
+                  {sourceIcon(source.type)}
+                  <span>{source.filePath || source.title || "Repository source"}</span>
+                  <strong>{Math.round((source.score || 0) * 100)}% match</strong>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </FocusOverlay>
     </section>
   );
 }

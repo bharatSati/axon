@@ -25,9 +25,16 @@ import {
   AlertCircle,
   X,
   ChevronUp,
-  Trash2
+  Trash2,
+  Terminal,
+  ScanLine,
+  Gauge,
+  FileCode2
 } from "lucide-react";
+import gsap from "gsap";
 import FormattedAIResponse from "./FormattedAIResponse";
+import FocusOverlay from "./FocusOverlay";
+import PromptComposer from "./PromptComposer";
 import TimeMachine from "./TimeMachine";
 import FlowchartStudio from "./FlowchartStudio";
 import PRIntelligenceStudio from "./PRIntelligenceStudio";
@@ -117,10 +124,11 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   const [fileCategory, setFileCategory] = useState("all"); // "all" | "code" | "docs" | "config"
 
   // Editor Viewport & Appearance Customization
-  const [fontSize, setFontSize] = useState(13.5); // 12px to 22px
+  const [fontSize, setFontSize] = useState(14.5); // 11px to 22px
   const [wordWrap, setWordWrap] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false); // Focus / Fullscreen Mode
   const [activeLine, setActiveLine] = useState(null);
+  const [scrollInfo, setScrollInfo] = useState({ top: 0, height: 12 });
 
   // In-File Quick Find (Cmd+F / Ctrl+F)
   const [findOpen, setFindOpen] = useState(false);
@@ -131,7 +139,10 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   // Brain Code Context & Selection State
   const [selectedAction, setSelectedAction] = useState("explain");
   const [selectedSnippet, setSelectedSnippet] = useState("");
+  const [promptMode, setPromptMode] = useState("preset");
+  const [promptTemplate, setPromptTemplate] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
+  const [followupPrompt, setFollowupPrompt] = useState("");
   const [brainAnalysis, setBrainAnalysis] = useState(null);
   const [isInspecting, setIsInspecting] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -140,12 +151,19 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   // Interactive AI Conversation Thread
   const [chatThread, setChatThread] = useState([]);
 
+  // Cinematic focus stage (code / analysis)
+  const [focusOpen, setFocusOpen] = useState(false);
+  const [focusKind, setFocusKind] = useState("analysis");
+  const [focusTurnId, setFocusTurnId] = useState(null);
+  const focusOriginRef = useRef(null);
+
   // Floating Selection Action HUD
   const [showSelectionHud, setShowSelectionHud] = useState(false);
   const [hudCoords, setHudCoords] = useState({ top: 0, left: 0 });
 
   const codeViewerRef = useRef(null);
   const findInputRef = useRef(null);
+  const editorPaneRef = useRef(null);
 
   // Global Keyboard Shortcuts (Cmd+F / Ctrl+F for Find, Esc to close)
   useEffect(() => {
@@ -351,9 +369,82 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
   // Inspect on initial file load
   useEffect(() => {
     if (activeFile && activeFile.content && !brainAnalysis && chatThread.length === 0) {
-      handleInspectCode("explain", activeFile.content.slice(0, 2000));
+      handleInspectCode("explain", activeFile.content.slice(0, 2000), "");
     }
   }, [activeFile?.content]);
+
+  // Single, unambiguous prompt contract: preset OR template OR custom — never mixed.
+  const handleComposerRun = ({ mode, action, prompt }) => {
+    if (mode === "preset") setSelectedAction(action);
+    if (mode === "template") setPromptTemplate(prompt);
+    if (mode === "custom") setCustomPrompt(prompt);
+    handleInspectCode(action, undefined, mode === "preset" ? "" : prompt);
+  };
+
+  const openFocusStage = (kind, turnId, event) => {
+    if (event?.currentTarget) focusOriginRef.current = event.currentTarget;
+    setFocusKind(kind);
+    setFocusTurnId(turnId ?? null);
+    setFocusOpen(true);
+  };
+
+  const latestTurn =
+    (focusTurnId && chatThread.find((turn) => turn.id === focusTurnId)) ||
+    (chatThread.length ? chatThread[chatThread.length - 1] : null);
+
+  const focusAnalysis = latestTurn?.analysis || brainAnalysis?.analysis || "";
+  const focusChunks = latestTurn?.relevantChunks || brainAnalysis?.relevantChunks || [];
+
+  const handleFocusAsk = () => {
+    if (!followupPrompt.trim() || isInspecting) return;
+    handleInspectCode("custom", undefined, followupPrompt.trim());
+    setFollowupPrompt("");
+    setFocusTurnId(null);
+    setFocusKind("analysis");
+  };
+
+  const handleEditorScroll = (event) => {
+    const element = event.currentTarget;
+    const max = element.scrollHeight - element.clientHeight;
+    const ratio = max > 0 ? element.scrollTop / max : 0;
+    const visible = element.scrollHeight > 0 ? (element.clientHeight / element.scrollHeight) * 100 : 100;
+    setScrollInfo({ top: ratio * (100 - Math.min(visible, 100)), height: Math.min(visible, 100) });
+  };
+
+  const handleMinimapClick = (event) => {
+    const element = codeViewerRef.current;
+    if (!element) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+    element.scrollTo({
+      top: ratio * (element.scrollHeight - element.clientHeight),
+      behavior: "smooth"
+    });
+  };
+
+  // Compact minimap: one tiny bar per line, sized and indented from the source.
+  const minimapBars = useMemo(() => {
+    if (!activeFile?.content) return [];
+    return activeFile.content.split("\n").slice(0, 220).map((line, index) => {
+      const indent = Math.min(18, line.length - line.trimStart().length);
+      const length = Math.min(100, Math.max(4, line.trim().length * 1.35));
+      return { index, indent, length, empty: !line.trim() };
+    });
+  }, [activeFile?.content]);
+
+  // Smoothly ease the editor to cinematic focus when the Focus toggle flips.
+  useEffect(() => {
+    if (!editorPaneRef.current) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".studio-editor-pane",
+        { opacity: 0.55, scale: 0.985, filter: "blur(4px)" },
+        { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.55, ease: "expo.out" }
+      );
+    }, editorPaneRef);
+    return () => ctx.revert();
+  }, [isMaximized]);
 
   // Handle open tab
   const handleOpenFile = (path) => {
@@ -454,7 +545,16 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
     }
   };
 
-  const currentActionObj = BRAIN_ACTIONS.find((a) => a.id === selectedAction) || BRAIN_ACTIONS[0];
+  const lastTurn = chatThread[chatThread.length - 1];
+  const currentActionObj =
+    lastTurn?.action === "custom"
+      ? {
+          id: "custom",
+          label: "Custom prompt",
+          icon: Terminal,
+          desc: "Your own question, answered with file and repository context"
+        }
+      : BRAIN_ACTIONS.find((a) => a.id === (lastTurn?.action || selectedAction)) || BRAIN_ACTIONS[0];
   const hasRepo = !!workspace?.repository;
 
   // Empty State: No Repository Connected
@@ -652,7 +752,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
             </div>
 
             {/* Files List with full vertical scroll */}
-            <div className="filetree-list">
+            <div className="filetree-list" data-lenis-prevent>
               {loadingFiles ? (
                 <div className="filetree-loading">
                   <RefreshCw size={18} className="spin text-lime" />
@@ -702,7 +802,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
           {/* ============================================================
               PANE 2: EXPANDED CODE EDITOR & BRAIN PROMPT BAR
               ============================================================ */}
-          <div className="studio-pane studio-editor-pane">
+          <div className="studio-pane studio-editor-pane" ref={editorPaneRef}>
             {/* Tab Bar */}
             <div className="editor-tab-bar">
               {activeTabFiles.map((path) => {
@@ -764,6 +864,15 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                   {copiedCode ? <Check size={13} color="#c8ff3d" /> : <Copy size={13} />}
                   <span>{copiedCode ? "Copied" : selectedSnippet ? "Copy Snippet" : "Copy"}</span>
                 </button>
+                <button
+                  type="button"
+                  className="subbar-btn subbar-btn--stage"
+                  onClick={(event) => openFocusStage("code", null, event)}
+                  title="Open the cinema stage for this file"
+                >
+                  <Maximize2 size={13} />
+                  <span>Theater</span>
+                </button>
               </div>
             </div>
 
@@ -819,204 +928,193 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
             )}
 
             {/* ============================================================
-                BRAIN PROMPT & SELECTION COMMAND BAR
+                BRAIN PROMPT CONSOLE — preset / library / custom, never mixed
                 ============================================================ */}
-            <div className="brain-selection-bar">
-              {/* Action Mode Preset Selector */}
-              <div className="brain-action-select-group">
-                <Sparkles size={14} color="#c8ff3d" />
-                <span className="mono-label brain-action-label">MODE:</span>
-                <select
-                  value={selectedAction}
-                  onChange={(e) => {
-                    setSelectedAction(e.target.value);
-                    handleInspectCode(e.target.value);
-                  }}
-                  className="brain-action-dropdown"
-                >
-                  {BRAIN_ACTIONS.map((action) => (
-                    <option key={action.id} value={action.id}>
-                      {action.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <PromptComposer
+              actions={BRAIN_ACTIONS}
+              action={selectedAction}
+              onActionChange={setSelectedAction}
+              mode={promptMode}
+              onModeChange={setPromptMode}
+              customPrompt={customPrompt}
+              onCustomPromptChange={setCustomPrompt}
+              template={promptTemplate}
+              onTemplateChange={setPromptTemplate}
+              onRun={handleComposerRun}
+              loading={isInspecting || loadingFileContent}
+              contextLabel={activeFile ? activeFile.name : "No file"}
+              snippet={selectedSnippet}
+              onClearSnippet={() => {
+                setSelectedSnippet("");
+                setShowSelectionHud(false);
+              }}
+              onExpand={(event) => openFocusStage("composer", null, event)}
+              compact
+              runLabel="Ask Brain"
+            />
 
-              {/* Direct Custom Prompt Input for Project Brain */}
-              <div className="brain-custom-prompt-wrap">
-                <input
-                  type="text"
-                  className="brain-prompt-input"
-                  placeholder={
-                    selectedSnippet
-                      ? `Ask Brain about highlighted snippet (${selectedSnippet.length} chars)...`
-                      : `Ask Brain about ${activeFile ? activeFile.name : "code"}... (or press Enter)`
-                  }
-                  value={customPrompt}
-                  onChange={(e) => setCustomPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !isInspecting) {
-                      handleInspectCode();
-                    }
-                  }}
-                />
+            {/* ============================================================
+                EXPANDED CODE VIEWER VIEWPORT (HIGH READABILITY)
+                ============================================================ */}
+            <div className={`code-stage ${isMaximized ? "is-cinematic" : ""}`}>
+              <div
+                className="code-viewer-container"
+                ref={codeViewerRef}
+                onMouseUp={handleCodeMouseUp}
+                onScroll={handleEditorScroll}
+                onPointerMove={(event) => {
+                  const element = codeViewerRef.current;
+                  if (!element) return;
+                  const rect = element.getBoundingClientRect();
+                  element.style.setProperty("--editor-mx", `${event.clientX - rect.left}px`);
+                  element.style.setProperty("--editor-my", `${event.clientY - rect.top}px`);
+                }}
+                data-lenis-prevent
+              >
+                <span className="code-viewer-aura" aria-hidden="true" />
+                <span className="code-viewer-scanline" aria-hidden="true" />
 
-                {/* Selected Snippet Indicator with Quick Clear */}
-                {selectedSnippet && (
-                  <div className="snippet-indicator-badge mono-label">
-                    <Check size={11} color="#c8ff3d" />
-                    <span>Snippet ({selectedSnippet.length}c)</span>
+                {/* Floating Selection AI HUD Pill */}
+                {showSelectionHud && selectedSnippet && (
+                  <div
+                    className="floating-selection-hud"
+                    style={{ top: `${hudCoords.top}px`, left: `${hudCoords.left}px` }}
+                  >
+                    <span className="hud-badge">
+                      <Sparkles size={11} color="#c8ff3d" />
+                      {selectedSnippet.length}c
+                    </span>
                     <button
                       type="button"
-                      className="clear-snippet-btn"
-                      onClick={() => {
-                        setSelectedSnippet("");
-                        setShowSelectionHud(false);
-                      }}
-                      title="Clear selected snippet to inspect full file"
+                      className="hud-action-btn"
+                      onClick={() => handleInspectCode("explain", selectedSnippet, "")}
+                    >
+                      Explain
+                    </button>
+                    <button
+                      type="button"
+                      className="hud-action-btn"
+                      onClick={() => handleInspectCode("optimize", selectedSnippet, "")}
+                    >
+                      Optimize
+                    </button>
+                    <button
+                      type="button"
+                      className="hud-action-btn"
+                      onClick={() => handleInspectCode("security", selectedSnippet, "")}
+                    >
+                      Security
+                    </button>
+                    <button
+                      type="button"
+                      className="hud-action-btn"
+                      onClick={() => handleInspectCode("tests", selectedSnippet, "")}
+                    >
+                      Tests
+                    </button>
+                    <button
+                      type="button"
+                      className="hud-action-btn"
+                      onClick={handleCopyCode}
+                    >
+                      <Copy size={11} />
+                    </button>
+                    <button
+                      type="button"
+                      className="hud-close-btn"
+                      onClick={() => setShowSelectionHud(false)}
                     >
                       ×
                     </button>
                   </div>
                 )}
 
-                {/* Run Action / Custom Prompt Button */}
+                {loadingFileContent ? (
+                  <div className="code-editor-empty">
+                    <RefreshCw size={28} className="spin text-lime" />
+                    <p style={{ color: "#f1f5f9", fontWeight: 600, marginTop: "12px", fontSize: "14px" }}>
+                      Loading file content...
+                    </p>
+                    <span className="mono-label" style={{ color: "#94a3b8", fontSize: "12px" }}>
+                      {activeFile?.path}
+                    </span>
+                  </div>
+                ) : activeFile ? (
+                  <div className="code-editor-viewport">
+                    <div className="code-lines-table">
+                      {highlightedLines.map((html, idx) => {
+                        const lineNum = idx + 1;
+                        const isCurrentActive = activeLine === lineNum;
+                        const isMatch = findMatches.includes(lineNum);
+                        return (
+                          <div
+                            key={idx}
+                            id={`code-line-${lineNum}`}
+                            className={`code-line-row ${isCurrentActive ? "is-active" : ""} ${isMatch ? "is-match" : ""}`}
+                            onClick={() => setActiveLine(lineNum)}
+                          >
+                            <span
+                              className="code-line-num mono-label"
+                              aria-hidden="true"
+                              style={{ fontSize: `${fontSize - 1}px` }}
+                            >
+                              {lineNum}
+                            </span>
+                            <span
+                              className="code-line-content mono-label"
+                              style={{
+                                fontSize: `${fontSize}px`,
+                                lineHeight: 1.7,
+                                whiteSpace: wordWrap ? "pre-wrap" : "pre",
+                                wordBreak: wordWrap ? "break-word" : "normal"
+                              }}
+                              dangerouslySetInnerHTML={{ __html: html || "&nbsp;" }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="code-editor-empty">
+                    <Code2 size={36} color="#64748b" />
+                    <p style={{ fontSize: "15px", color: "#f1f5f9", fontWeight: 600 }}>
+                      Select a file to inspect code
+                    </p>
+                    <p style={{ fontSize: "13px", color: "#94a3b8", marginTop: "-4px" }}>
+                      Choose any repository file from the Explorer on the left
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {activeFile?.content ? (
                 <button
                   type="button"
-                  className="button button--lime button--small studio-run-btn"
-                  onClick={() => handleInspectCode()}
-                  disabled={isInspecting || loadingFileContent}
+                  className="code-minimap"
+                  onClick={handleMinimapClick}
+                  title="Code minimap — click to jump"
+                  aria-label="Code minimap"
                 >
-                  {isInspecting ? (
-                    <RefreshCw size={13} className="spin" />
-                  ) : (
-                    <Zap size={13} />
-                  )}
-                  <span>Ask Brain</span>
+                  <span className="code-minimap-top">
+                    <ScanLine size={9} />
+                  </span>
+                  {minimapBars.map((bar) => (
+                    <span
+                      key={bar.index}
+                      className={`code-minimap-bar ${bar.empty ? "is-empty" : ""}`}
+                      style={{
+                        marginLeft: `${bar.indent * 0.55}%`,
+                        width: `${bar.length}%`
+                      }}
+                    />
+                  ))}
+                  <span
+                    className="code-minimap-thumb"
+                    style={{ top: `${scrollInfo.top}%`, height: `${Math.max(8, scrollInfo.height)}%` }}
+                  />
                 </button>
-              </div>
-            </div>
-
-            {/* ============================================================
-                EXPANDED CODE VIEWER VIEWPORT (HIGH READABILITY)
-                ============================================================ */}
-            <div
-              className="code-viewer-container"
-              ref={codeViewerRef}
-              onMouseUp={handleCodeMouseUp}
-            >
-              {/* Floating Selection AI HUD Pill */}
-              {showSelectionHud && selectedSnippet && (
-                <div
-                  className="floating-selection-hud"
-                  style={{ top: `${hudCoords.top}px`, left: `${hudCoords.left}px` }}
-                >
-                  <span className="hud-badge">
-                    <Sparkles size={11} color="#c8ff3d" />
-                    {selectedSnippet.length}c
-                  </span>
-                  <button
-                    type="button"
-                    className="hud-action-btn"
-                    onClick={() => handleInspectCode("explain", selectedSnippet)}
-                  >
-                    Explain
-                  </button>
-                  <button
-                    type="button"
-                    className="hud-action-btn"
-                    onClick={() => handleInspectCode("optimize", selectedSnippet)}
-                  >
-                    Optimize
-                  </button>
-                  <button
-                    type="button"
-                    className="hud-action-btn"
-                    onClick={() => handleInspectCode("security", selectedSnippet)}
-                  >
-                    Security
-                  </button>
-                  <button
-                    type="button"
-                    className="hud-action-btn"
-                    onClick={() => handleInspectCode("tests", selectedSnippet)}
-                  >
-                    Tests
-                  </button>
-                  <button
-                    type="button"
-                    className="hud-action-btn"
-                    onClick={handleCopyCode}
-                  >
-                    <Copy size={11} />
-                  </button>
-                  <button
-                    type="button"
-                    className="hud-close-btn"
-                    onClick={() => setShowSelectionHud(false)}
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-
-              {loadingFileContent ? (
-                <div className="code-editor-empty">
-                  <RefreshCw size={28} className="spin text-lime" />
-                  <p style={{ color: "#f1f5f9", fontWeight: 600, marginTop: "12px", fontSize: "14px" }}>
-                    Loading file content...
-                  </p>
-                  <span className="mono-label" style={{ color: "#94a3b8", fontSize: "12px" }}>
-                    {activeFile?.path}
-                  </span>
-                </div>
-              ) : activeFile ? (
-                <div className="code-editor-viewport">
-                  <div className="code-lines-table">
-                    {highlightedLines.map((html, idx) => {
-                      const lineNum = idx + 1;
-                      const isCurrentActive = activeLine === lineNum;
-                      const isMatch = findMatches.includes(lineNum);
-                      return (
-                        <div
-                          key={idx}
-                          id={`code-line-${lineNum}`}
-                          className={`code-line-row ${isCurrentActive ? "is-active" : ""} ${isMatch ? "is-match" : ""}`}
-                          onClick={() => setActiveLine(lineNum)}
-                        >
-                          <span
-                            className="code-line-num mono-label"
-                            aria-hidden="true"
-                            style={{ fontSize: `${fontSize - 1}px` }}
-                          >
-                            {lineNum}
-                          </span>
-                          <span
-                            className="code-line-content mono-label"
-                            style={{
-                              fontSize: `${fontSize}px`,
-                              lineHeight: 1.7,
-                              whiteSpace: wordWrap ? "pre-wrap" : "pre",
-                              wordBreak: wordWrap ? "break-word" : "normal"
-                            }}
-                            dangerouslySetInnerHTML={{ __html: html || "&nbsp;" }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className="code-editor-empty">
-                  <Code2 size={36} color="#64748b" />
-                  <p style={{ fontSize: "15px", color: "#f1f5f9", fontWeight: 600 }}>
-                    Select a file to inspect code
-                  </p>
-                  <p style={{ fontSize: "13px", color: "#94a3b8", marginTop: "-4px" }}>
-                    Choose any repository file from the Explorer on the left
-                  </p>
-                </div>
-              )}
+              ) : null}
             </div>
 
             {/* ============================================================
@@ -1142,7 +1240,7 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               </div>
 
               {/* Single Smooth Scroll Analysis Output Container */}
-              <div className="brain-analysis-output">
+              <div className="brain-analysis-output" data-lenis-prevent>
                 {isInspecting ? (
                   <div className="brain-inspecting-state">
                     <RefreshCw size={24} className="spin text-lime" />
@@ -1159,14 +1257,25 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                             {turn.prompt}
                             <span className="turn-timestamp">{turn.timestamp}</span>
                           </span>
-                          <button
-                            type="button"
-                            className="copy-analysis-btn"
-                            onClick={() => handleCopyAnalysis(turn.analysis)}
-                          >
-                            <Copy size={12} />
-                            <span>Copy</span>
-                          </button>
+                          <div className="analysis-actions">
+                            <button
+                              type="button"
+                              className="copy-analysis-btn"
+                              onClick={() => handleCopyAnalysis(turn.analysis)}
+                            >
+                              <Copy size={12} />
+                              <span>Copy</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="expand-analysis-btn"
+                              onClick={(event) => openFocusStage("analysis", turn.id, event)}
+                              title="Expand response into focus stage"
+                            >
+                              <Maximize2 size={12} />
+                              <span>Expand</span>
+                            </button>
+                          </div>
                         </div>
 
                         <div className="analysis-content-markdown">
@@ -1202,14 +1311,25 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                         <Sparkles size={12} color="#c8ff3d" />
                         AI CODE ANALYSIS
                       </span>
-                      <button
-                        type="button"
-                        className="copy-analysis-btn"
-                        onClick={() => handleCopyAnalysis(brainAnalysis.analysis)}
-                      >
-                        {copiedAnalysis ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
-                        <span>{copiedAnalysis ? "Copied" : "Copy"}</span>
-                      </button>
+                      <div className="analysis-actions">
+                        <button
+                          type="button"
+                          className="copy-analysis-btn"
+                          onClick={() => handleCopyAnalysis(brainAnalysis.analysis)}
+                        >
+                          {copiedAnalysis ? <Check size={12} color="#c8ff3d" /> : <Copy size={12} />}
+                          <span>{copiedAnalysis ? "Copied" : "Copy"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="expand-analysis-btn"
+                          onClick={(event) => openFocusStage("analysis", null, event)}
+                          title="Expand response into focus stage"
+                        >
+                          <Maximize2 size={12} />
+                          <span>Expand</span>
+                        </button>
+                      </div>
                     </div>
 
                     {brainAnalysis.error ? (
@@ -1239,15 +1359,16 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
               {/* Interactive Ask Follow-up Bar */}
               <div className="brain-followup-bar">
                 <div className="followup-input-wrap">
+                  <Terminal size={13} className="followup-terminal-icon" />
                   <input
                     type="text"
-                    placeholder="Ask follow-up question to Brain..."
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    placeholder="Ask a follow-up to Project Brain…"
+                    value={followupPrompt}
+                    onChange={(e) => setFollowupPrompt(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && customPrompt.trim()) {
-                        handleInspectCode("explain", undefined, customPrompt.trim());
-                        setCustomPrompt("");
+                      if (e.key === "Enter" && followupPrompt.trim()) {
+                        handleInspectCode("custom", undefined, followupPrompt.trim());
+                        setFollowupPrompt("");
                       }
                     }}
                   />
@@ -1255,12 +1376,12 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
                     type="button"
                     className="followup-send-btn"
                     onClick={() => {
-                      if (customPrompt.trim()) {
-                        handleInspectCode("explain", undefined, customPrompt.trim());
-                        setCustomPrompt("");
+                      if (followupPrompt.trim()) {
+                        handleInspectCode("custom", undefined, followupPrompt.trim());
+                        setFollowupPrompt("");
                       }
                     }}
-                    disabled={isInspecting || !customPrompt.trim()}
+                    disabled={isInspecting || !followupPrompt.trim()}
                     title="Send question to Brain"
                   >
                     <Send size={13} />
@@ -1271,6 +1392,101 @@ export default function DeveloperStudio({ workspace, token, onSwitchPerspective,
           </div>
         </div>
       )}
+
+      {/* ============================================================
+          CINEMATIC FOCUS STAGE — code theatre / deep response reading
+          ============================================================ */}
+      <FocusOverlay
+        open={focusOpen}
+        onClose={() => setFocusOpen(false)}
+        originRef={focusOriginRef}
+        icon={focusKind === "code" ? FileCode2 : Sparkles}
+        kicker={focusKind === "code" ? "AXON CODE ENGINE · THEATER" : "PROJECT BRAIN · DEEP READ"}
+        title={
+          focusKind === "code"
+            ? activeFile?.path || "Repository file"
+            : latestTurn?.prompt || "AI analysis"
+        }
+        badge={
+          focusKind === "code"
+            ? `${activeFile?.language || "text"} · ${activeFile?.linesCount || highlightedLines.length} lines`
+            : latestTurn?.timestamp || "LIVE"
+        }
+        footer={
+          <div className="focus-ask-bar">
+            <Gauge size={15} className="focus-ask-icon" />
+            <input
+              type="text"
+              value={followupPrompt}
+              onChange={(event) => setFollowupPrompt(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleFocusAsk();
+              }}
+              placeholder={
+                focusKind === "code"
+                  ? "Ask Brain about this entire file…"
+                  : "Ask a follow-up about this answer…"
+              }
+            />
+            <button type="button" onClick={handleFocusAsk} disabled={isInspecting || !followupPrompt.trim()}>
+              {isInspecting ? <RefreshCw size={14} className="spin" /> : <Send size={14} />}
+              <span>{isInspecting ? "Thinking" : "Send"}</span>
+            </button>
+          </div>
+        }
+      >
+        {focusKind === "code" ? (
+          <div className="focus-code-viewport" data-lenis-prevent>
+            <div className="focus-code-toolbar">
+              <span className="mono-label">
+                <FileCode2 size={13} />
+                {activeFile?.name || "file"}
+              </span>
+              <span className="mono-label focus-code-tools">
+                <span>read-only stage</span>
+                <span>·</span>
+                <span>{fontSize}px</span>
+                <button type="button" onClick={handleCopyCode}>
+                  {copiedCode ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedCode ? "Copied" : "Copy"}
+                </button>
+              </span>
+            </div>
+            <div className="focus-code-lines">
+              {highlightedLines.map((html, idx) => (
+                <div key={idx} className="focus-code-line">
+                  <span className="focus-code-num">{idx + 1}</span>
+                  <code dangerouslySetInnerHTML={{ __html: html || "&nbsp;" }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="focus-response">
+            {focusAnalysis ? (
+              <FormattedAIResponse content={focusAnalysis} />
+            ) : (
+              <div className="focus-response-empty">
+                <Sparkles size={24} />
+                <p>No analysis yet. Ask Project Brain a question below.</p>
+              </div>
+            )}
+
+            {focusChunks.length > 0 && (
+              <div className="focus-chunk-list">
+                <span className="mono-label">RELATED REPOSITORY CONTEXT</span>
+                {focusChunks.map((chunk, index) => (
+                  <div key={index} className="focus-chunk">
+                    <FileText size={13} />
+                    <span>{chunk.filePath}</span>
+                    <strong>{Math.round((chunk.score || 0) * 100)}%</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </FocusOverlay>
     </div>
   );
 }

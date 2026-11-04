@@ -5,8 +5,27 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export function useSmoothScroll(ready) {
+const LENIS_CLASSES = ["lenis", "lenis-smooth", "lenis-scrolling", "lenis-stopped"];
+
+/**
+ * Smooth scrolling is a landing-page-only enhancement.
+ *
+ * Pass `enabled = false` for the authenticated dashboard: Lenis is destroyed
+ * outright (not merely stopped) so it cannot leave `lenis-stopped` on <html>,
+ * which would apply `overflow: clip` and kill native/nested scrolling.
+ */
+export function useSmoothScroll(enabled = true) {
   useEffect(() => {
+    if (!enabled) {
+      if (window.__lenis) {
+        window.__lenis.destroy();
+        delete window.__lenis;
+      }
+      document.documentElement.classList.remove(...LENIS_CLASSES);
+      ScrollTrigger.refresh();
+      return undefined;
+    }
+
     const lenis = new Lenis({
       lerp: 0.085,
       smoothWheel: true,
@@ -32,27 +51,19 @@ export function useSmoothScroll(ready) {
       ro.observe(document.body);
     }
 
+    lenis.start();
+    lenis.resize();
+    document.documentElement.classList.remove("is-loading");
+    ScrollTrigger.refresh();
+
     return () => {
       ro.disconnect();
       lenis.destroy();
       gsap.ticker.remove(tick);
-      delete window.__lenis;
+      if (window.__lenis === lenis) delete window.__lenis;
+      document.documentElement.classList.remove(...LENIS_CLASSES);
     };
-  }, []);
-
-  useEffect(() => {
-    const lenis = window.__lenis;
-    if (!lenis) return;
-
-    if (ready) {
-      lenis.start();
-      lenis.resize();
-      document.documentElement.classList.remove("is-loading");
-    } else {
-      lenis.stop();
-      document.documentElement.classList.add("is-loading");
-    }
-  }, [ready]);
+  }, [enabled]);
 }
 
 export function scrollToSection(id) {

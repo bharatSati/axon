@@ -12,6 +12,7 @@ import "./styles/responsive.css";
 import "./styles/three.css";
 import "./styles/ceo-dashboard.css";
 import "./styles/dashboard-ui.css";
+import "./styles/dashboard-enhance.css";
 import { AuthProvider } from "./context/AuthContext";
 import App from "./App";
 

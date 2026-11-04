@@ -26,8 +26,10 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
 
-  // Smooth scroll with Lenis active across landing and dashboard
-  useSmoothScroll(ready);
+  // Lenis is reserved for the cinematic landing page. The authenticated
+  // workspace uses native scrolling so every studio panel, modal, code viewer
+  // and nested list keeps its own scroll context intact.
+  useSmoothScroll(ready && currentView !== "dashboard");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -39,7 +41,7 @@ export default function App() {
       document.documentElement.classList.remove("is-loading");
       document.documentElement.classList.add("dashboard-active");
       document.body.classList.remove("menu-open");
-      window.__lenis?.start();
+      window.__lenis?.stop();
       window.__lenis?.resize();
     } else {
       document.documentElement.classList.remove("dashboard-active");
@@ -50,6 +52,12 @@ export default function App() {
       document.body.classList.remove("menu-open");
     };
   }, [currentView]);
+
+  // Keep the landing page locked while the preloader is running.
+  useEffect(() => {
+    if (currentView === "dashboard") return;
+    document.documentElement.classList.toggle("is-loading", !ready);
+  }, [currentView, ready]);
 
   const finishLoading = () => {
     setShowLoader(false);
