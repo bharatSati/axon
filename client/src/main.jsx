@@ -14,6 +14,7 @@ import "./styles/ceo-dashboard.css";
 import "./styles/dashboard-ui.css";
 import "./styles/dashboard-enhance.css";
 import "./styles/studio-professional.css";
+import "./styles/ui-polish.css";
 import { AuthProvider } from "./context/AuthContext";
 import App from "./App";
 

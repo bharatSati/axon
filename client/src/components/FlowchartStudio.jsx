@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useRef, useMemo, useCallback } from "react";
+import gsap from "gsap";
 import mermaid from "mermaid";
 import {
   Sparkles,
@@ -73,7 +74,7 @@ mermaid.initialize({
     clusterBorder: "rgba(200, 255, 61, 0.18)",
     edgeLabelBackground: "#07100a",
     fontFamily: "Space Grotesk, JetBrains Mono, monospace",
-    fontSize: "13px"
+    fontSize: "15px"
   },
   securityLevel: "loose",
   flowchart: {
@@ -369,6 +370,7 @@ export default function FlowchartStudio({ workspace, token }) {
   const [exportingPng, setExportingPng] = useState(false);
   const [toast, setToast] = useState("");
 
+  const studioRootRef = useRef(null);
   const diagramContainerRef = useRef(null);
   const viewportRef = useRef(null);
   const viewportCardRef = useRef(null);
@@ -551,6 +553,24 @@ export default function FlowchartStudio({ workspace, token }) {
   };
 
   // 3. Render Mermaid SVG safely
+  const animateDiagramIn = useCallback(() => {
+    const container = diagramContainerRef.current;
+    if (!container) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    gsap.fromTo(
+      container,
+      { opacity: 0, y: 14, scale: 0.975 },
+      {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.62,
+        ease: "power3.out",
+        clearProps: "opacity,transform"
+      }
+    );
+  }, []);
+
   const renderMermaidSvg = async (code) => {
     if (!code) return;
     const renderSeq = ++mermaidRenderSeqRef.current;
@@ -563,6 +583,7 @@ export default function FlowchartStudio({ workspace, token }) {
       if (renderSeq !== mermaidRenderSeqRef.current) return;
       if (diagramContainerRef.current) {
         diagramContainerRef.current.innerHTML = svg;
+        animateDiagramIn();
       }
       setSvgRenderError(null);
       window.requestAnimationFrame(() => applySvgDecorations());
@@ -579,6 +600,7 @@ export default function FlowchartStudio({ workspace, token }) {
         if (renderSeq !== mermaidRenderSeqRef.current) return;
         if (diagramContainerRef.current) {
           diagramContainerRef.current.innerHTML = svg;
+          animateDiagramIn();
         }
         setSvgRenderError(null);
         window.requestAnimationFrame(() => applySvgDecorations());
@@ -743,7 +765,7 @@ export default function FlowchartStudio({ workspace, token }) {
       (viewport.clientHeight - 118) / height,
       1.7
     );
-    setZoomLevel(clamp(Number(scale.toFixed(2)), 0.3, 2.4));
+    setZoomLevel(clamp(Number(scale.toFixed(2)), 0.6, 2.4));
     setPan({ x: 0, y: 0 });
   }, []);
 
@@ -1033,8 +1055,101 @@ export default function FlowchartStudio({ workspace, token }) {
 
   const webglAvailable = useMemo(() => supportsWebGL(), []);
 
+  // GSAP choreography: the studio shell settles in on mount, then the active
+  // stage cross-fades whenever the operator switches between 2D, 3D and code.
+  useEffect(() => {
+    const root = studioRootRef.current;
+    if (!root) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".analytics-header-card, .analytics-kpi-card",
+        { opacity: 0, y: 20, filter: "blur(8px)" },
+        {
+          opacity: 1,
+          y: 0,
+          filter: "blur(0px)",
+          duration: 0.58,
+          stagger: 0.05,
+          ease: "power3.out",
+          clearProps: "filter,transform,opacity"
+        }
+      );
+
+      gsap.fromTo(
+        ".flowchart-presets-bar, .flowchart-prompt-box, .fc-workbench",
+        { opacity: 0, y: 24, scale: 0.992 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.68,
+          delay: 0.12,
+          stagger: 0.06,
+          ease: "power3.out",
+          clearProps: "transform,opacity"
+        }
+      );
+
+      gsap.fromTo(
+        ".fc-toolrail button",
+        { opacity: 0, x: -10 },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.38,
+          delay: 0.3,
+          stagger: 0.018,
+          ease: "power2.out",
+          clearProps: "transform,opacity"
+        }
+      );
+
+      gsap.fromTo(
+        ".fc-inspector",
+        { opacity: 0, x: 18 },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.55,
+          delay: 0.24,
+          ease: "power3.out",
+          clearProps: "transform,opacity"
+        }
+      );
+    }, root);
+
+    return () => ctx.revert();
+  }, []);
+
+  useEffect(() => {
+    const root = studioRootRef.current;
+    if (!root) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+
+    const ctx = gsap.context(() => {
+      const stage = root.querySelector(".fc-stage > *");
+      if (!stage) return;
+      gsap.fromTo(
+        stage,
+        { opacity: 0, y: 12, scale: 0.995 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.42,
+          ease: "power2.out",
+          clearProps: "transform,opacity"
+        }
+      );
+    }, root);
+
+    return () => ctx.revert();
+  }, [viewMode]);
+
   return (
-    <div className="flowchart-studio-container">
+    <div className="flowchart-studio-container" ref={studioRootRef}>
       {/* Symmetric Top Header Card */}
       <div className="analytics-header-card">
         <div className="analytics-header-main">
@@ -1513,6 +1628,37 @@ export default function FlowchartStudio({ workspace, token }) {
                       </pre>
                     )}
                   </div>
+                ) : !flowchartData?.mermaidCode ? (
+                  <div className="fc-empty-state">
+                    <div className="fc-empty-orbit" aria-hidden="true">
+                      <GitBranch size={30} />
+                      <span />
+                      <span />
+                    </div>
+                    <h3>Map your architecture in one prompt</h3>
+                    <p>
+                      Describe a flow, service boundary or request lifecycle. Project Brain
+                      reads the connected repository and renders a living Mermaid topology.
+                    </p>
+                    <div className="fc-empty-suggestions">
+                      {[
+                        "Show the full request lifecycle from client to database",
+                        "Map authentication, sessions and token refresh",
+                        "Explain how the RAG retrieval pipeline works"
+                      ].map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => handleGenerateFlowchart(suggestion)}
+                          disabled={loading}
+                        >
+                          <Sparkles size={12} />
+                          <span>{suggestion}</span>
+                          <ArrowRight size={12} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <div
                     ref={viewportRef}
@@ -1539,7 +1685,7 @@ export default function FlowchartStudio({ workspace, token }) {
                   </div>
                 )}
 
-                {!loading && !svgRenderError && (
+                {!loading && !svgRenderError && flowchartData?.mermaidCode && (
                   <>
                     <div className="fc-canvas-watermark">
                       <span className="fc-live-dot" />
@@ -1547,6 +1693,32 @@ export default function FlowchartStudio({ workspace, token }) {
                       <span className="fc-watermark-sep">/</span>
                       {orientation === "TD" ? "TOP → BOTTOM" : "LEFT → RIGHT"}
                     </div>
+
+                    {graph.groups.length > 0 && (
+                      <div className="fc-canvas-legend" aria-label="Diagram group legend">
+                        <span className="fc-canvas-legend-title">CLUSTERS</span>
+                        {graph.groups.slice(0, 6).map((group) => {
+                          const firstNode = graph.nodes.find((node) => node.group === group);
+                          return (
+                            <button
+                              key={group}
+                              type="button"
+                              onClick={() => firstNode && focusNode(firstNode.id)}
+                              title={`Focus ${group}`}
+                            >
+                              <span
+                                className="fc-group-swatch"
+                                style={{ background: groupColors.get(group) }}
+                              />
+                              <span>{group}</span>
+                              <strong>
+                                {graph.nodes.filter((node) => node.group === group).length}
+                              </strong>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <div className="fc-zoom-hud">
                       <button type="button" onClick={handleZoomOut} title="Zoom out">
